@@ -1,0 +1,316 @@
+name: CD - Deploy to Staging
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  REGISTRY: ghcr.io
+  AWS_REGION: us-east-1
+
+jobs:
+  # ========================================
+  # 1. BUILD & PUSH DOCKER IMAGES
+  # ========================================
+  build-and-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      api-image: ${{ steps.meta-api.outputs.tags }}
+      web-image: ${{ steps.meta-web.outputs.tags }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build & Push API
+      - name: Extract metadata (API)
+        id: meta-api
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/api
+          tags: |
+            type=sha,prefix={{branch}}-
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and push API
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./docker/Dockerfile.api
+          push: true
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build & Push Web
+      - name: Extract metadata (Web)
+        id: meta-web
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/web
+          tags: |
+            type=sha,prefix={{branch}}-
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+
+      - name: Build and push Web
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./docker/Dockerfile.web
+          push: true
+          tags: ${{ steps.meta-web.outputs.tags }}
+          labels: ${{ steps.meta-web.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ========================================
+  # 2. RUN DATABASE MIGRATIONS
+  # ========================================
+  migrate-database:
+    name: Database Migrations
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment:
+      name: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - run: pnpm install --no-frozen-lockfile
+
+      - name: Run migrations
+        run: cd apps/api && npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
+          NODE_ENV: staging
+
+      - name: Verify migrations
+        run: cd apps/api && npx prisma validate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
+
+      - name: Notify Slack - Migration Success
+        if: success()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK }}
+          payload: |
+            {
+              "text": "✅ Database migrations completed for staging",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "✅ *Database Migrations - Staging*\n*Commit:* <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>"
+                  }
+                }
+              ]
+            }
+
+  # ========================================
+  # 3. DEPLOY TO VERCEL (Frontend)
+  # ========================================
+  deploy-web-vercel:
+    name: Deploy Web (Vercel)
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment:
+      name: staging
+      url: https://caracal-staging.vercel.app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - run: pnpm install --no-frozen-lockfile
+
+      - name: Build frontend
+        run: cd apps/web && pnpm build
+        env:
+          NEXT_PUBLIC_API_URL: https://api-staging.caracaltechmotors.com
+          NEXT_PUBLIC_APP_URL: https://caracal-staging.vercel.app
+
+      - name: Deploy to Vercel
+        uses: vercel/action@v4
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+          working-directory: ./apps/web
+          alias: staging
+
+      - name: Notify deployment
+        run: |
+          echo "✅ Web deployed to: https://caracal-staging.vercel.app"
+
+  # ========================================
+  # 4. DEPLOY TO RAILWAY (Backend API)
+  # ========================================
+  deploy-api-railway:
+    name: Deploy API (Railway)
+    runs-on: ubuntu-latest
+    needs: [build-and-push, migrate-database]
+    environment:
+      name: staging
+      url: https://api-staging.caracaltechmotors.com
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy API to Railway
+        run: |
+          npm install -g @railway/cli
+          railway up
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          SERVICE: caracal-api-staging
+
+      - name: Health check
+        run: |
+          for i in {1..30}; do
+            response=$(curl -s -o /dev/null -w "%{http_code}" https://api-staging.caracaltechmotors.com/health)
+            if [ $response -eq 200 ]; then
+              echo "✅ API is healthy"
+              exit 0
+            fi
+            echo "Attempt $i: got status $response, retrying..."
+            sleep 2
+          done
+          echo "❌ API health check failed"
+          exit 1
+
+  # ========================================
+  # 5. SMOKE TESTS
+  # ========================================
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-web-vercel, deploy-api-railway]
+    if: success()
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - run: pnpm install --no-frozen-lockfile
+
+      - name: Run smoke tests
+        run: pnpm test:smoke:staging
+        env:
+          STAGING_API_URL: https://api-staging.caracaltechmotors.com
+          STAGING_WEB_URL: https://caracal-staging.vercel.app
+
+      - name: Generate report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: smoke-test-report
+          path: coverage/smoke-tests.html
+
+  # ========================================
+  # 6. NOTIFY TEAM
+  # ========================================
+  notify-deployment:
+    name: Notify Team
+    runs-on: ubuntu-latest
+    needs: [deploy-web-vercel, deploy-api-railway, smoke-tests]
+    if: always()
+
+    steps:
+      - name: Deployment Status
+        run: |
+          if [ "${{ needs.deploy-web-vercel.result }}" = "success" ] && \
+             [ "${{ needs.deploy-api-railway.result }}" = "success" ] && \
+             [ "${{ needs.smoke-tests.result }}" = "success" ]; then
+            echo "DEPLOYMENT_STATUS=✅ SUCCESS"
+          else
+            echo "DEPLOYMENT_STATUS=❌ FAILURE"
+          fi >> $GITHUB_ENV
+
+      - name: Slack Notification
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK }}
+          payload: |
+            {
+              "text": "${{ env.DEPLOYMENT_STATUS }} - Staging Deployment",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*${{ env.DEPLOYMENT_STATUS }} Staging Deployment*\n*Branch:* `develop`\n*Commit:* <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\n*By:* ${{ github.actor }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Web*\n<https://caracal-staging.vercel.app|Open URL>"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*API*\n<https://api-staging.caracaltechmotors.com|Open URL>"
+                    }
+                  ]
+                }
+              ]
+            }
+
+      - name: Comment on commit
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ env.DEPLOYMENT_STATUS }}'.includes('✅') ? 'Success' : 'Failed';
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `**${status}** - Staging deployment\n- Web: https://caracal-staging.vercel.app\n- API: https://api-staging.caracaltechmotors.com`
+            })

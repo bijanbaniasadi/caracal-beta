@@ -1,0 +1,73 @@
+{
+  "name": "caracal-tech-motors",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Caracal Tech Motors Beta Platform - Monorepo",
+  "license": "PROPRIETARY",
+  "author": "Caracal Motors <dev@caracaltechmotors.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bijjanbianiasadi/caracal-beta.git"
+  },
+  "packageManager": "pnpm@8.15.9",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/@caracal/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:web": "pnpm --filter @caracal/web dev",
+    "dev:api": "pnpm --filter @caracal/api dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "test:unit": "turbo test:unit",
+    "test:coverage": "turbo test -- --coverage",
+    "test:smoke:staging": "pnpm --filter @caracal/web test:smoke -- --config=playwright.staging.config.ts",
+    "lint": "turbo lint",
+    "lint:fix": "turbo lint -- --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "type-check": "turbo type-check",
+    "clean": "turbo clean && rimraf node_modules",
+    "db:migrate": "pnpm --filter @caracal/api migrate:dev",
+    "db:deploy": "pnpm --filter @caracal/api migrate:deploy",
+    "db:seed": "pnpm --filter @caracal/api seed",
+    "db:studio": "pnpm --filter @caracal/api db:studio",
+    "setup": "powershell -ExecutionPolicy Bypass -File scripts/setup.ps1",
+    "start:dev": "powershell -ExecutionPolicy Bypass -File scripts/dev.ps1",
+    "precommit": "lint-staged",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^17.8.0",
+    "@commitlint/config-conventional": "^17.8.0",
+    "@testing-library/react": "^14.1.2",
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "eslint-config-next": "^15.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.1.0",
+    "rimraf": "^5.0.5",
+    "turbo": "^1.10.16",
+    "typescript": "^5.3.2",
+    "vitest": "^1.0.4"
+  },
+  "pnpm": {
+    "overrides": {
+      "typescript": "^5.3.2"
+    }
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  }
+}

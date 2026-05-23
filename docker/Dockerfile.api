@@ -1,0 +1,10 @@
+FROM node:20-alpine AS base
+WORKDIR /app
+RUN corepack enable
+
+COPY . .
+RUN pnpm install
+RUN pnpm --filter @caracal/api build
+
+EXPOSE 3001
+CMD ["pnpm", "--filter", "@caracal/api", "start"]
