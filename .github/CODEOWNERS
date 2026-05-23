@@ -1,0 +1,21 @@
+# Core team reviews all PRs
+* @caracal-motors/caracal-core-team
+
+# API changes
+apps/api/ @caracal-motors/caracal-backend-team
+apps/api/migrations/ @caracal-motors/caracal-dba-team
+
+# Frontend changes
+apps/web/ @caracal-motors/caracal-frontend-team
+apps/web/public/ @caracal-motors/caracal-design-team
+
+# Shared packages
+packages/ @caracal-motors/caracal-core-team
+
+# Database
+packages/@caracal/db/ @caracal-motors/caracal-dba-team
+
+# Security-sensitive
+.github/workflows/ @caracal-motors/caracal-security-team
+packages/@caracal/auth/ @caracal-motors/caracal-security-team
+apps/api/src/middleware/auth.middleware.ts @caracal-motors/caracal-security-team
