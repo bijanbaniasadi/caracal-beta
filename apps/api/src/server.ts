@@ -1,5 +1,6 @@
 import 'dotenv/config';
 
+import { disconnectPrismaClient } from '@caracal/db';
 import { createServer } from 'node:http';
 
 import { createApp } from './app.js';
@@ -14,7 +15,8 @@ server.listen(port, () => {
 
 function shutdown(signal: NodeJS.Signals): void {
   console.log(`Received ${signal}; shutting down API server.`);
-  server.close(() => {
+  server.close(async () => {
+    await disconnectPrismaClient();
     process.exit(0);
   });
 }

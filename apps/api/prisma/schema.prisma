@@ -14,3 +14,144 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+enum IntakeStatus {
+  NEW
+  IN_REVIEW
+  RESPONDED
+  CLOSED
+  SPAM
+}
+
+enum BinUploadStatus {
+  RECEIVED
+  VALIDATED
+  REJECTED
+  STORED
+}
+
+enum StorageProvider {
+  LOCAL
+  R2
+}
+
+enum AuditActorType {
+  ANONYMOUS
+  USER
+  SYSTEM
+}
+
+model BinUpload {
+  id               String          @id @default(cuid())
+  originalFileName String
+  storedObjectKey  String          @unique
+  storageProvider  StorageProvider @default(LOCAL)
+  mimeType         String
+  byteSize         Int
+  sha256           String
+  status           BinUploadStatus @default(RECEIVED)
+  requesterName    String?
+  requesterEmail   String?
+  productContext   String?
+  notes            String?
+  rejectionReason  String?
+  metadata         Json?
+  quoteRequestId   String?
+  quoteRequest     QuoteRequest?   @relation(fields: [quoteRequestId], references: [id], onDelete: SetNull)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([requesterEmail])
+  @@index([sha256])
+  @@index([quoteRequestId])
+  @@index([createdAt])
+}
+
+model QuoteRequest {
+  id             String      @id @default(cuid())
+  referenceCode  String      @unique
+  customerName   String
+  customerEmail  String
+  customerPhone  String?
+  companyName    String?
+  workshopName   String?
+  vehicleDetails String?
+  requestedItems Json?
+  message        String
+  status         IntakeStatus @default(NEW)
+  source         String       @default("api")
+  metadata       Json?
+  binUploads     BinUpload[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([customerEmail])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ProductInquiry {
+  id             String       @id @default(cuid())
+  referenceCode  String       @unique
+  productId      String?
+  productSku     String?
+  productName    String
+  customerName   String
+  customerEmail  String
+  customerPhone  String?
+  companyName    String?
+  quantity       Int?
+  message        String
+  status         IntakeStatus @default(NEW)
+  source         String       @default("api")
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([customerEmail])
+  @@index([productSku])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model WorkshopConsultationLead {
+  id                String       @id @default(cuid())
+  referenceCode     String       @unique
+  workshopName      String
+  contactName       String
+  contactEmail      String
+  contactPhone      String?
+  location          String?
+  monthlyVolume     Int?
+  serviceInterests  Json?
+  preferredTimeline String?
+  message           String
+  status            IntakeStatus @default(NEW)
+  source            String       @default("api")
+  metadata          Json?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([contactEmail])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id         String         @id @default(cuid())
+  actorType  AuditActorType @default(ANONYMOUS)
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  requestId  String?
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime       @default(now())
+
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([requestId])
+  @@index([createdAt])
+}

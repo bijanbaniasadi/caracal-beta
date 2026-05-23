@@ -20,7 +20,8 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "@caracal/config": "workspace:*"
+    "@caracal/config": "workspace:*",
+    "@prisma/client": "^5.7.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

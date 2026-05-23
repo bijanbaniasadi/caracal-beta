@@ -112,4 +112,5 @@ docs(web): update dashboard quickstart
 ```
 
 See `CONTRIBUTING.md`, `ARCHITECTURE.md`, and `CONFIG_REFERENCE.md` for the full project conventions.
+See `docs/BACKEND_FEATURES.md` for backend intake endpoints.
 See `docs/LOCAL_DEVELOPMENT.md` for runtime setup and troubleshooting.

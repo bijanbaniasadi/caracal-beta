@@ -2,7 +2,16 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 
+import { sendSuccess } from './lib/api-response.js';
+import { httpLogger } from './lib/logger.js';
+import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
+import { apiLimiter } from './middleware/rate-limit.js';
+import { requestContext } from './middleware/request-context.js';
+import { binUploadsRouter } from './routes/bin-uploads.js';
 import { healthRouter } from './routes/health.js';
+import { productInquiriesRouter } from './routes/product-inquiries.js';
+import { quoteRequestsRouter } from './routes/quote-requests.js';
+import { workshopConsultationsRouter } from './routes/workshop-consultations.js';
 
 function parseCorsOrigins(value = process.env.CORS_ORIGINS): string[] {
   return (value ?? 'http://localhost:3000,http://localhost:3001')
@@ -14,38 +23,29 @@ function parseCorsOrigins(value = process.env.CORS_ORIGINS): string[] {
 export function createApp(): express.Express {
   const app = express();
 
+  app.set('trust proxy', 1);
   app.use(helmet());
   app.use(cors({ origin: parseCorsOrigins(), credentials: true }));
+  app.use(requestContext);
+  app.use(httpLogger);
   app.use(express.json({ limit: '1mb' }));
 
   app.get('/', (_req, res) => {
-    res.json({
+    sendSuccess(res, {
       service: 'caracal-api',
       status: 'ok',
     });
   });
 
   app.use('/health', healthRouter);
+  app.use('/api', apiLimiter);
+  app.use('/api/bin-uploads', binUploadsRouter);
+  app.use('/api/quote-requests', quoteRequestsRouter);
+  app.use('/api/product-inquiries', productInquiriesRouter);
+  app.use('/api/workshop-consultations', workshopConsultationsRouter);
 
-  app.use((_req, res) => {
-    res.status(404).json({
-      error: {
-        code: 'not_found',
-        message: 'Route not found',
-      },
-    });
-  });
-
-  app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    const message = error instanceof Error ? error.message : 'Unexpected server error';
-
-    res.status(500).json({
-      error: {
-        code: 'internal_server_error',
-        message,
-      },
-    });
-  });
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
   return app;
 }
