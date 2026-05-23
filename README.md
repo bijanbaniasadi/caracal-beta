@@ -19,6 +19,13 @@ pnpm setup
 
 The setup script copies `.env.example` to `.env.local` when needed and installs workspace dependencies.
 
+For a fresh clone with Node.js and pnpm already available:
+
+```bash
+pnpm install
+pnpm dev
+```
+
 ### Start Development
 
 ```bash
@@ -105,3 +112,4 @@ docs(web): update dashboard quickstart
 ```
 
 See `CONTRIBUTING.md`, `ARCHITECTURE.md`, and `CONFIG_REFERENCE.md` for the full project conventions.
+See `docs/LOCAL_DEVELOPMENT.md` for runtime setup and troubleshooting.
