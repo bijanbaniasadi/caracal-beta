@@ -62,14 +62,33 @@ async function main(): Promise<void> {
 
   await prisma.auditLog.delete({ where: { id: probe.id } });
 
-  const [quoteRequests, productInquiries, workshopLeads, binUploads, auditLogs] =
-    await prisma.$transaction([
-      prisma.quoteRequest.count(),
-      prisma.productInquiry.count(),
-      prisma.workshopConsultationLead.count(),
-      prisma.binUpload.count(),
-      prisma.auditLog.count(),
-    ]);
+  const [
+    suppliers,
+    categories,
+    products,
+    productImages,
+    inventoryItems,
+    carts,
+    cartItems,
+    quoteRequests,
+    productInquiries,
+    workshopLeads,
+    binUploads,
+    auditLogs,
+  ] = await prisma.$transaction([
+    prisma.supplier.count(),
+    prisma.category.count(),
+    prisma.product.count(),
+    prisma.productImage.count(),
+    prisma.inventoryItem.count(),
+    prisma.cart.count(),
+    prisma.cartItem.count(),
+    prisma.quoteRequest.count(),
+    prisma.productInquiry.count(),
+    prisma.workshopConsultationLead.count(),
+    prisma.binUpload.count(),
+    prisma.auditLog.count(),
+  ]);
 
   console.log(
     JSON.stringify(
@@ -96,6 +115,13 @@ async function main(): Promise<void> {
           },
         },
         counts: {
+          suppliers,
+          categories,
+          products,
+          productImages,
+          inventoryItems,
+          carts,
+          cartItems,
           quoteRequests,
           productInquiries,
           workshopLeads,

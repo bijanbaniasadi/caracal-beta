@@ -8,8 +8,10 @@ import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { apiLimiter } from './middleware/rate-limit.js';
 import { requestContext } from './middleware/request-context.js';
 import { binUploadsRouter } from './routes/bin-uploads.js';
+import { categoriesRouter } from './routes/categories.js';
 import { healthRouter } from './routes/health.js';
 import { productInquiriesRouter } from './routes/product-inquiries.js';
+import { productsRouter } from './routes/products.js';
 import { quoteRequestsRouter } from './routes/quote-requests.js';
 import { workshopConsultationsRouter } from './routes/workshop-consultations.js';
 
@@ -40,6 +42,8 @@ export function createApp(): express.Express {
   app.use('/health', healthRouter);
   app.use('/api', apiLimiter);
   app.use('/api/bin-uploads', binUploadsRouter);
+  app.use('/api/categories', categoriesRouter);
+  app.use('/api/products', productsRouter);
   app.use('/api/quote-requests', quoteRequestsRouter);
   app.use('/api/product-inquiries', productInquiriesRouter);
   app.use('/api/workshop-consultations', workshopConsultationsRouter);
