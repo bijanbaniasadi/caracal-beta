@@ -1,0 +1,412 @@
+{
+  "generatedAt": "2026-05-24",
+  "summary": {
+    "phpFileCount": 66,
+    "categories": {
+      "publicLandingAndService": 8,
+      "catalogAndCheckout": 10,
+      "knowledgeAndAcademy": 5,
+      "toolsAndUploads": 9,
+      "authAndAdmin": 8,
+      "legalAndStatic": 5
+    }
+  },
+  "pages": [
+    {
+      "path": "academy.php",
+      "route": "/academy.php",
+      "category": "knowledgeAndAcademy",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "admin_panel.php",
+      "route": "/admin_panel.php",
+      "category": "authAndAdmin",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "admin_shop.php",
+      "route": "/admin_shop.php",
+      "category": "authAndAdmin",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "admin.php",
+      "route": "/admin.php",
+      "category": "authAndAdmin",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "articles.php",
+      "route": "/articles.php",
+      "category": "knowledgeAndAcademy",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "cancel.php",
+      "route": "/cancel.php",
+      "category": "catalogAndCheckout",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "cart.php",
+      "route": "/cart.php",
+      "category": "catalogAndCheckout",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "chat-api.php",
+      "route": "/chat-api.php",
+      "category": "toolsAndUploads",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "checkout.php",
+      "route": "/checkout.php",
+      "category": "catalogAndCheckout",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "client_panel.php",
+      "route": "/client_panel.php",
+      "category": "authAndAdmin",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "completed-jobs.php",
+      "route": "/completed-jobs.php",
+      "category": "knowledgeAndAcademy",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "course.php",
+      "route": "/course.php",
+      "category": "knowledgeAndAcademy",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "create-payment.php",
+      "route": "/create-payment.php",
+      "category": "catalogAndCheckout",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "db_config.local.php",
+      "route": "/db_config.local.php",
+      "category": "other",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "db_config.php",
+      "route": "/db_config.php",
+      "category": "other",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "db_config.sample.php",
+      "route": "/db_config.sample.php",
+      "category": "other",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "device-image.php",
+      "route": "/device-image.php",
+      "category": "toolsAndUploads",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "ecu-calculator.php",
+      "route": "/ecu-calculator.php",
+      "category": "toolsAndUploads",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "ecu-lookup.php",
+      "route": "/ecu-lookup.php",
+      "category": "toolsAndUploads",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "ecu-patcher.php",
+      "route": "/ecu-patcher.php",
+      "category": "toolsAndUploads",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "ecu-remapping-dubai.php",
+      "route": "/ecu-remapping-dubai.php",
+      "category": "publicLandingAndService",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "ecu-tuning-dealers.php",
+      "route": "/ecu-tuning-dealers.php",
+      "category": "publicLandingAndService",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "ecu-tuning-software.php",
+      "route": "/ecu-tuning-software.php",
+      "category": "publicLandingAndService",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "ecu-tuning-tools.php",
+      "route": "/ecu-tuning-tools.php",
+      "category": "publicLandingAndService",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "ecu-tuning.php",
+      "route": "/ecu-tuning.php",
+      "category": "publicLandingAndService",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "hosting-check.php",
+      "route": "/hosting-check.php",
+      "category": "legalAndStatic",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "immo-data.php",
+      "route": "/immo-data.php",
+      "category": "toolsAndUploads",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "immo-dpf-adblue-services.php",
+      "route": "/immo-dpf-adblue-services.php",
+      "category": "publicLandingAndService",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "includes/article-library.php",
+      "route": "/includes/article-library.php",
+      "category": "include-library",
+      "migrationAction": "do-not-port-architecture; extract concepts only"
+    },
+    {
+      "path": "includes/article-overrides.php",
+      "route": "/includes/article-overrides.php",
+      "category": "include-library",
+      "migrationAction": "do-not-port-architecture; extract concepts only"
+    },
+    {
+      "path": "includes/auth-security.php",
+      "route": "/includes/auth-security.php",
+      "category": "include-library",
+      "migrationAction": "do-not-port-architecture; extract concepts only"
+    },
+    {
+      "path": "includes/google-reviews.php",
+      "route": "/includes/google-reviews.php",
+      "category": "include-library",
+      "migrationAction": "do-not-port-architecture; extract concepts only"
+    },
+    {
+      "path": "includes/growth.php",
+      "route": "/includes/growth.php",
+      "category": "include-library",
+      "migrationAction": "do-not-port-architecture; extract concepts only"
+    },
+    {
+      "path": "includes/runtime-config.php",
+      "route": "/includes/runtime-config.php",
+      "category": "include-library",
+      "migrationAction": "do-not-port-architecture; extract concepts only"
+    },
+    {
+      "path": "includes/seo-topics.php",
+      "route": "/includes/seo-topics.php",
+      "category": "include-library",
+      "migrationAction": "do-not-port-architecture; extract concepts only"
+    },
+    {
+      "path": "includes/shop-gateways.php",
+      "route": "/includes/shop-gateways.php",
+      "category": "include-library",
+      "migrationAction": "do-not-port-architecture; extract concepts only"
+    },
+    {
+      "path": "includes/shop.php",
+      "route": "/includes/shop.php",
+      "category": "include-library",
+      "migrationAction": "do-not-port-architecture; extract concepts only"
+    },
+    {
+      "path": "includes/site-content.php",
+      "route": "/includes/site-content.php",
+      "category": "include-library",
+      "migrationAction": "do-not-port-architecture; extract concepts only"
+    },
+    {
+      "path": "includes/site-shell.php",
+      "route": "/includes/site-shell.php",
+      "category": "include-library",
+      "migrationAction": "do-not-port-architecture; extract concepts only"
+    },
+    {
+      "path": "includes/training-library.php",
+      "route": "/includes/training-library.php",
+      "category": "include-library",
+      "migrationAction": "do-not-port-architecture; extract concepts only"
+    },
+    {
+      "path": "includes/translations.php",
+      "route": "/includes/translations.php",
+      "category": "include-library",
+      "migrationAction": "do-not-port-architecture; extract concepts only"
+    },
+    {
+      "path": "index.php",
+      "route": "/index.php",
+      "category": "publicLandingAndService",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "invoice-payment.php",
+      "route": "/invoice-payment.php",
+      "category": "catalogAndCheckout",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "knowledge-article.php",
+      "route": "/knowledge-article.php",
+      "category": "knowledgeAndAcademy",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "login.php",
+      "route": "/login.php",
+      "category": "authAndAdmin",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "logout.php",
+      "route": "/logout.php",
+      "category": "authAndAdmin",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "lookup-api.php",
+      "route": "/lookup-api.php",
+      "category": "toolsAndUploads",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "lookup-data.php",
+      "route": "/lookup-data.php",
+      "category": "toolsAndUploads",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "lookup-options.php",
+      "route": "/lookup-options.php",
+      "category": "toolsAndUploads",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "paypal-config.sample.php",
+      "route": "/paypal-config.sample.php",
+      "category": "other",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "privacy.php",
+      "route": "/privacy.php",
+      "category": "legalAndStatic",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "product.php",
+      "route": "/product.php",
+      "category": "catalogAndCheckout",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "projects.php",
+      "route": "/projects.php",
+      "category": "publicLandingAndService",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "refund.php",
+      "route": "/refund.php",
+      "category": "legalAndStatic",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "register.php",
+      "route": "/register.php",
+      "category": "authAndAdmin",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "setup-auth.php",
+      "route": "/setup-auth.php",
+      "category": "authAndAdmin",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "shipping.php",
+      "route": "/shipping.php",
+      "category": "legalAndStatic",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "shop-return.php",
+      "route": "/shop-return.php",
+      "category": "catalogAndCheckout",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "shop-webhook-stripe.php",
+      "route": "/shop-webhook-stripe.php",
+      "category": "catalogAndCheckout",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "shop.php",
+      "route": "/shop.php",
+      "category": "catalogAndCheckout",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "stripe-config.php",
+      "route": "/stripe-config.php",
+      "category": "other",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "success.php",
+      "route": "/success.php",
+      "category": "catalogAndCheckout",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "telr-config.sample.php",
+      "route": "/telr-config.sample.php",
+      "category": "other",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "terms.php",
+      "route": "/terms.php",
+      "category": "legalAndStatic",
+      "migrationAction": "replace with modern backend/frontend route or redirect"
+    },
+    {
+      "path": "tmp_diag/seogen.php",
+      "route": "/tmp_diag/seogen.php",
+      "category": "diagnostic-script",
+      "migrationAction": "do-not-port-architecture; extract concepts only"
+    },
+    {
+      "path": "tmp_diag/upd1.php",
+      "route": "/tmp_diag/upd1.php",
+      "category": "diagnostic-script",
+      "migrationAction": "do-not-port-architecture; extract concepts only"
+    }
+  ]
+}

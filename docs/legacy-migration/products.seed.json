@@ -1,0 +1,1735 @@
+{
+  "generatedAt": "2026-05-24",
+  "source": "legacy PHP backup data/products-import.sql plus database/shop.sql demo rows",
+  "currency": "AED",
+  "priceUnit": "minor",
+  "products": [
+    {
+      "legacyId": "CT-0001",
+      "sku": "MK18000",
+      "slug": "alientech-kessv3-ecu-and-tcu-programmer-obd-bench-boot",
+      "name": "ALIENTECH KESSv3 ECU and TCU Programmer — OBD, Bench & Boot",
+      "description": "Professional ECU and TCU programmer. Reads and writes via OBD, Bench and Boot protocols for cars, trucks, agriculture and marine vessels.",
+      "price": {
+        "amountMinor": 328592,
+        "compareAtAmountMinor": 388336,
+        "currency": "AED"
+      },
+      "categorySlug": "tuning-tools",
+      "brand": "Alientech",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK18000",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 1,
+      "imageCandidates": [
+        "article-covers/ecu-programmers.png",
+        "article-covers/what-is-kess3.png",
+        "assets/images/devices/kess3-inline.jpg",
+        "assets/images/devices/kess3.png",
+        "kess3.png"
+      ],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_tuning",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0002",
+      "sku": "MKON482",
+      "slug": "alientech-kess3-slave-cars-agriculture-truck-bikes-marine-ob",
+      "name": "Alientech KESS3 Slave — Cars, Agriculture, Truck, Bikes, Marine (OBD-Bench-Boot)",
+      "description": "KESS3 Slave programmer with full vehicle coverage. Supports all read/write protocols: OBD, Bench, and Boot across all vehicle categories.",
+      "price": {
+        "amountMinor": 2102994,
+        "compareAtAmountMinor": 2485357,
+        "currency": "AED"
+      },
+      "categorySlug": "tuning-tools",
+      "brand": "Alientech",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MKON482",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 2,
+      "imageCandidates": [
+        "article-covers/what-is-kess3.png",
+        "assets/images/devices/kess3-inline.jpg",
+        "assets/images/devices/kess3.png",
+        "kess3.png"
+      ],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_tuning",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0003",
+      "sku": "MKON481",
+      "slug": "alientech-kess3-master-cars-agriculture-truck-bikes-marine-o",
+      "name": "Alientech KESS3 Master — Cars, Agriculture, Truck, Bikes, Marine (OBD-Bench-Boot)",
+      "description": "KESS3 Master programmer with the widest vehicle coverage. Full OBD, Bench and Boot read/write for cars, agriculture, trucks, bikes and marine.",
+      "price": {
+        "amountMinor": 4074552,
+        "compareAtAmountMinor": 4815380,
+        "currency": "AED"
+      },
+      "categorySlug": "tuning-tools",
+      "brand": "Alientech",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MKON481",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 3,
+      "imageCandidates": [
+        "article-covers/what-is-kess3.png",
+        "assets/images/devices/kess3-inline.jpg",
+        "assets/images/devices/kess3.png",
+        "kess3.png"
+      ],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_tuning",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0004",
+      "sku": "MKON332",
+      "slug": "autotuner-tool-device-master-version",
+      "name": "AutoTuner Tool Device — Master Version",
+      "description": "AutoTuner Master: professional ECU remapping device with OBD, Bench and Boot support. Wide coverage of car, truck and agricultural ECUs.",
+      "price": {
+        "amountMinor": 2300149,
+        "compareAtAmountMinor": 2718358,
+        "currency": "AED"
+      },
+      "categorySlug": "tuning-tools",
+      "brand": "AutoTuner",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MKON332",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 4,
+      "imageCandidates": [
+        "assets/images/devices/autotuner-inline.jpg",
+        "assets/images/devices/autotuner.jpg",
+        "assets/images/devices/autotuner.png",
+        "assets/images/devices/autotuner.webp",
+        "assets/images/devices/bflash-inline.jpg",
+        "assets/images/devices/bflash-inline.png",
+        "assets/images/devices/bflash.png",
+        "assets/images/devices/kess3-inline.jpg",
+        "assets/images/devices/kess3.png",
+        "autotuner.png"
+      ],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_tuning",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0005",
+      "sku": "MKON331",
+      "slug": "autotuner-tool-device-slave-version",
+      "name": "AutoTuner Tool Device — Slave Version",
+      "description": "AutoTuner Slave programmer. Full read and write via OBD, Bench and Boot. Operates with AutoTuner Master or standalone.",
+      "price": {
+        "amountMinor": 1361313,
+        "compareAtAmountMinor": 1608824,
+        "currency": "AED"
+      },
+      "categorySlug": "tuning-tools",
+      "brand": "AutoTuner",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MKON331",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 5,
+      "imageCandidates": [
+        "assets/images/devices/autotuner-inline.jpg",
+        "assets/images/devices/autotuner.jpg",
+        "assets/images/devices/autotuner.png",
+        "assets/images/devices/autotuner.webp",
+        "assets/images/devices/bflash-inline.jpg",
+        "assets/images/devices/bflash-inline.png",
+        "assets/images/devices/bflash.png",
+        "assets/images/devices/kess3-inline.jpg",
+        "assets/images/devices/kess3.png",
+        "autotuner.png"
+      ],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_tuning",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0006",
+      "sku": "MKON525",
+      "slug": "autotuner-one-multi-brand-obd-ii-personal-flasher",
+      "name": "AutoTuner One Multi-brand OBD-II Personal Flasher",
+      "description": "Compact multi-brand OBD-II personal flasher. Quick ECU and TCU updates via OBD for a wide range of vehicles.",
+      "price": {
+        "amountMinor": 93884,
+        "compareAtAmountMinor": 110954,
+        "currency": "AED"
+      },
+      "categorySlug": "tuning-tools",
+      "brand": "AutoTuner",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MKON525",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 6,
+      "imageCandidates": [
+        "assets/images/devices/autotuner-inline.jpg",
+        "assets/images/devices/autotuner.jpg",
+        "assets/images/devices/autotuner.png",
+        "assets/images/devices/autotuner.webp",
+        "autotuner.png"
+      ],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_tuning",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0007",
+      "sku": "MK22621",
+      "slug": "xhorse-xdmpg0gl-multi-prog-ecu-programmer-free-mqb48-akl-lic",
+      "name": "Xhorse XDMPG0GL Multi-Prog ECU Programmer + FREE MQB48 AKL License",
+      "description": "Multi-protocol ECU programmer with complimentary MQB48 all-keys-lost license. Reads and writes via OBD, Bench and Boot.",
+      "price": {
+        "amountMinor": 322960,
+        "compareAtAmountMinor": 381680,
+        "currency": "AED"
+      },
+      "categorySlug": "tuning-tools",
+      "brand": "Xhorse",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK22621",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 7,
+      "imageCandidates": [
+        "article-covers/ecu-programmers.png"
+      ],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_tuning",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0008",
+      "sku": "MK17318",
+      "slug": "cgdi-cg-fc200-ecu-programmer-full-version",
+      "name": "CGDI CG FC200 ECU Programmer — Full Version",
+      "description": "Full-version ECU programmer supporting over 4200 ECU types. Clone, read and write ECU data via OBD, Bench and Boot.",
+      "price": {
+        "amountMinor": 282186,
+        "compareAtAmountMinor": 333493,
+        "currency": "AED"
+      },
+      "categorySlug": "tuning-tools",
+      "brand": "CGDI",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK17318",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 8,
+      "imageCandidates": [
+        "article-covers/ecu-programmers.png"
+      ],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_tuning",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0009",
+      "sku": "MK22671",
+      "slug": "microtronik-hexprog-ii-lite-chip-tuning-tool",
+      "name": "Microtronik Hexprog II Lite Chip Tuning Tool",
+      "description": "Hexprog II Lite chip tuning platform. Full ECU read, write and checksum correction for popular petrol and diesel ECUs.",
+      "price": {
+        "amountMinor": 215980,
+        "compareAtAmountMinor": 255249,
+        "currency": "AED"
+      },
+      "categorySlug": "tuning-tools",
+      "brand": "Microtronik",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK22671",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 9,
+      "imageCandidates": [
+        "article-covers/ai-ecu-tuning.png",
+        "article-covers/chiptuning-files.png",
+        "article-covers/diesel-tuning-fundamental.png",
+        "article-covers/dyno-chiptuning-file-service.png",
+        "article-covers/ecu-remapping-tuning-near-me.png",
+        "article-covers/ecu-tuning-for-beginners.png",
+        "article-covers/edc-15-16-17-tuning-guide.png",
+        "article-covers/edc15-tuning-fundamentals-driver-wish-smoke-limit-and-boost-control.png",
+        "article-covers/gearbox-tcu-tuning-remap-tools-software.png",
+        "article-covers/hgv-remapping-truck-ecu-tuning.png"
+      ],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_tuning",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0010",
+      "sku": "MK26269",
+      "slug": "ecu-soft-powerbox-for-pcmflash",
+      "name": "ECU-Soft PowerBox for PCMFlash",
+      "description": "Bench power supply designed for PCMFlash ECU programming. Stable power with OBD pinout breakout for direct ECU bench work.",
+      "price": {
+        "amountMinor": 322960,
+        "compareAtAmountMinor": 381680,
+        "currency": "AED"
+      },
+      "categorySlug": "tuning-tools",
+      "brand": "ECU-Soft",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK26269",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 10,
+      "imageCandidates": [],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_tuning",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0011",
+      "sku": "MKON553",
+      "slug": "xhorse-key-tool-midi-advanced-version-xdkmd0en",
+      "name": "Xhorse Key Tool MIDI Advanced Version (XDKMD0EN)",
+      "description": "Advanced MIDI key programming device. Supports smart keys, proximity keys and remote generation for a wide range of vehicles.",
+      "price": {
+        "amountMinor": 322556,
+        "compareAtAmountMinor": 381203,
+        "currency": "AED"
+      },
+      "categorySlug": "diagnostic-tools",
+      "brand": "Xhorse",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MKON553",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 11,
+      "imageCandidates": [],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_diag",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0012",
+      "sku": "MK26449",
+      "slug": "xhorse-key-tool-midi-basic-version-xdkmd0en",
+      "name": "Xhorse Key Tool MIDI Basic Version (XDKMD0EN)",
+      "description": "Basic MIDI key programming device. OBD and blade key support for mainstream vehicles.",
+      "price": {
+        "amountMinor": 241816,
+        "compareAtAmountMinor": 285783,
+        "currency": "AED"
+      },
+      "categorySlug": "diagnostic-tools",
+      "brand": "Xhorse",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK26449",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 12,
+      "imageCandidates": [],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_diag",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0013",
+      "sku": "MKON184",
+      "slug": "avdi-abrites-vehicle-diagnostics-interface",
+      "name": "AVDI — Abrites Vehicle Diagnostics Interface",
+      "description": "AVDI diagnostics interface for advanced coding, programming and diagnostics on BMW, Mercedes, VAG, Land Rover and more.",
+      "price": {
+        "amountMinor": 352063,
+        "compareAtAmountMinor": 416074,
+        "currency": "AED"
+      },
+      "categorySlug": "diagnostic-tools",
+      "brand": "Abrites",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MKON184",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 13,
+      "imageCandidates": [],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_diag",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0014",
+      "sku": "MK17353",
+      "slug": "autel-maxibas-bt608-battery-and-electrical-system-diagnostic",
+      "name": "Autel MaxiBAS BT608 Battery and Electrical System Diagnostic Tool",
+      "description": "Professional battery and electrical tester. Tests 12V/24V batteries, starter, alternator and charging system.",
+      "price": {
+        "amountMinor": 201850,
+        "compareAtAmountMinor": 238550,
+        "currency": "AED"
+      },
+      "categorySlug": "diagnostic-tools",
+      "brand": "Autel",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK17353",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 14,
+      "imageCandidates": [],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_diag",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0015",
+      "sku": "MKON501",
+      "slug": "genuine-scanmatik-3-tool-with-tunerwire-boot-bench-cable",
+      "name": "Genuine Scanmatik 3 Tool with TunerWire Boot/Bench Cable",
+      "description": "Scanmatik 3 with TunerWire bench and boot cable. Full read, write and checksum for a wide range of ECUs.",
+      "price": {
+        "amountMinor": 193586,
+        "compareAtAmountMinor": 228784,
+        "currency": "AED"
+      },
+      "categorySlug": "diagnostic-tools",
+      "brand": "Scanmatik",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MKON501",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 15,
+      "imageCandidates": [],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_diag",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0016",
+      "sku": "MK25248",
+      "slug": "genuine-scanmatik-3-professional-scan-and-reprogramming-tool",
+      "name": "Genuine Scanmatik 3 Professional Scan and Reprogramming Tool",
+      "description": "Scanmatik 3 professional: scanning and reprogramming with OBD diagnostics and ECU data operations.",
+      "price": {
+        "amountMinor": 174188,
+        "compareAtAmountMinor": 205859,
+        "currency": "AED"
+      },
+      "categorySlug": "diagnostic-tools",
+      "brand": "Scanmatik",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK25248",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 16,
+      "imageCandidates": [],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_diag",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0017",
+      "sku": "MK25353",
+      "slug": "vnci-jlr-doip-jaguar-land-rover-diagnostic-interface",
+      "name": "VNCI JLR DoIP Jaguar Land Rover Diagnostic Interface",
+      "description": "Genuine VNCI DoIP interface for Jaguar and Land Rover. Full SDD and Pathfinder diagnostics including online programming.",
+      "price": {
+        "amountMinor": 108595,
+        "compareAtAmountMinor": 128340,
+        "currency": "AED"
+      },
+      "categorySlug": "diagnostic-tools",
+      "brand": "VNCI",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK25353",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 17,
+      "imageCandidates": [
+        "article-covers/automotive-diagnostic-scanner-workflow-before-ecu-changes.png",
+        "assets/images/site/diagnostic-bench.png"
+      ],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_diag",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0018",
+      "sku": "MKON289",
+      "slug": "godiag-gt100-pro-breakout-box-bmw-cas4-fem-bdc-test-platform",
+      "name": "GODIAG GT100 Pro Breakout Box + BMW CAS4 / FEM / BDC Test Platform Bundle",
+      "description": "GT100 Pro ECU breakout box with BMW CAS4 and FEM/BDC test platform. Bench testing and programming without the vehicle.",
+      "price": {
+        "amountMinor": 80336,
+        "compareAtAmountMinor": 94943,
+        "currency": "AED"
+      },
+      "categorySlug": "diagnostic-tools",
+      "brand": "GODIAG",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MKON289",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 18,
+      "imageCandidates": [],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_diag",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0019",
+      "sku": "MK25522",
+      "slug": "gromcalctool-srs-full-package",
+      "name": "GromCalcTool SRS Full Package",
+      "description": "Complete SRS airbag reset and crash data removal solution. Supports a wide range of vehicle makes with full module coverage.",
+      "price": {
+        "amountMinor": 413793,
+        "compareAtAmountMinor": 489028,
+        "currency": "AED"
+      },
+      "categorySlug": "diagnostic-tools",
+      "brand": "GromCalcTool",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK25522",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 19,
+      "imageCandidates": [],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_diag",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0020",
+      "sku": "MK24017",
+      "slug": "autel-maxiflash-elite-j2534-ecu-programming-device",
+      "name": "Autel MaxiFlash Elite J2534 ECU Programming Device",
+      "description": "J2534 pass-thru ECU programming device compatible with all OEM dealer software for ECU updates and reprogramming.",
+      "price": {
+        "amountMinor": 242220,
+        "compareAtAmountMinor": 286260,
+        "currency": "AED"
+      },
+      "categorySlug": "diagnostic-tools",
+      "brand": "Autel",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK24017",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 20,
+      "imageCandidates": [
+        "assets/images/devices/autotuner-inline.jpg",
+        "assets/images/devices/autotuner.jpg",
+        "assets/images/devices/autotuner.png",
+        "assets/images/devices/autotuner.webp",
+        "assets/images/devices/bflash-inline.jpg",
+        "assets/images/devices/bflash-inline.png",
+        "assets/images/devices/bflash.png",
+        "assets/images/devices/kess3-inline.jpg",
+        "assets/images/devices/kess3.png"
+      ],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_diag",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0021",
+      "sku": "MK19872",
+      "slug": "i-o-io-terminal-multi-tool-device",
+      "name": "I/O IO Terminal Multi Tool Device",
+      "description": "Multi-function IO Terminal for ECU, TCU and key programming. Supports K-Line, CAN and LIN protocols.",
+      "price": {
+        "amountMinor": 140891,
+        "compareAtAmountMinor": 166508,
+        "currency": "AED"
+      },
+      "categorySlug": "diagnostic-tools",
+      "brand": "IO Terminal",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK19872",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 21,
+      "imageCandidates": [
+        "assets/images/devices/autotuner-inline.jpg",
+        "assets/images/devices/autotuner.jpg",
+        "assets/images/devices/autotuner.png",
+        "assets/images/devices/autotuner.webp",
+        "assets/images/devices/bflash-inline.jpg",
+        "assets/images/devices/bflash-inline.png",
+        "assets/images/devices/bflash.png",
+        "assets/images/devices/kess3-inline.jpg",
+        "assets/images/devices/kess3.png"
+      ],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_diag",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0022",
+      "sku": "MK26801",
+      "slug": "probyte-usb-security-dongle",
+      "name": "ProBYTE USB Security Dongle",
+      "description": "USB security dongle for tuning and diagnostic software license activation.",
+      "price": {
+        "amountMinor": 60151,
+        "compareAtAmountMinor": 71088,
+        "currency": "AED"
+      },
+      "categorySlug": "diagnostic-tools",
+      "brand": "ProBYTE",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK26801",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 22,
+      "imageCandidates": [],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_diag",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0023",
+      "sku": "MK24914",
+      "slug": "mmcflash-usb-dongle-key",
+      "name": "MMCFlash USB Dongle Key",
+      "description": "USB dongle for MMCFlash chip tuning platform activation. Enables bench and OBD read/write for supported ECU families.",
+      "price": {
+        "amountMinor": 52077,
+        "compareAtAmountMinor": 61546,
+        "currency": "AED"
+      },
+      "categorySlug": "diagnostic-tools",
+      "brand": "MMCFlash",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK24914",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 23,
+      "imageCandidates": [],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_diag",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0024",
+      "sku": "MK12384",
+      "slug": "autel-charging-station-back-to-back-pedestal",
+      "name": "Autel Charging Station Back-to-Back Pedestal",
+      "description": "Dual back-to-back charging pedestal for Autel diagnostic tablets.",
+      "price": {
+        "amountMinor": 80336,
+        "compareAtAmountMinor": 94943,
+        "currency": "AED"
+      },
+      "categorySlug": "diagnostic-tools",
+      "brand": "Autel",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK12384",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 24,
+      "imageCandidates": [],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_diag",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0025",
+      "sku": "MKON533",
+      "slug": "io-terminal-obd-cable-and-godiag-obd2-jumper-adapter",
+      "name": "IO Terminal OBD Cable and GODIAG OBD2 Jumper Adapter",
+      "description": "IO Terminal OBD cable with GODIAG OBD2 jumper adapter for direct ECU bench connection without vehicle power.",
+      "price": {
+        "amountMinor": 90130,
+        "compareAtAmountMinor": 106517,
+        "currency": "AED"
+      },
+      "categorySlug": "cables-adapters",
+      "brand": "GODIAG",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MKON533",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 25,
+      "imageCandidates": [],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_cables",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0026",
+      "sku": "MK20125",
+      "slug": "fortin-flashlink-4-firmware-update-usb-flash-link",
+      "name": "Fortin Flashlink 4 Firmware Update USB Flash Link",
+      "description": "USB flash link for updating Fortin bypass module firmware via bootloader. Required for firmware maintenance.",
+      "price": {
+        "amountMinor": 18167,
+        "compareAtAmountMinor": 21470,
+        "currency": "AED"
+      },
+      "categorySlug": "key-programming",
+      "brand": "Fortin",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK20125",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 26,
+      "imageCandidates": [
+        "assets/images/devices/bflash-inline.jpg",
+        "assets/images/devices/bflash-inline.png",
+        "assets/images/devices/bflash.png",
+        "bflash.png"
+      ],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_key",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0027",
+      "sku": "MK20064",
+      "slug": "fortin-evo-one-remote-starter-and-security-system-interface",
+      "name": "Fortin EVO-ONE Remote Starter and Security System Interface",
+      "description": "EVO-ONE remote starter and security bypass for a wide range of vehicles. Plug-and-play T-harness compatibility.",
+      "price": {
+        "amountMinor": 36333,
+        "compareAtAmountMinor": 42939,
+        "currency": "AED"
+      },
+      "categorySlug": "key-programming",
+      "brand": "Fortin",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK20064",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 27,
+      "imageCandidates": [],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_key",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0028",
+      "sku": "MK20056",
+      "slug": "keydiy-kd-cs01-cloud-key-5-button-universal-garage-remote-22",
+      "name": "KEYDIY KD CS01 Cloud Key 5-Button Universal Garage Remote 225-915MHz",
+      "description": "Universal cloud garage remote. 5 buttons, 225-915MHz adjustable frequency. Compatible with KD Cloud key platform.",
+      "price": {
+        "amountMinor": 2019,
+        "compareAtAmountMinor": 2386,
+        "currency": "AED"
+      },
+      "categorySlug": "key-programming",
+      "brand": "KEYDIY",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK20056",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 28,
+      "imageCandidates": [],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_key",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "CT-0029",
+      "sku": "MK15798",
+      "slug": "keydiy-kd-universal-remote-key-4-buttons-garage-type-b31",
+      "name": "Keydiy KD Universal Remote Key 4 Buttons Garage Type B31",
+      "description": "Universal 4-button KD garage remote Type B31 for most KD-based remote cloning systems.",
+      "price": {
+        "amountMinor": 1413,
+        "compareAtAmountMinor": 1670,
+        "currency": "AED"
+      },
+      "categorySlug": "key-programming",
+      "brand": "KEYDIY",
+      "status": "ACTIVE",
+      "isFeatured": false,
+      "isDigital": false,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "MK15798",
+        "quantityOnHand": 99,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 29,
+      "imageCandidates": [],
+      "legacy": {
+        "sourceFile": "data/products-import.sql",
+        "sourceTable": "shop_products",
+        "sourceColumns": [
+          "ct_product_id",
+          "sku",
+          "slug",
+          "category_id",
+          "title_en",
+          "description_en",
+          "price_minor",
+          "compare_price_minor",
+          "currency",
+          "is_digital",
+          "is_active",
+          "is_featured",
+          "stock_qty",
+          "track_stock",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "categoryVariable": "@cat_key",
+        "encodingWarning": false
+      }
+    },
+    {
+      "legacyId": "shop.sql:CRS-TUNE-101",
+      "sku": "CRS-TUNE-101",
+      "slug": "ecu-tuning-online-course",
+      "name": "ECU Tuning Online Course - Level 1",
+      "description": "Structured 12-lesson online course covering ECU theory, WinOLS basics, ECM Titanium workflow, and validation discipline.",
+      "price": {
+        "amountMinor": 49900,
+        "compareAtAmountMinor": null,
+        "currency": "AED"
+      },
+      "categorySlug": "courses",
+      "brand": "CaracalTech",
+      "status": "DRAFT",
+      "isFeatured": true,
+      "isDigital": true,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "CRS-TUNE-101",
+        "quantityOnHand": 999,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 10,
+      "imageCandidates": [
+        "article-covers/beginner-ecu-mapping-workflow-learning-winols-without-guessing.png",
+        "article-covers/ecm-titanium-vs-winols.png",
+        "article-covers/software-winols-winols-training-pdf-free-download.png",
+        "article-covers/winols-damos-mappack-script-and-a2l.png",
+        "article-covers/winols-tutorial-course.png",
+        "article-images/training/beginner-ecu-mapping-workflow-learning-winols-without-guessing.jpg",
+        "assets/downloads/academy/logging-channel-layout.csv",
+        "assets/downloads/academy/reflash-job-card-template.csv",
+        "assets/downloads/academy/scenario-assessment-sheet.csv",
+        "assets/downloads/academy/winols-project-layout-checklist.csv"
+      ],
+      "legacy": {
+        "sourceFile": "database/shop.sql",
+        "sourceTable": "shop_products",
+        "seedType": "demo-shop-product"
+      }
+    },
+    {
+      "legacyId": "shop.sql:IMMO-REQ-STD",
+      "sku": "IMMO-REQ-STD",
+      "slug": "immo-data-review",
+      "name": "IMMO Data Review (one vehicle)",
+      "description": "Submit one IMMO request and receive a file or workshop route after technical review.",
+      "price": {
+        "amountMinor": 29900,
+        "compareAtAmountMinor": null,
+        "currency": "AED"
+      },
+      "categorySlug": "services",
+      "brand": "CaracalTech",
+      "status": "DRAFT",
+      "isFeatured": true,
+      "isDigital": true,
+      "isTradeEligible": true,
+      "inquiryReady": true,
+      "trackStock": false,
+      "inventory": {
+        "sku": "IMMO-REQ-STD",
+        "quantityOnHand": 999,
+        "status": "IN_STOCK"
+      },
+      "sortOrder": 20,
+      "imageCandidates": [
+        "article-covers/immo-off-how-why.png",
+        "data/immo_list.txt",
+        "data/immo_upload_requests.csv"
+      ],
+      "legacy": {
+        "sourceFile": "database/shop.sql",
+        "sourceTable": "shop_products",
+        "seedType": "demo-shop-product"
+      }
+    }
+  ],
+  "inferredProductCandidates": [
+    {
+      "slug": "bflash-ecu-programmer",
+      "name": "BFlash ECU Programmer",
+      "brand": "BFlash",
+      "categorySlug": "tuning-tools",
+      "inquiryReady": true,
+      "status": "DRAFT",
+      "price": null,
+      "reason": "Legacy site has BFlash device imagery and SEO/article content, but no explicit shop_products SKU in products-import.sql.",
+      "sourceFiles": [
+        "bflash.png",
+        "assets/images/devices/bflash.png",
+        "data/seo-articles.json"
+      ],
+      "imageCandidates": [
+        "assets/images/devices/bflash-inline.jpg",
+        "assets/images/devices/bflash-inline.png",
+        "assets/images/devices/bflash.png",
+        "bflash.png"
+      ]
+    },
+    {
+      "slug": "winols-calibration-software",
+      "name": "WinOLS Calibration Software",
+      "brand": "EVC",
+      "categorySlug": "calibration-software",
+      "inquiryReady": true,
+      "status": "DRAFT",
+      "price": null,
+      "reason": "Legacy article and academy content heavily reference WinOLS, but no legacy shop SKU was present.",
+      "sourceFiles": [
+        "article-covers/winols-tutorial-course.png",
+        "data/seo-articles.json",
+        "data/training-library-sources.json"
+      ],
+      "imageCandidates": [
+        "article-covers/beginner-ecu-mapping-workflow-learning-winols-without-guessing.png",
+        "article-covers/ecm-titanium-vs-winols.png",
+        "article-covers/software-winols-winols-training-pdf-free-download.png",
+        "article-covers/winols-damos-mappack-script-and-a2l.png",
+        "article-covers/winols-tutorial-course.png",
+        "article-images/training/beginner-ecu-mapping-workflow-learning-winols-without-guessing.jpg",
+        "assets/downloads/academy/winols-project-layout-checklist.csv"
+      ]
+    }
+  ],
+  "importNotes": [
+    "Map compare_price_minor to the new Prisma compareAtPriceCents/compareAtPriceMinor field if present.",
+    "Keep ct_product_id as legacyExternalId if the new schema supports it, otherwise store in metadata.",
+    "Set inquiryReady=true for catalog-to-inquiry flows; legacy product pages directed users to WhatsApp/technical follow-up after purchase.",
+    "Product image candidates are automated matches only; assets/images/products requires manual SKU mapping."
+  ]
+}

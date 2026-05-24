@@ -1,0 +1,111 @@
+{
+  "generatedAt": "2026-05-24",
+  "source": "legacy PHP backup data/products-import.sql and database/shop.sql",
+  "categories": [
+    {
+      "slug": "tuning-tools",
+      "name": "Tuning Tools",
+      "parentSlug": "tools",
+      "status": "ACTIVE",
+      "sortOrder": 10,
+      "legacy": {
+        "sourceFiles": [
+          "data/products-import.sql"
+        ],
+        "note": "Legacy catalog category."
+      }
+    },
+    {
+      "slug": "diagnostic-tools",
+      "name": "Diagnostic Tools",
+      "parentSlug": "tools",
+      "status": "ACTIVE",
+      "sortOrder": 20,
+      "legacy": {
+        "sourceFiles": [
+          "data/products-import.sql"
+        ],
+        "note": "Legacy catalog category."
+      }
+    },
+    {
+      "slug": "cables-adapters",
+      "name": "Cables & Adapters",
+      "parentSlug": "tools",
+      "status": "ACTIVE",
+      "sortOrder": 30,
+      "legacy": {
+        "sourceFiles": [
+          "data/products-import.sql"
+        ],
+        "note": "Legacy catalog category."
+      }
+    },
+    {
+      "slug": "key-programming",
+      "name": "Key Programming",
+      "parentSlug": "tools",
+      "status": "ACTIVE",
+      "sortOrder": 40,
+      "legacy": {
+        "sourceFiles": [
+          "data/products-import.sql"
+        ],
+        "note": "Legacy catalog category."
+      }
+    },
+    {
+      "slug": "tools",
+      "name": "Workshop Tools",
+      "parentSlug": null,
+      "status": "ACTIVE",
+      "sortOrder": 50,
+      "legacy": {
+        "sourceFiles": [
+          "database/shop.sql"
+        ],
+        "note": "Legacy catalog category."
+      }
+    },
+    {
+      "slug": "courses",
+      "name": "Courses",
+      "parentSlug": null,
+      "status": "ACTIVE",
+      "sortOrder": 60,
+      "legacy": {
+        "sourceFiles": [
+          "database/shop.sql"
+        ],
+        "note": "Legacy catalog category."
+      }
+    },
+    {
+      "slug": "services",
+      "name": "Services",
+      "parentSlug": null,
+      "status": "ACTIVE",
+      "sortOrder": 70,
+      "legacy": {
+        "sourceFiles": [
+          "database/shop.sql"
+        ],
+        "note": "Legacy catalog category."
+      }
+    },
+    {
+      "slug": "calibration-software",
+      "name": "Calibration Software",
+      "parentSlug": "tools",
+      "status": "ACTIVE",
+      "sortOrder": 80,
+      "legacy": {
+        "sourceFiles": [
+          "data/seo-articles.json",
+          "academy.php"
+        ],
+        "note": "Suggested target category from WinOLS/software content; not a legacy shop_categories row."
+      }
+    }
+  ]
+}

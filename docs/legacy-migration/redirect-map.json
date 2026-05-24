@@ -1,0 +1,748 @@
+{
+  "generatedAt": "2026-05-24",
+  "source": "legacy sitemap.xml, .htaccess rewrite rules, and PHP route inventory",
+  "redirects": [
+    {
+      "oldPath": "/",
+      "newPath": "/",
+      "statusCode": 200,
+      "priority": "critical",
+      "reason": "Normalize legacy PHP route into modern route shape."
+    },
+    {
+      "oldPath": "/academy.php",
+      "newPath": "/academy",
+      "statusCode": 301,
+      "priority": "critical",
+      "reason": "Normalize legacy PHP route into modern route shape."
+    },
+    {
+      "oldPath": "/articles.php",
+      "newPath": "/knowledge",
+      "statusCode": 301,
+      "priority": "critical",
+      "reason": "Normalize legacy PHP route into modern route shape."
+    },
+    {
+      "oldPath": "/ecu-tuning.php",
+      "newPath": "/services/ecu-tuning",
+      "statusCode": 301,
+      "priority": "critical",
+      "reason": "Normalize legacy PHP route into modern route shape."
+    },
+    {
+      "oldPath": "/ecu-remapping-dubai.php",
+      "newPath": "/services/ecu-remapping-dubai",
+      "statusCode": 301,
+      "priority": "critical",
+      "reason": "Normalize legacy PHP route into modern route shape."
+    },
+    {
+      "oldPath": "/ecu-tuning-tools.php",
+      "newPath": "/catalog/ecu-tcu-tuning-tools",
+      "statusCode": 301,
+      "priority": "critical",
+      "reason": "Normalize legacy PHP route into modern route shape."
+    },
+    {
+      "oldPath": "/ecu-tuning-software.php",
+      "newPath": "/catalog/calibration-software",
+      "statusCode": 301,
+      "priority": "critical",
+      "reason": "Normalize legacy PHP route into modern route shape."
+    },
+    {
+      "oldPath": "/immo-dpf-adblue-services.php",
+      "newPath": "/services/immo-dpf-adblue",
+      "statusCode": 301,
+      "priority": "critical",
+      "reason": "Normalize legacy PHP route into modern route shape."
+    },
+    {
+      "oldPath": "/ecu-tuning-dealers.php",
+      "newPath": "/dealers",
+      "statusCode": 301,
+      "priority": "critical",
+      "reason": "Normalize legacy PHP route into modern route shape."
+    },
+    {
+      "oldPath": "/ecu-lookup.php",
+      "newPath": "/tools/ecu-lookup",
+      "statusCode": 301,
+      "priority": "critical",
+      "reason": "Normalize legacy PHP route into modern route shape."
+    },
+    {
+      "oldPath": "/ecu-calculator.php",
+      "newPath": "/tools/ecu-calculator",
+      "statusCode": 301,
+      "priority": "critical",
+      "reason": "Normalize legacy PHP route into modern route shape."
+    },
+    {
+      "oldPath": "/ecu-patcher.php",
+      "newPath": "/tools/ecu-patcher",
+      "statusCode": 301,
+      "priority": "critical",
+      "reason": "Normalize legacy PHP route into modern route shape."
+    },
+    {
+      "oldPath": "/immo-data.php",
+      "newPath": "/tools/immo-data",
+      "statusCode": 301,
+      "priority": "critical",
+      "reason": "Normalize legacy PHP route into modern route shape."
+    },
+    {
+      "oldPath": "/projects.php",
+      "newPath": "/projects",
+      "statusCode": 301,
+      "priority": "critical",
+      "reason": "Normalize legacy PHP route into modern route shape."
+    },
+    {
+      "oldPath": "/knowledge/caracaltech-dealers-worldwide",
+      "newPath": "/knowledge/caracaltech-dealers-worldwide",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/top-10-ecu-tuning-tools",
+      "newPath": "/knowledge/top-10-ecu-tuning-tools",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/what-is-kess3",
+      "newPath": "/knowledge/what-is-kess3",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/ecm-titanium-software",
+      "newPath": "/knowledge/ecm-titanium-software",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/top-ecu-tuning-software",
+      "newPath": "/knowledge/top-ecu-tuning-software",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/decat-what-does-decat-mean-decat-vs-stock-cat",
+      "newPath": "/knowledge/decat-what-does-decat-mean-decat-vs-stock-cat",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/what-is-stage-tuning",
+      "newPath": "/knowledge/what-is-stage-tuning",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/what-are-the-best-ecu-tuning-companies-in-the-world",
+      "newPath": "/knowledge/what-are-the-best-ecu-tuning-companies-in-the-world",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/software-winols-winols-training-pdf-free-download",
+      "newPath": "/knowledge/software-winols-winols-training-pdf-free-download",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/winols-damos-mappack-script-and-a2l",
+      "newPath": "/knowledge/winols-damos-mappack-script-and-a2l",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/ecu-tuning-for-beginners",
+      "newPath": "/knowledge/ecu-tuning-for-beginners",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/dtc-off-service-fault-code-delete-software-by-remap",
+      "newPath": "/knowledge/dtc-off-service-fault-code-delete-software-by-remap",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/how-to-make-pop-and-bang-by-remap",
+      "newPath": "/knowledge/how-to-make-pop-and-bang-by-remap",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/dpf-off-service-dpf-off-solution",
+      "newPath": "/knowledge/dpf-off-service-dpf-off-solution",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/adblue-off-service-disable-the-adblue-system",
+      "newPath": "/knowledge/adblue-off-service-disable-the-adblue-system",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/egr-delete-egr-off-service",
+      "newPath": "/knowledge/egr-delete-egr-off-service",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/what-is-an-ecu-data-logger",
+      "newPath": "/knowledge/what-is-an-ecu-data-logger",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/what-is-ecu-cloning-and-how-is-it-down",
+      "newPath": "/knowledge/what-is-ecu-cloning-and-how-is-it-down",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/what-is-flex",
+      "newPath": "/knowledge/what-is-flex",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/best-car-forums",
+      "newPath": "/knowledge/best-car-forums",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/ecm-titanium-vs-winols",
+      "newPath": "/knowledge/ecm-titanium-vs-winols",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/what-is-ecu-remapping",
+      "newPath": "/knowledge/what-is-ecu-remapping",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/remapping-knowledge",
+      "newPath": "/knowledge/remapping-knowledge",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/what-is-launch-control-how-to-add-launch-control-by-ecu-remap",
+      "newPath": "/knowledge/what-is-launch-control-how-to-add-launch-control-by-ecu-remap",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/edc-15-16-17-tuning-guide",
+      "newPath": "/knowledge/edc-15-16-17-tuning-guide",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/immo-off-how-why",
+      "newPath": "/knowledge/immo-off-how-why",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/how-to-have-your-own-ecu-tuning-business",
+      "newPath": "/knowledge/how-to-have-your-own-ecu-tuning-business",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/speed-limiter-removing",
+      "newPath": "/knowledge/speed-limiter-removing",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/what-is-dynamometer",
+      "newPath": "/knowledge/what-is-dynamometer",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/how-to-read-a-dyno-graph",
+      "newPath": "/knowledge/how-to-read-a-dyno-graph",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/afr-vs-lambda",
+      "newPath": "/knowledge/afr-vs-lambda",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/how-to-chiptuning-your-car-with-laptop",
+      "newPath": "/knowledge/how-to-chiptuning-your-car-with-laptop",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/gearbox-tcu-tuning-remap-tools-software",
+      "newPath": "/knowledge/gearbox-tcu-tuning-remap-tools-software",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/what-is-wideband-tuning",
+      "newPath": "/knowledge/what-is-wideband-tuning",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/kess-v2-clone-vs-original",
+      "newPath": "/knowledge/kess-v2-clone-vs-original",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/pros-and-cons-maf-sensor-removal-software",
+      "newPath": "/knowledge/pros-and-cons-maf-sensor-removal-software",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/winols-tutorial-course",
+      "newPath": "/knowledge/winols-tutorial-course",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/ecm-titanium-tutorial",
+      "newPath": "/knowledge/ecm-titanium-tutorial",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/ecu-programmers",
+      "newPath": "/knowledge/ecu-programmers",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/what-is-ecu-tuning",
+      "newPath": "/knowledge/what-is-ecu-tuning",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/ai-ecu-tuning",
+      "newPath": "/knowledge/ai-ecu-tuning",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/auto-start-stop-delete-disable-from-ecu",
+      "newPath": "/knowledge/auto-start-stop-delete-disable-from-ecu",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/how-to-swirl-flap-delete",
+      "newPath": "/knowledge/how-to-swirl-flap-delete",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/the-best-car-to-remap-in-any-country-part1",
+      "newPath": "/knowledge/the-best-car-to-remap-in-any-country-part1",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/the-best-car-to-remap-in-any-country-part2",
+      "newPath": "/knowledge/the-best-car-to-remap-in-any-country-part2",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/the-best-car-to-remap-in-any-country-part3",
+      "newPath": "/knowledge/the-best-car-to-remap-in-any-country-part3",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/linear-throttle-mapping",
+      "newPath": "/knowledge/linear-throttle-mapping",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/tva-removal",
+      "newPath": "/knowledge/tva-removal",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/what-is-spark-advance-table",
+      "newPath": "/knowledge/what-is-spark-advance-table",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/turbocharger-tables",
+      "newPath": "/knowledge/turbocharger-tables",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/what-is-optimal-engine-torque",
+      "newPath": "/knowledge/what-is-optimal-engine-torque",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/air-mass-through-throttle-valve",
+      "newPath": "/knowledge/air-mass-through-throttle-valve",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/egt-map",
+      "newPath": "/knowledge/egt-map",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/what-is-driver-wish-map",
+      "newPath": "/knowledge/what-is-driver-wish-map",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/what-is-torque-based-ecu",
+      "newPath": "/knowledge/what-is-torque-based-ecu",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/volvo-adblue-removal-renault-adblue-off",
+      "newPath": "/knowledge/volvo-adblue-removal-renault-adblue-off",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/tractor-ecu-remapping-and-agricultural-machinery",
+      "newPath": "/knowledge/tractor-ecu-remapping-and-agricultural-machinery",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/what-is-the-difference-between-a-performance-remap-an-economy-remap",
+      "newPath": "/knowledge/what-is-the-difference-between-a-performance-remap-an-economy-remap",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/diesel-tuning-fundamental",
+      "newPath": "/knowledge/diesel-tuning-fundamental",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/petrol-tuning-fundamentals",
+      "newPath": "/knowledge/petrol-tuning-fundamentals",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/original-ecu-files-database-download",
+      "newPath": "/knowledge/original-ecu-files-database-download",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/ecu-remapping-tuning-near-me",
+      "newPath": "/knowledge/ecu-remapping-tuning-near-me",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/tuning-box-vs-remap",
+      "newPath": "/knowledge/tuning-box-vs-remap",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/dyno-chiptuning-file-service",
+      "newPath": "/knowledge/dyno-chiptuning-file-service",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/hgv-remapping-truck-ecu-tuning",
+      "newPath": "/knowledge/hgv-remapping-truck-ecu-tuning",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/tuning-file-service",
+      "newPath": "/knowledge/tuning-file-service",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/ecu-remapping-kit",
+      "newPath": "/knowledge/ecu-remapping-kit",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/bmw-x5-e53-downstream-o2-sensor-delete",
+      "newPath": "/knowledge/bmw-x5-e53-downstream-o2-sensor-delete",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/ecu-remapping-cost",
+      "newPath": "/knowledge/ecu-remapping-cost",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/chiptuning-files",
+      "newPath": "/knowledge/chiptuning-files",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/hot-start-fix",
+      "newPath": "/knowledge/hot-start-fix",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/edc15-tuning-fundamentals-driver-wish-smoke-limit-and-boost-control",
+      "newPath": "/knowledge/edc15-tuning-fundamentals-driver-wish-smoke-limit-and-boost-control",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/edc16-torque-model-basics-for-practical-diesel-remapping",
+      "newPath": "/knowledge/edc16-torque-model-basics-for-practical-diesel-remapping",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/edc17-calibration-workflow-torque-injection-and-egr-logic",
+      "newPath": "/knowledge/edc17-calibration-workflow-torque-injection-and-egr-logic",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/automotive-diagnostic-scanner-workflow-before-ecu-changes",
+      "newPath": "/knowledge/automotive-diagnostic-scanner-workflow-before-ecu-changes",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/dyno-test-repeatability-and-setup-for-ecu-calibration",
+      "newPath": "/knowledge/dyno-test-repeatability-and-setup-for-ecu-calibration",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/diesel-engine-air-path-combustion-and-emissions-basics",
+      "newPath": "/knowledge/diesel-engine-air-path-combustion-and-emissions-basics",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/maps-needed-to-tune-edc15c2-safely",
+      "newPath": "/knowledge/maps-needed-to-tune-edc15c2-safely",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/beginner-ecu-mapping-workflow-learning-winols-without-guessing",
+      "newPath": "/knowledge/beginner-ecu-mapping-workflow-learning-winols-without-guessing",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/egr-control-logic-in-edc16-families",
+      "newPath": "/knowledge/egr-control-logic-in-edc16-families",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/engine-management-sensors-and-actuators-for-tuners",
+      "newPath": "/knowledge/engine-management-sensors-and-actuators-for-tuners",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/subaru-street-tuning-workflow-fuel-timing-and-boost-discipline",
+      "newPath": "/knowledge/subaru-street-tuning-workflow-fuel-timing-and-boost-discipline",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/knowledge/checksum-file-hygiene-and-factory-ecu-recalibration-basics",
+      "newPath": "/knowledge/checksum-file-hygiene-and-factory-ecu-recalibration-basics",
+      "statusCode": 200,
+      "priority": "high",
+      "reason": "Preserve indexed article slug exactly."
+    },
+    {
+      "oldPath": "/product.php?slug=:slug",
+      "newPath": "/products/:slug",
+      "statusCode": 301,
+      "priority": "critical",
+      "reason": "Legacy product detail route used querystring slug."
+    },
+    {
+      "oldPath": "/course.php?slug=:slug",
+      "newPath": "/academy/:slug",
+      "statusCode": 301,
+      "priority": "high",
+      "reason": "Legacy course detail route used querystring slug."
+    },
+    {
+      "oldPath": "/knowledge-article.php?slug=:slug",
+      "newPath": "/knowledge/:slug",
+      "statusCode": 301,
+      "priority": "high",
+      "reason": "Legacy rewrite target should not become the canonical URL."
+    },
+    {
+      "oldPath": "/shop-return.php",
+      "newPath": "/checkout/return",
+      "statusCode": 301,
+      "priority": "medium",
+      "reason": "Legacy payment return route should move behind new checkout flow."
+    },
+    {
+      "oldPath": "/invoice-payment.php",
+      "newPath": "/payments/invoice",
+      "statusCode": 301,
+      "priority": "medium",
+      "reason": "Legacy B2B invoice payment route."
+    },
+    {
+      "oldPath": "/create-payment.php",
+      "newPath": "/api/payments/invoice",
+      "statusCode": 410,
+      "priority": "medium",
+      "reason": "Legacy payment creation endpoint should not be public-rendered in the new app."
+    },
+    {
+      "oldPath": "/lookup-api.php",
+      "newPath": "/api/ecu-lookup",
+      "statusCode": 301,
+      "priority": "medium",
+      "reason": "Legacy AJAX lookup endpoint replacement."
+    },
+    {
+      "oldPath": "/lookup-options.php",
+      "newPath": "/api/ecu-lookup/options",
+      "statusCode": 301,
+      "priority": "medium",
+      "reason": "Legacy AJAX lookup endpoint replacement."
+    },
+    {
+      "oldPath": "/shop-webhook-stripe.php",
+      "newPath": "/api/payments/stripe/webhook",
+      "statusCode": 410,
+      "priority": "critical",
+      "reason": "Webhook endpoint should be recreated securely, not redirected for browsers."
+    }
+  ]
+}

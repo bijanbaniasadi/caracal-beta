@@ -1,0 +1,399 @@
+{
+  "generatedAt": "2026-05-24",
+  "source": "derived from products-import.sql, seo-articles.json, ecu-knowledge.json, and visible device assets",
+  "brands": [
+    {
+      "slug": "abrites",
+      "name": "Abrites",
+      "kind": "diagnostic",
+      "description": "",
+      "productSkus": [
+        "MKON184"
+      ],
+      "articleSlugs": [],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "alientech",
+      "name": "Alientech",
+      "kind": "tool-manufacturer",
+      "description": "",
+      "productSkus": [
+        "MK18000",
+        "MKON482",
+        "MKON481"
+      ],
+      "articleSlugs": [
+        "top-10-ecu-tuning-tools",
+        "what-is-kess3",
+        "ecu-programmers"
+      ],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "autel",
+      "name": "Autel",
+      "kind": "diagnostic",
+      "description": "",
+      "productSkus": [
+        "MK17353",
+        "MK24017",
+        "MK12384"
+      ],
+      "articleSlugs": [],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "autotuner",
+      "name": "AutoTuner",
+      "kind": "tool-manufacturer",
+      "description": "",
+      "productSkus": [
+        "MKON332",
+        "MKON331",
+        "MKON525"
+      ],
+      "articleSlugs": [
+        "what-is-an-ecu-data-logger",
+        "ecu-programmers"
+      ],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "bflash",
+      "name": "BFlash",
+      "kind": "tool-manufacturer",
+      "description": "",
+      "productSkus": [],
+      "articleSlugs": [
+        "top-10-ecu-tuning-tools"
+      ],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "caracaltech",
+      "name": "CaracalTech",
+      "kind": "service-brand",
+      "description": "",
+      "productSkus": [
+        "CRS-TUNE-101",
+        "IMMO-REQ-STD"
+      ],
+      "articleSlugs": [
+        "caracaltech-dealers-worldwide",
+        "top-10-ecu-tuning-tools",
+        "decat-what-does-decat-mean-decat-vs-stock-cat",
+        "what-are-the-best-ecu-tuning-companies-in-the-world",
+        "ecm-titanium-vs-winols",
+        "how-to-have-your-own-ecu-tuning-business",
+        "speed-limiter-removing",
+        "winols-tutorial-course",
+        "ecm-titanium-tutorial",
+        "linear-throttle-mapping",
+        "tva-removal",
+        "what-is-the-difference-between-a-performance-remap-an-economy-remap",
+        "petrol-tuning-fundamentals"
+      ],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json",
+        "database/shop.sql"
+      ]
+    },
+    {
+      "slug": "cgdi",
+      "name": "CGDI",
+      "kind": "diagnostic-key-programming",
+      "description": "",
+      "productSkus": [
+        "MK17318"
+      ],
+      "articleSlugs": [],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "dimsport",
+      "name": "Dimsport",
+      "kind": "tool-manufacturer",
+      "description": "",
+      "productSkus": [],
+      "articleSlugs": [
+        "top-10-ecu-tuning-tools",
+        "ecu-programmers"
+      ],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "ecu-soft",
+      "name": "ECU-Soft",
+      "kind": "bench-equipment",
+      "description": "",
+      "productSkus": [
+        "MK26269"
+      ],
+      "articleSlugs": [],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "evc",
+      "name": "EVC",
+      "kind": "software",
+      "description": "",
+      "productSkus": [],
+      "articleSlugs": [
+        "ecm-titanium-vs-winols"
+      ],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "flashtec",
+      "name": "Flashtec",
+      "kind": "tool-manufacturer",
+      "description": "",
+      "productSkus": [],
+      "articleSlugs": [
+        "top-10-ecu-tuning-tools",
+        "ecu-programmers"
+      ],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "fortin",
+      "name": "Fortin",
+      "kind": "key-programming",
+      "description": "",
+      "productSkus": [
+        "MK20125",
+        "MK20064"
+      ],
+      "articleSlugs": [],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "godiag",
+      "name": "GODIAG",
+      "kind": "bench-adapter",
+      "description": "",
+      "productSkus": [
+        "MKON289",
+        "MKON533"
+      ],
+      "articleSlugs": [],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "gromcalctool",
+      "name": "GromCalcTool",
+      "kind": "software",
+      "description": "",
+      "productSkus": [
+        "MK25522"
+      ],
+      "articleSlugs": [],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "io-terminal",
+      "name": "IO Terminal",
+      "kind": "tool-manufacturer",
+      "description": "",
+      "productSkus": [
+        "MK19872"
+      ],
+      "articleSlugs": [],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "keydiy",
+      "name": "KEYDIY",
+      "kind": "key-programming",
+      "description": "",
+      "productSkus": [
+        "MK20056",
+        "MK15798"
+      ],
+      "articleSlugs": [],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "magic-motorsport",
+      "name": "Magic Motorsport",
+      "kind": "tool-manufacturer",
+      "description": "",
+      "productSkus": [],
+      "articleSlugs": [],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "microtronik",
+      "name": "Microtronik",
+      "kind": "tool-manufacturer",
+      "description": "",
+      "productSkus": [
+        "MK22671"
+      ],
+      "articleSlugs": [],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "mmcflash",
+      "name": "MMCFlash",
+      "kind": "software",
+      "description": "",
+      "productSkus": [
+        "MK24914"
+      ],
+      "articleSlugs": [],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "pcmflash",
+      "name": "PCMFlash",
+      "kind": "software",
+      "description": "",
+      "productSkus": [],
+      "articleSlugs": [],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "probyte",
+      "name": "ProBYTE",
+      "kind": "software",
+      "description": "",
+      "productSkus": [
+        "MK26801"
+      ],
+      "articleSlugs": [],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "scanmatik",
+      "name": "Scanmatik",
+      "kind": "diagnostic",
+      "description": "",
+      "productSkus": [
+        "MKON501",
+        "MK25248"
+      ],
+      "articleSlugs": [],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "vnci",
+      "name": "VNCI",
+      "kind": "diagnostic",
+      "description": "",
+      "productSkus": [
+        "MK25353"
+      ],
+      "articleSlugs": [],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    },
+    {
+      "slug": "xhorse",
+      "name": "Xhorse",
+      "kind": "diagnostic-key-programming",
+      "description": "",
+      "productSkus": [
+        "MK22621",
+        "MKON553",
+        "MK26449"
+      ],
+      "articleSlugs": [],
+      "sourceFiles": [
+        "data/products-import.sql",
+        "data/seo-articles.json",
+        "data/ecu-knowledge.json"
+      ]
+    }
+  ]
+}

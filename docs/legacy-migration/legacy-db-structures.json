@@ -1,0 +1,103 @@
+{
+  "generatedAt": "2026-05-24",
+  "sqlFiles": [
+    "data/products-import.sql",
+    "data/shop-upgrade.sql",
+    "database/shop.sql",
+    "database/users.sql"
+  ],
+  "tables": [
+    {
+      "table": "growth_leads",
+      "sourceFile": "database/shop.sql"
+    },
+    {
+      "table": "growth_subscribers",
+      "sourceFile": "database/shop.sql"
+    },
+    {
+      "table": "shop_categories",
+      "sourceFile": "database/shop.sql"
+    },
+    {
+      "table": "shop_products",
+      "sourceFile": "database/shop.sql"
+    },
+    {
+      "table": "shop_variants",
+      "sourceFile": "database/shop.sql"
+    },
+    {
+      "table": "shop_carts",
+      "sourceFile": "database/shop.sql"
+    },
+    {
+      "table": "shop_cart_items",
+      "sourceFile": "database/shop.sql"
+    },
+    {
+      "table": "shop_orders",
+      "sourceFile": "database/shop.sql"
+    },
+    {
+      "table": "shop_order_items",
+      "sourceFile": "database/shop.sql"
+    },
+    {
+      "table": "shop_payment_transactions",
+      "sourceFile": "database/shop.sql"
+    },
+    {
+      "table": "shop_coupons",
+      "sourceFile": "database/shop.sql"
+    },
+    {
+      "table": "shop_settings",
+      "sourceFile": "database/shop.sql"
+    },
+    {
+      "table": "users",
+      "sourceFile": "database/users.sql"
+    }
+  ],
+  "importantTables": [
+    {
+      "name": "shop_products",
+      "purpose": "Legacy product catalog with inline translations, AED minor-unit prices, stock flags, media fields, SEO fields."
+    },
+    {
+      "name": "shop_categories",
+      "purpose": "Legacy catalog categories with multilingual labels."
+    },
+    {
+      "name": "shop_carts/shop_cart_items",
+      "purpose": "Server-side session cart model."
+    },
+    {
+      "name": "shop_orders/shop_order_items/shop_payment_transactions",
+      "purpose": "Order, line item, and payment transaction state."
+    },
+    {
+      "name": "shop_coupons/shop_settings",
+      "purpose": "Discounts and payment/shipping/tax configuration."
+    },
+    {
+      "name": "growth_leads/growth_subscribers",
+      "purpose": "Lead capture and newsletter growth tables."
+    },
+    {
+      "name": "users",
+      "purpose": "Legacy username/password/company/role table with admin/client roles."
+    },
+    {
+      "name": "patcher_licenses",
+      "purpose": "Created inside admin.php, not in database/*.sql; governs ECU patcher access approvals."
+    }
+  ],
+  "schemaDrift": [
+    "data/products-import.sql inserts ct_product_id, but database/shop.sql does not define ct_product_id on shop_products.",
+    "data/products-import.sql inserts compare_price_minor, while database/shop.sql defines compare_at_minor.",
+    "includes/shop.php writes gateway_fee_minor on shop_orders, but database/shop.sql did not define that column in the observed CREATE TABLE.",
+    "patcher_licenses is created dynamically by admin.php instead of living in database/*.sql."
+  ]
+}
