@@ -40,6 +40,29 @@ services:
     volumes:
       - api-uploads:/app/apps/api/uploads
       - api-logs:/app/logs/api
+  api-ecu-corpus-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-worker
+    command: ['node', 'dist/workers/ecu-corpus-worker.js']
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://caracal:caracal_dev@postgres:5432/caracal_dev
+      REDIS_URL: redis://redis:6379
+      ECU_CORPUS_ROOT: ${ECU_CORPUS_ROOT:-/data/ecu-corpus}
+      ECU_CORPUS_QUEUE_PREFIX: ecu-corpus
+      ECU_CORPUS_WORKER_CONCURRENCY: ${ECU_CORPUS_WORKER_CONCURRENCY:-2}
+      ECU_CORPUS_DISCOVERY_BATCH_SIZE: ${ECU_CORPUS_DISCOVERY_BATCH_SIZE:-2000}
+      ECU_CORPUS_FINGERPRINT_BATCH_SIZE: ${ECU_CORPUS_FINGERPRINT_BATCH_SIZE:-100}
+      ECU_CORPUS_MAX_ANALYSIS_BYTES: ${ECU_CORPUS_MAX_ANALYSIS_BYTES:-262144}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ${ECU_CORPUS_HOST_PATH:-./data/ecu-corpus}:/data/ecu-corpus:ro
+      - api-logs:/app/logs/api
   postgres:
     image: postgres:15-alpine
     environment:

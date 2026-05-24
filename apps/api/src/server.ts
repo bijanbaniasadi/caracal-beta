@@ -5,6 +5,7 @@ import { createServer } from 'node:http';
 
 import { createApp } from './app.js';
 import { closeBinAnalysisQueue } from './lib/bin-analysis/queue.js';
+import { closeEcuCorpusQueues } from './lib/ecu-corpus/queues.js';
 
 const port = Number.parseInt(process.env.API_PORT ?? '3001', 10);
 const app = createApp();
@@ -17,7 +18,7 @@ server.listen(port, () => {
 function shutdown(signal: NodeJS.Signals): void {
   console.log(`Received ${signal}; shutting down API server.`);
   server.close(async () => {
-    await closeBinAnalysisQueue();
+    await Promise.allSettled([closeBinAnalysisQueue(), closeEcuCorpusQueues()]);
     await disconnectPrismaClient();
     process.exit(0);
   });

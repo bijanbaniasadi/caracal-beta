@@ -26,6 +26,11 @@ import {
   getBinAnalysisQueue,
   retryBinAnalysisJob,
 } from '../lib/bin-analysis/queue.js';
+import {
+  ecuCorpusStages,
+  getEcuCorpusQueue,
+  getEcuCorpusQueueStats,
+} from '../lib/ecu-corpus/queues.js';
 import { badRequest, notFound } from '../lib/errors.js';
 import { toPrismaJson } from '../lib/prisma-json.js';
 import { authenticateAccessToken, requireRoles } from '../middleware/auth.js';
@@ -63,7 +68,10 @@ const queueBoardAdapter = new ExpressAdapter();
 
 queueBoardAdapter.setBasePath('/api/admin/queues/ui');
 createBullBoard({
-  queues: [new BullMQAdapter(getBinAnalysisQueue())],
+  queues: [
+    new BullMQAdapter(getBinAnalysisQueue()),
+    ...ecuCorpusStages.map((stage) => new BullMQAdapter(getEcuCorpusQueue(stage))),
+  ],
   serverAdapter: queueBoardAdapter,
 });
 
@@ -513,6 +521,13 @@ adminRouter.get(
 );
 
 adminRouter.get(
+  '/queues/ecu-corpus',
+  asyncHandler(async (_req, res) => {
+    sendSuccess(res, await getEcuCorpusQueueStats());
+  })
+);
+
+adminRouter.get(
   '/queues/health',
   asyncHandler(async (_req, res) => {
     const prisma = getPrismaClient();
@@ -520,8 +535,9 @@ adminRouter.get(
       process.env.WORKER_HEARTBEAT_STALE_AFTER_MS ?? '60000',
       10
     );
-    const [queue, heartbeats] = await Promise.all([
+    const [queue, ecuCorpusQueues, heartbeats] = await Promise.all([
       readBinAnalysisQueueStats(),
+      getEcuCorpusQueueStats(),
       prisma.workerHeartbeat.findMany({
         where: { queueName: binAnalysisQueueName },
         orderBy: { lastSeenAt: 'desc' },
@@ -531,6 +547,7 @@ adminRouter.get(
 
     sendSuccess(res, {
       queue,
+      ecuCorpusQueues,
       workers: heartbeats.map((worker) => serializeWorkerHeartbeat(worker, staleAfterMs)),
       heartbeat: {
         staleAfterMs,

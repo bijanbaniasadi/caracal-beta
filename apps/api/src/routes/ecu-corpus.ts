@@ -5,7 +5,25 @@ import { Router, type Router as ExpressRouter } from 'express';
 import { sendSuccess } from '../lib/api-response.js';
 import { asyncHandler } from '../lib/async-handler.js';
 import { writeAuditLog } from '../lib/audit.js';
-import { compareCorpusFiles, scanEcuCorpus } from '../lib/ecu-corpus/indexer.js';
+import { compareCorpusFiles } from '../lib/ecu-corpus/indexer.js';
+import {
+  getOptimizedCorpusMetrics,
+  pauseOptimizedIngestion,
+  rebuildClustersOptimized,
+  rebuildSignaturesOptimized,
+  resetFailedOptimizedJobs,
+  resumeOptimizedIngestion,
+  runOptimizedCorpusIngestion,
+  verifyCorpusIntegrity,
+  type EcuIngestionStage,
+} from '../lib/ecu-corpus/optimized-ingestion.js';
+import {
+  enqueueEcuCorpusPipeline,
+  getEcuCorpusQueueStats,
+  pauseEcuCorpusQueues,
+  resetFailedEcuCorpusQueueJobs,
+  resumeEcuCorpusQueues,
+} from '../lib/ecu-corpus/queues.js';
 import { toJsonSafe } from '../lib/ecu-corpus/serialization.js';
 import { badRequest, notFound } from '../lib/errors.js';
 import { validateBody } from '../middleware/validate.js';
@@ -13,11 +31,13 @@ import {
   ecuCorpusCompareSchema,
   ecuCorpusListQuerySchema,
   ecuCorpusMatchUploadSchema,
-  ecuCorpusScanSchema,
+  ecuCorpusOptimizedScanSchema,
+  ecuCorpusRunControlSchema,
   type EcuCorpusCompareInput,
   type EcuCorpusListQuery,
   type EcuCorpusMatchUploadInput,
-  type EcuCorpusScanInput,
+  type EcuCorpusOptimizedScanInput,
+  type EcuCorpusRunControlInput,
 } from '../schemas/ecu-corpus.js';
 
 export const ecuCorpusRouter: ExpressRouter = Router();
@@ -106,23 +126,179 @@ function fileWhere(query: EcuCorpusListQuery): Prisma.EcuCorpusFileWhereInput {
 
 ecuCorpusRouter.post(
   '/scan',
-  validateBody(ecuCorpusScanSchema),
+  validateBody(ecuCorpusOptimizedScanSchema),
   asyncHandler(async (req, res) => {
-    const input = req.body as EcuCorpusScanInput;
-    const summary = await scanEcuCorpus(input);
+    const input = req.body as EcuCorpusOptimizedScanInput;
+    const summary = (await runOptimizedCorpusIngestion(input)) as {
+      runId: string;
+      duplicateCount: number;
+      stages: {
+        discovery: { processedFiles: number; skippedFiles: number; failedFiles: number };
+        clustering: { processedFiles: number };
+        signatures: { processedFiles: number };
+      };
+    };
 
     await writeAuditLog(req, {
       action: 'admin.ecu_corpus.scan_completed',
       entityType: 'EcuAnalysisRun',
       entityId: summary.runId,
       metadata: {
-        rootPath: summary.rootPath,
-        totalFilesIndexed: summary.totalFilesIndexed,
-        clusterCount: summary.clusterCount,
+        rootPath: input.rootPath,
+        changedFiles: summary.stages.discovery.processedFiles,
+        skippedFiles: summary.stages.discovery.skippedFiles,
+        failedFiles: summary.stages.discovery.failedFiles,
+        clusteredFiles: summary.stages.clustering.processedFiles,
+        signatureCount: summary.stages.signatures.processedFiles,
+        duplicateCount: summary.duplicateCount,
       },
     });
 
     sendSuccess(res, summary, 201);
+  })
+);
+
+ecuCorpusRouter.post(
+  '/scan/enqueue',
+  validateBody(ecuCorpusOptimizedScanSchema),
+  asyncHandler(async (req, res) => {
+    const input = req.body as EcuCorpusOptimizedScanInput;
+    const job = await enqueueEcuCorpusPipeline(input);
+
+    await writeAuditLog(req, {
+      action: 'admin.ecu_corpus.scan_queued',
+      entityType: 'Queue',
+      entityId: job.queueName,
+      metadata: {
+        jobId: job.id,
+        rootPath: input.rootPath,
+        maxFiles: input.maxFiles,
+      },
+    });
+
+    sendSuccess(
+      res,
+      {
+        queued: true,
+        jobId: job.id,
+        queueName: job.queueName,
+      },
+      202
+    );
+  })
+);
+
+ecuCorpusRouter.post(
+  '/pause',
+  validateBody(ecuCorpusRunControlSchema),
+  asyncHandler(async (req, res) => {
+    const input = req.body as EcuCorpusRunControlInput;
+    await pauseOptimizedIngestion(input.runId, input.stage as EcuIngestionStage | undefined);
+    await pauseEcuCorpusQueues();
+
+    await writeAuditLog(req, {
+      action: 'admin.ecu_corpus.scan_paused',
+      entityType: 'EcuAnalysisRun',
+      entityId: input.runId,
+      metadata: { stage: input.stage },
+    });
+
+    sendSuccess(res, { paused: true, runId: input.runId, stage: input.stage ?? null });
+  })
+);
+
+ecuCorpusRouter.post(
+  '/resume',
+  validateBody(ecuCorpusRunControlSchema),
+  asyncHandler(async (req, res) => {
+    const input = req.body as EcuCorpusRunControlInput;
+    await resumeOptimizedIngestion(input.runId);
+    await resumeEcuCorpusQueues();
+
+    await writeAuditLog(req, {
+      action: 'admin.ecu_corpus.scan_resumed',
+      entityType: 'EcuAnalysisRun',
+      entityId: input.runId,
+      metadata: { stage: input.stage },
+    });
+
+    sendSuccess(res, { resumed: true, runId: input.runId });
+  })
+);
+
+ecuCorpusRouter.post(
+  '/reset-failed',
+  validateBody(ecuCorpusRunControlSchema),
+  asyncHandler(async (req, res) => {
+    const input = req.body as EcuCorpusRunControlInput;
+    await resetFailedOptimizedJobs(input.runId);
+    const queues = await resetFailedEcuCorpusQueueJobs();
+
+    await writeAuditLog(req, {
+      action: 'admin.ecu_corpus.failed_jobs_reset',
+      entityType: 'EcuAnalysisRun',
+      entityId: input.runId,
+      metadata: { queues },
+    });
+
+    sendSuccess(res, { resetFailed: true, runId: input.runId, queues });
+  })
+);
+
+ecuCorpusRouter.post(
+  '/rebuild-clusters',
+  validateBody(ecuCorpusRunControlSchema),
+  asyncHandler(async (req, res) => {
+    const input = req.body as EcuCorpusRunControlInput;
+    const result = await rebuildClustersOptimized(input.runId);
+
+    await writeAuditLog(req, {
+      action: 'admin.ecu_corpus.clusters_rebuilt',
+      entityType: 'EcuAnalysisRun',
+      entityId: input.runId,
+    });
+
+    sendSuccess(res, result);
+  })
+);
+
+ecuCorpusRouter.post(
+  '/rebuild-signatures',
+  validateBody(ecuCorpusRunControlSchema),
+  asyncHandler(async (req, res) => {
+    const input = req.body as EcuCorpusRunControlInput;
+    const result = await rebuildSignaturesOptimized(input.runId);
+
+    await writeAuditLog(req, {
+      action: 'admin.ecu_corpus.signatures_rebuilt',
+      entityType: 'EcuAnalysisRun',
+      entityId: input.runId,
+    });
+
+    sendSuccess(res, result);
+  })
+);
+
+ecuCorpusRouter.get(
+  '/runtime/metrics',
+  asyncHandler(async (req, res) => {
+    const runId = typeof req.query.runId === 'string' ? req.query.runId : undefined;
+    sendSuccess(res, await getOptimizedCorpusMetrics(runId));
+  })
+);
+
+ecuCorpusRouter.get(
+  '/runtime/verify',
+  asyncHandler(async (req, res) => {
+    const runId = typeof req.query.runId === 'string' ? req.query.runId : undefined;
+    sendSuccess(res, await verifyCorpusIntegrity(runId));
+  })
+);
+
+ecuCorpusRouter.get(
+  '/queues',
+  asyncHandler(async (_req, res) => {
+    sendSuccess(res, await getEcuCorpusQueueStats());
   })
 );
 

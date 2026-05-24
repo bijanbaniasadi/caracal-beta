@@ -529,6 +529,9 @@ model EcuAnalysisRun {
   oriModPairs            EcuOriModPair[]
   modificationSignatures EcuModificationSignature[]
   learnedSignatures      EcuLearnedSignature[]
+  checkpoints            EcuIngestionCheckpoint[]
+  relationStages         EcuCorpusRelationStage[]
+  metrics                EcuCorpusMetric[]
   createdAt              DateTime                   @default(now())
   updatedAt              DateTime                   @updatedAt
 
@@ -575,6 +578,11 @@ model EcuCorpusFile {
   @@index([fileName])
   @@index([sizeBytes])
   @@index([indexedAt])
+  @@index([runId, extension])
+  @@index([runId, detectedKind])
+  @@index([runId, sha256])
+  @@index([runId, indexedAt])
+  @@index([fullPath, modifiedAtOnDisk])
 }
 
 model EcuBinaryFingerprint {
@@ -862,4 +870,85 @@ model EcuLearnedSignature {
   @@index([signatureType])
   @@index([signatureKey])
   @@index([confidence])
+}
+
+model EcuFileHashCache {
+  id               String   @id @default(cuid())
+  fullPath         String   @unique
+  sizeBytes        BigInt
+  modifiedAtOnDisk DateTime
+  sha256           String
+  sampledHash      String?
+  lastRunId        String?
+  lastIndexedAt    DateTime @default(now())
+  metadata         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([sha256])
+  @@index([lastRunId])
+  @@index([modifiedAtOnDisk])
+  @@index([sizeBytes])
+}
+
+model EcuIngestionCheckpoint {
+  id              String         @id @default(cuid())
+  runId           String
+  run             EcuAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  stage           String
+  status          String         @default("RUNNING")
+  rootPath        String
+  lastPath        String?
+  discoveredFiles Int            @default(0)
+  skippedFiles    Int            @default(0)
+  processedFiles  Int            @default(0)
+  failedFiles     Int            @default(0)
+  batchCount      Int            @default(0)
+  metrics         Json?
+  pausedAt        DateTime?
+  startedAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([runId, stage])
+  @@index([stage, status])
+  @@index([rootPath])
+}
+
+model EcuCorpusRelationStage {
+  id           String         @id @default(cuid())
+  runId        String
+  run          EcuAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  fileId       String?
+  fullPath     String?
+  relationType String
+  relationKey  String
+  confidence   Float          @default(0)
+  payload      Json?
+  evidenceHash String?
+  status       String         @default("PENDING")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@unique([runId, fileId, relationType, relationKey])
+  @@index([runId, relationType])
+  @@index([runId, status])
+  @@index([relationType, relationKey])
+  @@index([fileId])
+  @@index([evidenceHash])
+}
+
+model EcuCorpusMetric {
+  id        String         @id @default(cuid())
+  runId     String
+  run       EcuAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  stage     String
+  metricKey String
+  value     Float
+  unit      String?
+  metadata  Json?
+  createdAt DateTime       @default(now())
+
+  @@index([runId, stage])
+  @@index([metricKey])
+  @@index([createdAt])
 }

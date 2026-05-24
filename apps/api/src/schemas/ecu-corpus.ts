@@ -23,6 +23,26 @@ export const ecuCorpusScanSchema = z.object({
   maxPairCandidates: z.coerce.number().int().min(0).max(100_000).optional(),
 });
 
+export const ecuCorpusOptimizedScanSchema = ecuCorpusScanSchema.extend({
+  runId: z.string().trim().min(1).max(120).optional(),
+  batchSize: z.coerce.number().int().min(100).max(25_000).optional(),
+  fingerprintBatchSize: z.coerce.number().int().min(1).max(2_000).optional(),
+  resume: z.boolean().optional(),
+});
+
+export const ecuCorpusRunControlSchema = z.object({
+  runId: z.string().trim().min(1).max(120),
+  stage: z
+    .enum([
+      'discovery',
+      'fingerprinting',
+      'clustering',
+      'relation-extraction',
+      'signature-generation',
+    ])
+    .optional(),
+});
+
 export const ecuCorpusListQuerySchema = z.object({
   q: queryText(240),
   extension: queryText(40),
@@ -44,6 +64,8 @@ export const ecuCorpusMatchUploadSchema = z.object({
 });
 
 export type EcuCorpusScanInput = z.infer<typeof ecuCorpusScanSchema>;
+export type EcuCorpusOptimizedScanInput = z.infer<typeof ecuCorpusOptimizedScanSchema>;
+export type EcuCorpusRunControlInput = z.infer<typeof ecuCorpusRunControlSchema>;
 export type EcuCorpusListQuery = z.infer<typeof ecuCorpusListQuerySchema>;
 export type EcuCorpusCompareInput = z.infer<typeof ecuCorpusCompareSchema>;
 export type EcuCorpusMatchUploadInput = z.infer<typeof ecuCorpusMatchUploadSchema>;
