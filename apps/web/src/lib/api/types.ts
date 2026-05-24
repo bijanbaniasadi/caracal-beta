@@ -57,7 +57,7 @@ export type ApiErrorCode =
   | 'upload_error'
   | 'internal_server_error'
   // catch-all for unknown codes returned by proxies / future additions
-  | (string & {});
+  | (string & { readonly __apiErrorCodeBrand?: never });
 
 // ─── Domain enums (mirror Prisma enum values) ──────────────────────────────
 

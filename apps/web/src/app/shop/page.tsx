@@ -10,9 +10,34 @@ export const metadata = {
 // ShopContent calls useSearchParams() — must be wrapped in Suspense per Next.js 15
 export default function ShopPage() {
   return (
-    <Suspense fallback={<ShopFallback />}>
-      <ShopContent />
-    </Suspense>
+    <div className="space-y-6">
+      <section className="rounded-lg border border-white/10 bg-white/5 p-5">
+        <div className="grid gap-4 text-sm text-brand-muted sm:grid-cols-3">
+          <div>
+            <p className="font-semibold text-brand-text">UAE stock and sourcing</p>
+            <p className="mt-1 leading-6">
+              Dubai-based fulfilment for in-stock tools and verified supplier orders.
+            </p>
+          </div>
+          <div>
+            <p className="font-semibold text-brand-text">Secure payment options</p>
+            <p className="mt-1 leading-6">
+              Card, invoice, and bank-transfer workflows are confirmed during checkout or quote.
+            </p>
+          </div>
+          <div>
+            <p className="font-semibold text-brand-text">Workshop compatibility help</p>
+            <p className="mt-1 leading-6">
+              Ask before buying if you need protocol, ECU, or tool coverage confirmation.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <Suspense fallback={<ShopFallback />}>
+        <ShopContent />
+      </Suspense>
+    </div>
   );
 }
 
