@@ -30,6 +30,7 @@ import { badRequest, notFound } from '../lib/errors.js';
 import { toPrismaJson } from '../lib/prisma-json.js';
 import { authenticateAccessToken, requireRoles } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
+import { ecuCorpusRouter } from './ecu-corpus.js';
 import {
   adminListQuerySchema,
   articleCreateSchema,
@@ -68,6 +69,7 @@ createBullBoard({
 
 adminRouter.use(authenticateAccessToken, requireRoles('admin', 'staff'));
 adminRouter.use('/queues/ui', queueBoardAdapter.getRouter());
+adminRouter.use('/ecu-corpus', ecuCorpusRouter);
 
 const productInclude = {
   category: {

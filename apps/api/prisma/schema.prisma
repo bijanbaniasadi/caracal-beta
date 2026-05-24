@@ -142,7 +142,7 @@ model Article {
   thumbnailImage String?
   seoTitle       String?
   seoDescription String?
-  keywords       String[]
+  keywords       String[]      @default([])
   isFeatured     Boolean       @default(false)
   authorId       String?
   author         User?         @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: SetNull)
@@ -503,4 +503,363 @@ model AuditLog {
   @@index([action])
   @@index([requestId])
   @@index([createdAt])
+}
+
+model EcuAnalysisRun {
+  id                     String                     @id @default(cuid())
+  rootPath               String
+  status                 String                     @default("RUNNING")
+  startedAt              DateTime                   @default(now())
+  completedAt            DateTime?
+  totalFiles             Int                        @default(0)
+  indexedFiles           Int                        @default(0)
+  unreadableFiles        Int                        @default(0)
+  duplicateFiles         Int                        @default(0)
+  clusterCount           Int                        @default(0)
+  knownFamilyCount       Int                        @default(0)
+  unknownFamilyCount     Int                        @default(0)
+  oriModPairCount        Int                        @default(0)
+  extensionBreakdown     Json?
+  summary                Json?
+  failedFiles            Json?
+  metadata               Json?
+  corpusFiles            EcuCorpusFile[]
+  clusters               EcuFileCluster[]
+  unknownFamilies        EcuUnknownFamily[]
+  oriModPairs            EcuOriModPair[]
+  modificationSignatures EcuModificationSignature[]
+  learnedSignatures      EcuLearnedSignature[]
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+
+  @@index([status])
+  @@index([rootPath])
+  @@index([startedAt])
+}
+
+model EcuCorpusFile {
+  id                 String                 @id @default(cuid())
+  runId              String?
+  run                EcuAnalysisRun?        @relation(fields: [runId], references: [id], onDelete: SetNull)
+  rootPath           String
+  relativePath       String
+  fullPath           String                 @unique
+  fileName           String
+  extension          String
+  detectedKind       String
+  sizeBytes          BigInt
+  sha256             String
+  createdAtOnDisk    DateTime?
+  modifiedAtOnDisk   DateTime?
+  indexedAt          DateTime               @default(now())
+  isReadable         Boolean                @default(true)
+  readError          String?
+  metadata           Json?
+  fingerprint        EcuBinaryFingerprint?
+  clusterMemberships EcuFileClusterMember[]
+  detectedFamilies   EcuDetectedFamily[]
+  projectLabels      EcuProjectLabel[]
+  mapDefinitions     EcuMapDefinition[]
+  mapRegions         EcuMapRegion[]
+  checksumCandidates EcuChecksumCandidate[]
+  dtcCandidates      EcuDtcCandidate[]
+  originalPairs      EcuOriModPair[]        @relation("EcuOriginalFile")
+  modifiedPairs      EcuOriModPair[]        @relation("EcuModifiedFile")
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  @@index([runId])
+  @@index([sha256])
+  @@index([extension])
+  @@index([detectedKind])
+  @@index([fileName])
+  @@index([sizeBytes])
+  @@index([indexedAt])
+}
+
+model EcuBinaryFingerprint {
+  id                  String        @id @default(cuid())
+  fileId              String        @unique
+  file                EcuCorpusFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  entropy             Float?
+  entropyProfile      Json?
+  architecture        String?
+  supplier            String?
+  probableOem         String?
+  controllerType      String?
+  fuelType            String?
+  softwareVersion     String?
+  hardwareNumber      String?
+  filenameTokens      Json?
+  stringTable         Json?
+  byteSignatures      Json?
+  vectorPatterns      Json?
+  calibrationRegions  Json?
+  mapBlockCandidates  Json?
+  checksumCandidates  Json?
+  dtcCandidates       Json?
+  intelligenceSummary Json?
+  metadata            Json?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@index([architecture])
+  @@index([supplier])
+  @@index([probableOem])
+}
+
+model EcuFileCluster {
+  id          String                     @id @default(cuid())
+  runId       String
+  run         EcuAnalysisRun             @relation(fields: [runId], references: [id], onDelete: Cascade)
+  clusterKey  String
+  clusterType String
+  label       String
+  familyKey   String?
+  confidence  Float                      @default(0)
+  memberCount Int                        @default(0)
+  evidence    Json?
+  metadata    Json?
+  members     EcuFileClusterMember[]
+  unknown     EcuUnknownFamily?
+  signatures  EcuLearnedSignature[]
+  modSigns    EcuModificationSignature[]
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+
+  @@unique([runId, clusterKey])
+  @@index([clusterType])
+  @@index([familyKey])
+  @@index([confidence])
+}
+
+model EcuFileClusterMember {
+  id        String         @id @default(cuid())
+  clusterId String
+  cluster   EcuFileCluster @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  fileId    String
+  file      EcuCorpusFile  @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  score     Float          @default(0)
+  evidence  Json?
+  createdAt DateTime       @default(now())
+
+  @@unique([clusterId, fileId])
+  @@index([fileId])
+  @@index([score])
+}
+
+model EcuDetectedFamily {
+  id             String        @id @default(cuid())
+  fileId         String
+  file           EcuCorpusFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  familyKey      String
+  familyLabel    String
+  supplier       String?
+  oem            String?
+  controllerType String?
+  fuelType       String?
+  architecture   String?
+  confidence     Float         @default(0)
+  evidence       Json?
+  createdAt      DateTime      @default(now())
+
+  @@index([fileId])
+  @@index([familyKey])
+  @@index([supplier])
+  @@index([oem])
+  @@index([confidence])
+}
+
+model EcuUnknownFamily {
+  id          String          @id @default(cuid())
+  runId       String
+  run         EcuAnalysisRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  clusterId   String?         @unique
+  cluster     EcuFileCluster? @relation(fields: [clusterId], references: [id], onDelete: SetNull)
+  unknownKey  String
+  label       String
+  confidence  Float           @default(0)
+  memberCount Int             @default(0)
+  evidence    Json?
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([runId, unknownKey])
+  @@index([confidence])
+}
+
+model EcuProjectLabel {
+  id             String             @id @default(cuid())
+  fileId         String
+  file           EcuCorpusFile      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  labelType      String
+  name           String
+  address        BigInt?
+  dataType       String?
+  unit           String?
+  factor         Float?
+  offset         Float?
+  source         String?
+  confidence     Float              @default(0)
+  comments       String?
+  metadata       Json?
+  mapDefinitions EcuMapDefinition[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([fileId])
+  @@index([labelType])
+  @@index([name])
+  @@index([address])
+}
+
+model EcuMapDefinition {
+  id        String           @id @default(cuid())
+  fileId    String
+  file      EcuCorpusFile    @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  labelId   String?
+  label     EcuProjectLabel? @relation(fields: [labelId], references: [id], onDelete: SetNull)
+  name      String
+  address   BigInt?
+  dataType  String?
+  axes      Json?
+  factor    Float?
+  offset    Float?
+  unit      String?
+  comments  String?
+  metadata  Json?
+  regions   EcuMapRegion[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([fileId])
+  @@index([labelId])
+  @@index([name])
+  @@index([address])
+}
+
+model EcuMapRegion {
+  id              String            @id @default(cuid())
+  fileId          String
+  file            EcuCorpusFile     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  mapDefinitionId String?
+  mapDefinition   EcuMapDefinition? @relation(fields: [mapDefinitionId], references: [id], onDelete: SetNull)
+  offset          BigInt?
+  length          Int?
+  regionType      String
+  confidence      Float             @default(0)
+  evidence        Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([fileId])
+  @@index([mapDefinitionId])
+  @@index([regionType])
+  @@index([offset])
+}
+
+model EcuOriModPair {
+  id                       String                     @id @default(cuid())
+  runId                    String
+  run                      EcuAnalysisRun             @relation(fields: [runId], references: [id], onDelete: Cascade)
+  originalFileId           String
+  originalFile             EcuCorpusFile              @relation("EcuOriginalFile", fields: [originalFileId], references: [id], onDelete: Cascade)
+  modifiedFileId           String
+  modifiedFile             EcuCorpusFile              @relation("EcuModifiedFile", fields: [modifiedFileId], references: [id], onDelete: Cascade)
+  confidence               Float                      @default(0)
+  sizeBytes                BigInt
+  shaDistance              Float?
+  changedRegions           Json?
+  probableModificationType String?
+  changedMapCandidates     Json?
+  evidence                 Json?
+  modificationSignatures   EcuModificationSignature[]
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+
+  @@unique([runId, originalFileId, modifiedFileId])
+  @@index([runId])
+  @@index([confidence])
+}
+
+model EcuModificationSignature {
+  id            String          @id @default(cuid())
+  runId         String
+  run           EcuAnalysisRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  clusterId     String?
+  cluster       EcuFileCluster? @relation(fields: [clusterId], references: [id], onDelete: SetNull)
+  pairId        String?
+  pair          EcuOriModPair?  @relation(fields: [pairId], references: [id], onDelete: SetNull)
+  signatureType String
+  signatureKey  String
+  confidence    Float           @default(0)
+  regions       Json?
+  evidence      Json?
+  metadata      Json?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([runId])
+  @@index([clusterId])
+  @@index([pairId])
+  @@index([signatureType])
+  @@index([confidence])
+}
+
+model EcuChecksumCandidate {
+  id         String        @id @default(cuid())
+  fileId     String
+  file       EcuCorpusFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  family     String
+  offset     BigInt?
+  length     Int?
+  confidence Float         @default(0)
+  evidence   Json?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([fileId])
+  @@index([family])
+  @@index([confidence])
+}
+
+model EcuDtcCandidate {
+  id          String        @id @default(cuid())
+  fileId      String
+  file        EcuCorpusFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  offset      BigInt?
+  length      Int?
+  encoding    String
+  confidence  Float         @default(0)
+  sampleCodes Json?
+  evidence    Json?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([fileId])
+  @@index([encoding])
+  @@index([confidence])
+}
+
+model EcuLearnedSignature {
+  id            String          @id @default(cuid())
+  runId         String
+  run           EcuAnalysisRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  clusterId     String?
+  cluster       EcuFileCluster? @relation(fields: [clusterId], references: [id], onDelete: SetNull)
+  signatureType String
+  signatureKey  String
+  label         String
+  confidence    Float           @default(0)
+  evidence      Json?
+  metadata      Json?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([runId])
+  @@index([clusterId])
+  @@index([signatureType])
+  @@index([signatureKey])
+  @@index([confidence])
 }

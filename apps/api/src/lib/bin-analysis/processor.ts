@@ -4,7 +4,8 @@ import type { BinAnalysisStage, StorageProvider } from '@prisma/client';
 import { logger } from '../logger.js';
 import { toPrismaJson } from '../prisma-json.js';
 import { readObject, storeObject } from '../storage.js';
-import { detectMcuCandidates, extractBinMetadata, hashBinFile } from './metadata.js';
+import { analyzeEcuBinary } from './ecu-intelligence.js';
+import { extractBinMetadata, hashBinFile } from './metadata.js';
 
 interface ProcessBinAnalysisInput {
   analysisJobId: string;
@@ -115,11 +116,11 @@ export async function processBinAnalysisJob(input: ProcessBinAnalysisInput) {
 
   await setStage(job.id, 'MCU_DETECTION', 35, input.attemptNumber);
   await report(35);
-  const candidates = detectMcuCandidates(
-    storedObject.body,
-    job.upload.originalFileName,
-    job.upload.productContext
-  );
+  const intelligence = analyzeEcuBinary(storedObject.body, {
+    fileName: job.upload.originalFileName,
+    productContext: job.upload.productContext,
+  });
+  const candidates = intelligence.mcu.candidates;
   const primaryCandidate = candidates[0];
 
   await setStage(job.id, 'METADATA_EXTRACTION', 65, input.attemptNumber);
@@ -135,6 +136,7 @@ export async function processBinAnalysisJob(input: ProcessBinAnalysisInput) {
     hashes,
     mcuCandidates: candidates,
     metadata: extractedMetadata,
+    intelligence,
   };
   const storedResult = await storeObject({
     key: resultObjectKey(job.id),
@@ -154,8 +156,9 @@ export async function processBinAnalysisJob(input: ProcessBinAnalysisInput) {
         kind: 'PIPELINE_SUMMARY',
         fileSha256: hashes.sha256,
         fileSizeBytes: storedObject.body.length,
-        mcuFamily: primaryCandidate?.family,
-        mcuConfidence: primaryCandidate?.confidence,
+        mcuFamily: intelligence.normalizedSummary.primaryMcu?.family ?? primaryCandidate?.family,
+        mcuConfidence:
+          intelligence.normalizedSummary.primaryMcu?.confidence ?? primaryCandidate?.confidence,
         resultObjectKey: storedResult.key,
         storageProvider: storedResult.provider as StorageProvider,
         summary: toPrismaJson(summary),

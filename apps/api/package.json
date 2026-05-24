@@ -22,6 +22,7 @@
     "db:studio": "prisma studio --schema=prisma/schema.prisma",
     "db:reset": "prisma migrate reset --force --schema=prisma/schema.prisma",
     "db:health": "tsx scripts/health-diagnostics.ts",
+    "ecu:scan": "tsx scripts/ecu-corpus-scan.ts",
     "seed": "tsx prisma/seeds/seed.ts",
     "clean": "rimraf dist"
   },
