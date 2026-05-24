@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import {
   useCorpusClusters,
   useCorpusFiles,
   useEnqueueCorpusScan,
   useLatestCorpusRun,
+  useOriModPairs,
   usePauseCorpus,
   useResetFailedCorpusJobs,
   useResumeCorpus,
@@ -22,7 +24,7 @@ import {
   AdminPagination,
 } from '@/components/admin/ui/admin-table';
 import { useToastContext } from '@/lib/toast/context';
-import type { EcuCorpusFile, EcuFileCluster, ListParams } from '@/lib/api/admin-types';
+import type { EcuCorpusFile, EcuFileCluster, EcuOriModPair, ListParams } from '@/lib/api/admin-types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -239,10 +241,11 @@ function FilesTab() {
                 <AdminTh>Size</AdminTh>
                 <AdminTh>Families</AdminTh>
                 <AdminTh>Indexed</AdminTh>
+                <AdminTh className="text-right">Actions</AdminTh>
               </tr>
             </AdminThead>
             {(data?.items.length ?? 0) === 0 ? (
-              <AdminTableEmpty message="No files found" colSpan={5} />
+              <AdminTableEmpty message="No files found" colSpan={6} />
             ) : (
               <AdminTbody>
                 {data?.items.map((f: EcuCorpusFile) => (
@@ -277,6 +280,14 @@ function FilesTab() {
                     </AdminTd>
                     <AdminTd>
                       <span className="text-xs text-brand-muted">{fmtDate(f.indexedAt)}</span>
+                    </AdminTd>
+                    <AdminTd className="text-right">
+                      <Link
+                        href={`/admin/corpus/files/${f.id}`}
+                        className="rounded border border-white/10 px-2 py-0.5 text-xs text-brand-muted hover:text-brand-text transition-colors"
+                      >
+                        Explore →
+                      </Link>
                     </AdminTd>
                   </tr>
                 ))}
@@ -432,20 +443,92 @@ function UnknownTab() {
   );
 }
 
+// ─── ORI/MOD pairs tab ────────────────────────────────────────────────────────
+
+function OriModTab() {
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useOriModPairs({ page, pageSize: 20 });
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-brand-muted">
+        {isLoading ? '…' : `${data?.total ?? 0} ORI/MOD pairs`}
+      </p>
+      {isLoading ? <AdminTableSkeleton rows={6} cols={5} /> : (
+        <div className="overflow-hidden rounded-xl border border-white/10">
+          <AdminTable>
+            <AdminThead>
+              <tr>
+                <AdminTh>Original</AdminTh>
+                <AdminTh>Modified</AdminTh>
+                <AdminTh>Mod Type</AdminTh>
+                <AdminTh>Confidence</AdminTh>
+                <AdminTh className="text-right">Actions</AdminTh>
+              </tr>
+            </AdminThead>
+            {(data?.items.length ?? 0) === 0 ? (
+              <AdminTableEmpty message="No ORI/MOD pairs found" colSpan={5} />
+            ) : (
+              <AdminTbody>
+                {data?.items.map((pair: EcuOriModPair) => (
+                  <tr key={pair.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                    <AdminTd>
+                      <p className="max-w-[180px] truncate font-mono text-xs text-brand-text">
+                        {pair.originalFile.fileName}
+                      </p>
+                    </AdminTd>
+                    <AdminTd>
+                      <p className="max-w-[180px] truncate font-mono text-xs text-sky-400">
+                        {pair.modifiedFile.fileName}
+                      </p>
+                    </AdminTd>
+                    <AdminTd>
+                      <span className="text-xs text-brand-muted">—</span>
+                    </AdminTd>
+                    <AdminTd>
+                      <span className="font-mono text-xs text-emerald-400">
+                        {pct(pair.confidence)}
+                      </span>
+                    </AdminTd>
+                    <AdminTd className="text-right">
+                      <Link
+                        href={`/admin/corpus/ori-mod/${pair.id}`}
+                        className="rounded border border-white/10 px-2 py-0.5 text-xs text-brand-muted hover:text-brand-text transition-colors"
+                      >
+                        Diff →
+                      </Link>
+                    </AdminTd>
+                  </tr>
+                ))}
+              </AdminTbody>
+            )}
+          </AdminTable>
+          {(data?.totalPages ?? 0) > 1 && (
+            <AdminPagination
+              page={page} totalPages={data?.totalPages ?? 1}
+              total={data?.total ?? 0} pageSize={20} onPage={setPage}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'run' | 'files' | 'clusters' | 'unknown';
+type Tab = 'run' | 'files' | 'clusters' | 'unknown' | 'ori-mod';
 
 const TABS: { value: Tab; label: string }[] = [
   { value: 'run',      label: 'Run Status' },
   { value: 'files',    label: 'Files' },
   { value: 'clusters', label: 'Clusters' },
   { value: 'unknown',  label: 'Unknown Families' },
+  { value: 'ori-mod',  label: 'ORI/MOD Pairs' },
 ];
 
 export default function CorpusPage() {
   const [activeTab, setActiveTab] = useState<Tab>('run');
-  useLatestCorpusRun();
 
   return (
     <div className="space-y-5">
@@ -489,6 +572,7 @@ export default function CorpusPage() {
       {activeTab === 'files'    && <FilesTab />}
       {activeTab === 'clusters' && <ClustersTab />}
       {activeTab === 'unknown'  && <UnknownTab />}
+      {activeTab === 'ori-mod'  && <OriModTab />}
     </div>
   );
 }

@@ -549,6 +549,199 @@ export interface CorpusMetrics {
   stageProgress: Record<string, { processed: number; failed: number; pending: number }>;
 }
 
+// ─── ECU Corpus detail types (Phase 2 intelligence UI) ───────────────────────
+
+export interface EcuBinaryFingerprintFull {
+  id: string;
+  fileId: string;
+  entropy: number | null;
+  entropyProfile: unknown;
+  architecture: string | null;
+  supplier: string | null;
+  probableOem: string | null;
+  controllerType: string | null;
+  fuelType: string | null;
+  softwareVersion: string | null;
+  hardwareNumber: string | null;
+  filenameTokens: unknown;
+  stringTable: unknown;
+  byteSignatures: unknown;
+  vectorPatterns: unknown;
+  /** JSON array of { offset, length, type, confidence } */
+  calibrationRegions: unknown;
+  mapBlockCandidates: unknown;
+  checksumCandidates: unknown;
+  dtcCandidates: unknown;
+  intelligenceSummary: unknown;
+  metadata: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EcuMapRegion {
+  id: string;
+  fileId: string;
+  mapDefinitionId: string | null;
+  /** BigInt serialised as string */
+  offset: string | null;
+  length: number | null;
+  regionType: string;
+  confidence: number;
+}
+
+export interface EcuMapDefinitionFull {
+  id: string;
+  fileId: string;
+  labelId: string | null;
+  name: string;
+  /** BigInt serialised as string */
+  address: string | null;
+  dataType: string | null;
+  axes: unknown;
+  factor: number | null;
+  offset: number | null;
+  unit: string | null;
+  comments: string | null;
+  regions: EcuMapRegion[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EcuProjectLabel {
+  id: string;
+  fileId: string;
+  labelType: string;
+  name: string;
+  /** BigInt serialised as string */
+  address: string | null;
+  dataType: string | null;
+  unit: string | null;
+  factor: number | null;
+  offset: number | null;
+  source: string | null;
+  confidence: number;
+  comments: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EcuChecksumCandidate {
+  id: string;
+  fileId: string;
+  family: string;
+  /** BigInt serialised as string */
+  offset: string | null;
+  length: number | null;
+  confidence: number;
+  createdAt: string;
+}
+
+export interface EcuDtcCandidate {
+  id: string;
+  fileId: string;
+  encoding: string;
+  confidence: number;
+  /** JSON array of sample DTC codes */
+  sampleCodes: unknown;
+  createdAt: string;
+}
+
+export interface EcuClusterMembership {
+  id: string;
+  clusterId: string;
+  fileId: string;
+  score: number;
+  cluster: {
+    id: string;
+    label: string | null;
+    clusterKey: string;
+    familyKey: string | null;
+    clusterType: string | null;
+    confidence: number;
+  };
+}
+
+export interface EcuCorpusFileFull {
+  id: string;
+  fileName: string;
+  relativePath: string;
+  fullPath: string;
+  extension: string;
+  /** BigInt serialised as string */
+  sizeBytes: string;
+  sha256: string;
+  detectedKind: string | null;
+  indexedAt: string;
+  fingerprint: EcuBinaryFingerprintFull | null;
+  detectedFamilies: EcuDetectedFamily[];
+  projectLabels: EcuProjectLabel[];
+  mapDefinitions: EcuMapDefinitionFull[];
+  checksumCandidates: EcuChecksumCandidate[];
+  dtcCandidates: EcuDtcCandidate[];
+  clusterMemberships: EcuClusterMembership[];
+  _count: { projectLabels: number; mapDefinitions: number; clusterMemberships: number };
+}
+
+export interface EcuModificationSignature {
+  id: string;
+  runId: string;
+  clusterId: string | null;
+  pairId: string | null;
+  signatureType: string;
+  signatureKey: string;
+  confidence: number;
+  regions: unknown;
+  evidence: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EcuOriModPairFull {
+  id: string;
+  runId: string;
+  confidence: number;
+  /** BigInt serialised as string */
+  sizeBytes: string;
+  shaDistance: number | null;
+  /** JSON array of changed regions */
+  changedRegions: unknown;
+  probableModificationType: string | null;
+  changedMapCandidates: unknown;
+  originalFile: {
+    id: string;
+    fileName: string;
+    relativePath: string;
+    sha256: string;
+    sizeBytes: string;
+    detectedKind: string | null;
+  };
+  modifiedFile: {
+    id: string;
+    fileName: string;
+    relativePath: string;
+    sha256: string;
+    sizeBytes: string;
+    detectedKind: string | null;
+  };
+  modificationSignatures: EcuModificationSignature[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CorpusMatchResult {
+  upload: { id: string; originalFileName: string; byteSize: number; sha256: string };
+  exactMatches: EcuCorpusFile[];
+  sameSizeMatches: EcuCorpusFile[];
+  possibleMatchingLabels: (string | null)[];
+  recommendedNextManualReviewStep: string;
+}
+
+export interface BinUploadUpdateInput {
+  status?: BinUploadStatus;
+  notes?: string | null;
+  rejectionReason?: string | null;
+}
+
 // ─── Audit log ────────────────────────────────────────────────────────────────
 
 export interface AuditLogRecord {

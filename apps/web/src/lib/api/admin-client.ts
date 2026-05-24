@@ -16,6 +16,8 @@ import type {
   AdminArticle,
   AdminBinUpload,
   AdminCategory,
+  BinUploadUpdateInput,
+  CorpusMatchResult,
   DashboardMetrics,
   AdminInventoryItem,
   AdminInventoryUpdate,
@@ -26,8 +28,10 @@ import type {
   BinAnalysisJob,
   EcuAnalysisRun,
   EcuCorpusFile,
+  EcuCorpusFileFull,
   EcuFileCluster,
   EcuOriModPair,
+  EcuOriModPairFull,
   EcuUnknownFamily,
   InquiriesResponse,
   IntakeRow,
@@ -697,6 +701,72 @@ export async function listOriModPairs(
   params?: ListParams,
 ): Promise<PaginatedList<EcuOriModPair>> {
   return fetchList<EcuOriModPair>('/api/admin/ecu-corpus/ori-mod-pairs', params);
+}
+
+/** GET /api/admin/ecu-corpus/files/:id */
+export async function getCorpusFile(id: string): Promise<EcuCorpusFileFull> {
+  const env = await adminFetch<EcuCorpusFileFull>(
+    'GET',
+    `/api/admin/ecu-corpus/files/${id}`,
+  );
+  return env.data;
+}
+
+/** GET /api/admin/ecu-corpus/ori-mod-pairs/:id */
+export async function getOriModPair(id: string): Promise<EcuOriModPairFull> {
+  const env = await adminFetch<EcuOriModPairFull>(
+    'GET',
+    `/api/admin/ecu-corpus/ori-mod-pairs/${id}`,
+  );
+  return env.data;
+}
+
+/** POST /api/admin/ecu-corpus/match-uploaded-bin */
+export async function matchUploadedBin(
+  uploadId: string,
+  limit = 10,
+): Promise<CorpusMatchResult> {
+  const env = await adminFetch<CorpusMatchResult>(
+    'POST',
+    '/api/admin/ecu-corpus/match-uploaded-bin',
+    { uploadId, limit },
+  );
+  return env.data;
+}
+
+/** GET /api/admin/ecu-corpus/label-candidates?fileId= */
+export async function getLabelCandidates(fileId: string): Promise<unknown> {
+  const env = await adminFetch<unknown>(
+    'GET',
+    `/api/admin/ecu-corpus/label-candidates?fileId=${encodeURIComponent(fileId)}`,
+  );
+  return env.data;
+}
+
+/** POST /api/admin/ecu-corpus/compare */
+export async function compareCorpusFiles(
+  leftFileId: string,
+  rightFileId: string,
+): Promise<unknown> {
+  const env = await adminFetch<unknown>(
+    'POST',
+    '/api/admin/ecu-corpus/compare',
+    { leftFileId, rightFileId },
+  );
+  return env.data;
+}
+
+/** PATCH /api/admin/uploads/:id */
+export async function updateBinUpload(
+  id: string,
+  input: BinUploadUpdateInput,
+): Promise<AdminBinUpload> {
+  const env = await adminFetch<AdminBinUpload>(
+    'PATCH',
+    `/api/admin/uploads/${id}`,
+    input,
+  );
+  return env.data;
 }
 
 /** POST /api/admin/ecu-corpus/scan/enqueue */

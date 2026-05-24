@@ -7,6 +7,7 @@ import { asyncHandler } from '../lib/async-handler.js';
 import { writeAuditLog } from '../lib/audit.js';
 import { compareCorpusFiles } from '../lib/ecu-corpus/indexer.js';
 import {
+  getIngestionBottleneckReport,
   getOptimizedCorpusMetrics,
   pauseOptimizedIngestion,
   rebuildClustersOptimized,
@@ -284,6 +285,33 @@ ecuCorpusRouter.get(
   asyncHandler(async (req, res) => {
     const runId = typeof req.query.runId === 'string' ? req.query.runId : undefined;
     sendSuccess(res, await getOptimizedCorpusMetrics(runId));
+  })
+);
+
+ecuCorpusRouter.get(
+  '/runtime/bottlenecks',
+  asyncHandler(async (req, res) => {
+    const runId = typeof req.query.runId === 'string' ? req.query.runId : undefined;
+    sendSuccess(res, await getIngestionBottleneckReport(runId));
+  })
+);
+
+ecuCorpusRouter.get(
+  '/runtime/dashboard',
+  asyncHandler(async (req, res) => {
+    const runId = typeof req.query.runId === 'string' ? req.query.runId : undefined;
+    const [metrics, bottlenecks, queues] = await Promise.all([
+      getOptimizedCorpusMetrics(runId),
+      getIngestionBottleneckReport(runId),
+      getEcuCorpusQueueStats(),
+    ]);
+
+    sendSuccess(res, {
+      generatedAt: new Date().toISOString(),
+      metrics,
+      bottlenecks,
+      queues,
+    });
   })
 );
 
@@ -624,6 +652,102 @@ ecuCorpusRouter.post(
             : 'Review same-size candidates and run compare on the closest corpus files; no patching is performed.',
       })
     );
+  })
+);
+
+ecuCorpusRouter.get(
+  '/files/:id',
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const prisma = getPrismaClient();
+
+    const file = await prisma.ecuCorpusFile.findUnique({
+      where: { id },
+      include: {
+        fingerprint: true,
+        detectedFamilies: { orderBy: { confidence: 'desc' } },
+        projectLabels: { orderBy: { confidence: 'desc' }, take: 100 },
+        mapDefinitions: {
+          orderBy: [{ address: 'asc' }],
+          take: 200,
+          include: {
+            regions: { orderBy: [{ offset: 'asc' }] },
+          },
+        },
+        checksumCandidates: { orderBy: { confidence: 'desc' } },
+        dtcCandidates: { orderBy: { confidence: 'desc' } },
+        clusterMemberships: {
+          include: {
+            cluster: {
+              select: {
+                id: true,
+                label: true,
+                clusterKey: true,
+                familyKey: true,
+                clusterType: true,
+                confidence: true,
+              },
+            },
+          },
+          orderBy: { score: 'desc' },
+          take: 20,
+        },
+        _count: {
+          select: {
+            projectLabels: true,
+            mapDefinitions: true,
+            clusterMemberships: true,
+          },
+        },
+      },
+    });
+
+    if (!file) {
+      throw notFound('ECU corpus file not found.', { id });
+    }
+
+    sendSuccess(res, toJsonSafe(file));
+  })
+);
+
+ecuCorpusRouter.get(
+  '/ori-mod-pairs/:id',
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const prisma = getPrismaClient();
+
+    const pair = await prisma.ecuOriModPair.findUnique({
+      where: { id },
+      include: {
+        originalFile: {
+          select: {
+            id: true,
+            fileName: true,
+            relativePath: true,
+            sha256: true,
+            sizeBytes: true,
+            detectedKind: true,
+          },
+        },
+        modifiedFile: {
+          select: {
+            id: true,
+            fileName: true,
+            relativePath: true,
+            sha256: true,
+            sizeBytes: true,
+            detectedKind: true,
+          },
+        },
+        modificationSignatures: { orderBy: { confidence: 'desc' } },
+      },
+    });
+
+    if (!pair) {
+      throw notFound('ORI/MOD pair not found.', { id });
+    }
+
+    sendSuccess(res, toJsonSafe(pair));
   })
 );
 
