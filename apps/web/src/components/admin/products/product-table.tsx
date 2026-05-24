@@ -89,10 +89,10 @@ export function ProductTable({
                   {/* Product name + image */}
                   <AdminTd>
                     <div className="flex items-center gap-3">
-                      {product.primaryImageUrl ? (
+                      {product.images[0]?.url ? (
                         <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-white/5">
                           <Image
-                            src={product.primaryImageUrl}
+                            src={product.images[0].url}
                             alt={product.name}
                             fill
                             className="object-contain p-0.5"
@@ -107,8 +107,8 @@ export function ProductTable({
                         <p className="max-w-[200px] truncate font-medium text-brand-text">
                           {product.name}
                         </p>
-                        {product.categoryName && (
-                          <p className="text-xs text-brand-muted">{product.categoryName}</p>
+                        {product.category?.name && (
+                          <p className="text-xs text-brand-muted">{product.category.name}</p>
                         )}
                       </div>
                     </div>
@@ -124,9 +124,9 @@ export function ProductTable({
 
                   <AdminTd>
                     <div className="space-y-0.5">
-                      <InventoryStatusBadge status={product.inventoryStatus} />
+                      <InventoryStatusBadge status={product.inventory.summary.status} />
                       <p className="text-xs text-brand-muted">
-                        {product.quantityOnHand} on hand
+                        {product.inventory.summary.quantityOnHand} on hand
                       </p>
                     </div>
                   </AdminTd>
@@ -144,13 +144,13 @@ export function ProductTable({
 
                   <AdminTd>
                     <div className="flex flex-wrap gap-1">
-                      {product.tradeOnly && (
+                      {product.isTradeOnly && (
                         <AdminBadge variant="violet">Trade</AdminBadge>
                       )}
-                      {product.featured && (
+                      {product.isFeatured && (
                         <AdminBadge variant="orange">★ Featured</AdminBadge>
                       )}
-                      {product.b2bEligible && (
+                      {product.isB2BEligible && (
                         <AdminBadge variant="sky">B2B</AdminBadge>
                       )}
                     </div>

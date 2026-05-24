@@ -36,7 +36,7 @@ function EditableRow({ item }: { item: AdminInventoryItem }) {
       reorderPoint: reorder ? parseInt(reorder, 10) : undefined,
     };
     try {
-      await mutateAsync({ productId: item.productId, update });
+      await mutateAsync({ id: item.id, update });
       addToast({ variant: 'success', title: `${item.productName} updated` });
       setEditing(false);
     } catch (err) {
@@ -234,7 +234,7 @@ export function InventoryEditor({
           ) : (
             <AdminTbody>
               {items.map((item) => (
-                <EditableRow key={item.productId} item={item} />
+                <EditableRow key={item.id} item={item} />
               ))}
             </AdminTbody>
           )}

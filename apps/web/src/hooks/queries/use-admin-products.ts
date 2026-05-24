@@ -14,12 +14,16 @@ import {
   updateAdminProduct,
 } from '@/lib/api/admin-client';
 import type {
-  AdminProductDetail,
-  AdminProductInput,
-  AdminProductListItem,
+  AdminProduct,
+  ProductCreateInput,
   ListParams,
   PaginatedList,
 } from '@/lib/api/admin-types';
+
+// Aliases used by this module
+type AdminProductDetail = AdminProduct;
+type AdminProductListItem = AdminProduct;
+type AdminProductInput = ProductCreateInput;
 
 // ─── Query keys ───────────────────────────────────────────────────────────────
 

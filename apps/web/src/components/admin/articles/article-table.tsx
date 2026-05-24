@@ -126,7 +126,7 @@ export function ArticleTable({
                   <AdminTd><ArticleStatusBadge status={article.status} /></AdminTd>
                   <AdminTd>
                     <span className="text-sm text-brand-muted">
-                      {article.author ?? '—'}
+                      {article.author?.name ?? article.author?.email ?? '—'}
                     </span>
                   </AdminTd>
                   <AdminTd>

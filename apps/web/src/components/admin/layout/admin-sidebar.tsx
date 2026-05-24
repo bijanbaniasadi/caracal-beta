@@ -14,12 +14,15 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: '/admin/dashboard', label: 'Dashboard',  icon: '▦', matchExact: true },
-  { href: '/admin/products',  label: 'Products',   icon: '📦' },
-  { href: '/admin/inventory', label: 'Inventory',  icon: '🗃' },
-  { href: '/admin/articles',  label: 'Articles',   icon: '📝' },
-  { href: '/admin/inquiries', label: 'Inquiries',  icon: '💬' },
-  { href: '/admin/uploads',   label: 'Uploads',    icon: '📂' },
+  { href: '/admin/dashboard',       label: 'Dashboard',      icon: '▦', matchExact: true },
+  { href: '/admin/products',        label: 'Products',       icon: '📦' },
+  { href: '/admin/inventory',       label: 'Inventory',      icon: '🗃' },
+  { href: '/admin/articles',        label: 'Articles',       icon: '📝' },
+  { href: '/admin/inquiries',       label: 'Inquiries',      icon: '💬' },
+  { href: '/admin/uploads',         label: 'Uploads',        icon: '📂' },
+  { href: '/admin/bin-processing',  label: 'BIN Jobs',       icon: '🔬' },
+  { href: '/admin/queues',          label: 'Queues',         icon: '⚡' },
+  { href: '/admin/corpus',          label: 'ECU Corpus',     icon: '🧬' },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -75,9 +78,9 @@ export function AdminSidebar() {
       <div className="border-t border-white/10 px-3 py-3">
         <div className="mb-2 rounded-lg bg-white/[0.04] px-3 py-2">
           <p className="truncate text-xs font-medium text-brand-text">
-            {session?.email ?? '—'}
+            {session?.user.email ?? '—'}
           </p>
-          <p className="text-[10px] text-brand-muted">{session?.role ?? ''}</p>
+          <p className="text-[10px] text-brand-muted">{session?.user.role ?? ''}</p>
         </div>
         <button
           type="button"

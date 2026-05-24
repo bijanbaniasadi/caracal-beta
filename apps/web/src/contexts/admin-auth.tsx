@@ -42,11 +42,14 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = useCallback(async (input: AdminLoginInput) => {
-    const newSession = await adminLogin(input);
-    setSession(newSession);
-    router.replace('/admin/dashboard');
-  }, [router]);
+  const login = useCallback(
+    async (input: AdminLoginInput) => {
+      const newSession = await adminLogin(input);
+      setSession(newSession);
+      router.replace('/admin/dashboard');
+    },
+    [router],
+  );
 
   const logout = useCallback(async () => {
     await adminLogout();

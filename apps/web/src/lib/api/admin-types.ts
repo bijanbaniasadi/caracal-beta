@@ -1,31 +1,580 @@
 /**
- * Admin-facing record shapes.
+ * Admin-facing type contracts derived from the real backend routes in
+ * apps/api/src/routes/admin.ts and apps/api/src/routes/auth.ts.
  *
- * These types describe responses expected from GET/POST/PATCH/DELETE endpoints
- * under /api/admin/. Shapes mirror Prisma select objects that will be used when
- * those routes are implemented.
- *
- * Keep in sync with: apps/api/src/routes/admin/  (to be created)
+ * Do NOT import from apps/api directly — this is a frontend-only copy.
  */
 
-import type { BinUploadStatus, IntakeStatus, StorageProvider } from './types';
-import type {
-  InventoryStatus,
-  ProductStatus,
-  CategoryRef,
-  ProductImage,
-} from './catalog-types';
+// ─── Shared enums ─────────────────────────────────────────────────────────────
 
-// ─── Pagination ───────────────────────────────────────────────────────────────
+export type ProductStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+export type InventoryStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'DISCONTINUED';
+export type ArticleStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+export type IntakeStatus = 'NEW' | 'IN_REVIEW' | 'RESPONDED' | 'CLOSED' | 'SPAM';
+export type BinUploadStatus = 'RECEIVED' | 'VALIDATED' | 'REJECTED' | 'STORED';
+export type BinAnalysisJobStatus =
+  | 'PENDING' | 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+export type UserRole = 'ADMIN' | 'STAFF' | 'CUSTOMER';
+export type WorkerStatus = 'ONLINE' | 'OFFLINE' | 'STALE';
+export type StorageProvider = 'LOCAL' | 'R2';
 
-export interface ListParams {
-  page?: number;
-  pageSize?: number;
-  status?: string;
-  search?: string;
-  sortBy?: string;
-  sortDir?: 'asc' | 'desc';
+// ─── Auth / Session ───────────────────────────────────────────────────────────
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string | null;
+  role: UserRole;
+  isActive: boolean;
 }
+
+export interface AdminSession {
+  accessToken: string;
+  accessTokenExpiresAt: string; // ISO
+  user: AuthUser;
+}
+
+export interface LoginInput {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  accessTokenExpiresAt: string;
+  refreshToken: string;
+  refreshTokenExpiresAt: string;
+  tokenType: 'Bearer';
+  user: AuthUser;
+}
+
+// ─── Cursor pagination ────────────────────────────────────────────────────────
+
+export interface CursorPage<T> {
+  items: T[];
+  pagination: {
+    limit: number;
+    hasMore: boolean;
+    nextCursor: string | null;
+  };
+}
+
+export interface AdminListQuery {
+  q?: string;
+  status?: string;
+  cursor?: string;
+  limit?: number;
+}
+
+// ─── Dashboard metrics ────────────────────────────────────────────────────────
+
+export interface DashboardMetrics {
+  users: number;
+  products: Partial<Record<ProductStatus, number>>;
+  articles: Partial<Record<ArticleStatus, number>>;
+  inquiries: {
+    quoteRequests: Partial<Record<IntakeStatus, number>>;
+    productInquiries: Partial<Record<IntakeStatus, number>>;
+    workshopConsultations: Partial<Record<IntakeStatus, number>>;
+  };
+  uploads: Partial<Record<BinUploadStatus, number>>;
+  inventory: Partial<Record<InventoryStatus, number>>;
+  binAnalysis: Partial<Record<BinAnalysisJobStatus, number>>;
+  recentAuditLogs: AuditLogRecord[];
+}
+
+// ─── Products ─────────────────────────────────────────────────────────────────
+
+export interface ProductImage {
+  id: string;
+  url: string;
+  altText: string | null;
+  sortOrder: number;
+  isPrimary: boolean;
+  metadata: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  productId: string;
+  locationKey: string;
+  locationLabel: string | null;
+  quantityOnHand: number;
+  quantityReserved: number;
+  reorderPoint: number;
+  status: InventoryStatus;
+  metadata: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InventorySummary {
+  status: InventoryStatus;
+  quantityOnHand: number;
+  quantityReserved: number;
+  quantityAvailable: number;
+  reorderPoint: number;
+}
+
+export interface CategoryRef {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface SupplierRef {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface AdminProduct {
+  id: string;
+  sku: string | null;
+  slug: string;
+  name: string;
+  shortDescription: string | null;
+  description: string | null;
+  status: ProductStatus;
+  priceCents: number | null;
+  currency: string;
+  tradePriceCents: number | null;
+  category: CategoryRef | null;
+  supplier: SupplierRef | null;
+  isFeatured: boolean;
+  isB2BEligible: boolean;
+  isTradeOnly: boolean;
+  attributes: unknown;
+  metadata: unknown;
+  images: ProductImage[];
+  inventory: {
+    summary: InventorySummary;
+    items: InventoryItem[];
+  };
+  counts: { cartItems: number; inquiries: number };
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductCreateInput {
+  sku: string;
+  slug: string;
+  name: string;
+  shortDescription?: string | null;
+  description?: string | null;
+  status?: ProductStatus;
+  priceCents?: number | null;
+  currency?: string;
+  categoryId?: string | null;
+  supplierId?: string | null;
+  isFeatured?: boolean;
+  isB2BEligible?: boolean;
+  isTradeOnly?: boolean;
+  tradePriceCents?: number | null;
+  attributes?: Record<string, unknown>;
+  publishedAt?: string | null;
+  images?: Array<{
+    url: string;
+    altText?: string | null;
+    sortOrder?: number;
+    isPrimary?: boolean;
+  }>;
+  inventoryItems?: Array<{
+    locationKey?: string;
+    locationLabel?: string | null;
+    quantityOnHand?: number;
+    quantityReserved?: number;
+    reorderPoint?: number;
+    status?: InventoryStatus;
+  }>;
+}
+
+export type ProductUpdateInput = Partial<ProductCreateInput>;
+
+// ─── Categories ───────────────────────────────────────────────────────────────
+
+export interface AdminCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  parentId: string | null;
+  parent: CategoryRef | null;
+  children: Array<CategoryRef & { isActive: boolean; sortOrder: number }>;
+  sortOrder: number;
+  isActive: boolean;
+  metadata: unknown;
+  _count: { children: number; products: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── Articles ─────────────────────────────────────────────────────────────────
+
+export interface AdminArticle {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  contentHtml: string | null;
+  status: ArticleStatus;
+  category: string | null;
+  coverImage: string | null;
+  thumbnailImage: string | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
+  keywords: string[];
+  isFeatured: boolean;
+  author: { id: string; email: string; name: string | null; role: UserRole } | null;
+  metadata: unknown;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ArticleCreateInput {
+  slug: string;
+  title: string;
+  excerpt?: string | null;
+  contentHtml?: string | null;
+  status?: ArticleStatus;
+  category?: string | null;
+  coverImage?: string | null;
+  thumbnailImage?: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  keywords?: string[];
+  isFeatured?: boolean;
+  authorId?: string | null;
+  publishedAt?: string | null;
+}
+
+export type ArticleUpdateInput = Partial<ArticleCreateInput>;
+
+// ─── BIN Uploads ──────────────────────────────────────────────────────────────
+
+export interface BinAnalysisResult {
+  id: string;
+  jobId: string;
+  resultType: string;
+  confidence: number;
+  data: unknown;
+  metadata: unknown;
+  createdAt: string;
+}
+
+export interface BinAnalysisJob {
+  id: string;
+  uploadId: string;
+  status: BinAnalysisJobStatus;
+  priority: number;
+  attempts: number;
+  maxAttempts: number;
+  errorMessage: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  upload?: BinUploadSummary;
+  results?: BinAnalysisResult[];
+}
+
+export interface BinUploadSummary {
+  id: string;
+  originalFileName: string;
+  storedObjectKey: string;
+  byteSize: number;
+  sha256: string;
+  status: BinUploadStatus;
+  createdAt: string;
+}
+
+export interface AdminBinUpload {
+  id: string;
+  originalFileName: string;
+  storedObjectKey: string;
+  storageProvider: StorageProvider;
+  byteSize: number;
+  sha256: string;
+  status: BinUploadStatus;
+  requesterName: string | null;
+  requesterEmail: string | null;
+  productContext: string | null;
+  notes: string | null;
+  rejectionReason: string | null;
+  metadata: unknown;
+  quoteRequestId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  quoteRequest?: {
+    id: string;
+    referenceCode: string;
+    customerName: string;
+    customerEmail: string;
+    status: IntakeStatus;
+  } | null;
+  analysisJobs?: BinAnalysisJob[];
+}
+
+// ─── Inquiries ────────────────────────────────────────────────────────────────
+
+export interface QuoteRequest {
+  id: string;
+  referenceCode: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string | null;
+  companyName: string | null;
+  workshopName: string | null;
+  vehicleDetails: string | null;
+  requestedItems: string[];
+  message: string;
+  source: string;
+  status: IntakeStatus;
+  metadata: unknown;
+  createdAt: string;
+  updatedAt: string;
+  binUploads?: BinUploadSummary[];
+}
+
+export interface ProductInquiry {
+  id: string;
+  referenceCode: string;
+  productId: string | null;
+  productSku: string | null;
+  productName: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string | null;
+  companyName: string | null;
+  quantity: number | null;
+  message: string;
+  source: string;
+  status: IntakeStatus;
+  metadata: unknown;
+  createdAt: string;
+  updatedAt: string;
+  product?: { id: string; sku: string | null; slug: string; name: string } | null;
+}
+
+export interface WorkshopConsultation {
+  id: string;
+  referenceCode: string;
+  workshopName: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string | null;
+  location: string | null;
+  monthlyVolume: number | null;
+  serviceInterests: string[];
+  preferredTimeline: string | null;
+  message: string;
+  source: string;
+  status: IntakeStatus;
+  metadata: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InquiriesResponse {
+  quoteRequests: QuoteRequest[];
+  productInquiries: ProductInquiry[];
+  workshopConsultations: WorkshopConsultation[];
+}
+
+// ─── Queue / Worker ───────────────────────────────────────────────────────────
+
+export interface QueueJobCounts {
+  waiting?: number;
+  active?: number;
+  completed?: number;
+  failed?: number;
+  delayed?: number;
+  paused?: number;
+  prioritized?: number;
+  'waiting-children'?: number;
+}
+
+export interface BinAnalysisQueueStats {
+  queueName: string;
+  isPaused: boolean;
+  counts: QueueJobCounts;
+  settings: {
+    concurrency: number;
+    maxAttempts: number;
+    retryBackoffMs: number;
+    stalledAfterMs: number;
+  };
+}
+
+export interface EcuCorpusQueueStageStats {
+  queueName: string;
+  stage: string;
+  isPaused: boolean;
+  counts: QueueJobCounts;
+}
+
+export interface EcuCorpusQueuesStats {
+  stages: EcuCorpusQueueStageStats[];
+}
+
+export interface WorkerHeartbeat {
+  id: string;
+  workerId: string;
+  queueName: string;
+  status: WorkerStatus;
+  isStale: boolean;
+  effectiveStatus: WorkerStatus | 'STALE';
+  metadata: unknown;
+  lastSeenAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QueueHealthResponse {
+  queue: BinAnalysisQueueStats;
+  ecuCorpusQueues: EcuCorpusQueuesStats;
+  workers: WorkerHeartbeat[];
+  heartbeat: { staleAfterMs: number };
+}
+
+// ─── ECU Corpus ───────────────────────────────────────────────────────────────
+
+export interface EcuCorpusFingerprint {
+  architecture: string | null;
+  supplier: string | null;
+  probableOem: string | null;
+  controllerType: string | null;
+  fuelType: string | null;
+  softwareVersion: string | null;
+  hardwareNumber: string | null;
+}
+
+export interface EcuDetectedFamily {
+  id: string;
+  familyKey: string;
+  familyLabel: string | null;
+  oem: string | null;
+  confidence: number;
+}
+
+export interface EcuCorpusFile {
+  id: string;
+  fileName: string;
+  relativePath: string;
+  fullPath: string;
+  extension: string;
+  sizeBytes: string; // BigInt serialised as string
+  sha256: string;
+  detectedKind: string | null;
+  indexedAt: string;
+  fingerprint: EcuCorpusFingerprint | null;
+  detectedFamilies: EcuDetectedFamily[];
+  _count: { projectLabels: number; mapDefinitions: number; clusterMemberships: number };
+}
+
+export interface EcuLearnedSignature {
+  id: string;
+  signatureKey: string;
+  signatureType: string;
+  label: string | null;
+  confidence: number;
+  runId: string;
+  cluster: {
+    id: string;
+    label: string | null;
+    clusterType: string | null;
+    familyKey: string | null;
+    memberCount: number;
+  } | null;
+  createdAt: string;
+}
+
+export interface EcuFileCluster {
+  id: string;
+  clusterKey: string;
+  label: string | null;
+  clusterType: string | null;
+  familyKey: string | null;
+  memberCount: number;
+  confidence: number;
+  runId: string;
+  signatures: EcuLearnedSignature[];
+  unknown?: EcuUnknownFamily | null;
+}
+
+export interface EcuUnknownFamily {
+  id: string;
+  unknownKey: string;
+  label: string | null;
+  memberCount: number;
+  confidence: number;
+  runId: string;
+  cluster?: Omit<EcuFileCluster, 'unknown'> | null;
+}
+
+export interface EcuAnalysisRun {
+  id: string;
+  status: string;
+  rootPath: string | null;
+  totalFiles: number | null;
+  processedFiles: number | null;
+  failedFiles: number | null;
+  skippedFiles: number | null;
+  errorMessage: string | null;
+  startedAt: string;
+  completedAt: string | null;
+  metadata: unknown;
+  updatedAt: string;
+}
+
+export interface EcuOriModPair {
+  id: string;
+  runId: string;
+  confidence: number;
+  originalFile: { id: string; relativePath: string; fileName: string; sha256: string; sizeBytes: string };
+  modifiedFile: { id: string; relativePath: string; fileName: string; sha256: string; sizeBytes: string };
+}
+
+export interface CorpusMetrics {
+  totalFiles: number;
+  totalClusters: number;
+  totalSignatures: number;
+  totalUnknownFamilies: number;
+  filesByKind: Record<string, number>;
+  filesByExtension: Record<string, number>;
+  stageProgress: Record<string, { processed: number; failed: number; pending: number }>;
+}
+
+// ─── Audit log ────────────────────────────────────────────────────────────────
+
+export interface AuditLogRecord {
+  id: string;
+  actorType: string;
+  actorId: string | null;
+  action: string;
+  entityType: string | null;
+  entityId: string | null;
+  requestId: string | null;
+  createdAt: string;
+}
+
+// ─── Inventory admin ──────────────────────────────────────────────────────────
+
+export interface AdminInventoryItemFull extends InventoryItem {
+  product: {
+    id: string;
+    sku: string | null;
+    slug: string;
+    name: string;
+    status: ProductStatus;
+  };
+}
+
+// ─── Frontend pagination types ────────────────────────────────────────────────
 
 export interface PaginatedList<T> {
   items: T[];
@@ -35,241 +584,40 @@ export interface PaginatedList<T> {
   totalPages: number;
 }
 
-// ─── Admin product types ──────────────────────────────────────────────────────
-
-export interface AdminProductListItem {
-  id: string;
-  sku: string | null;
-  slug: string;
-  name: string;
-  status: ProductStatus;
-  inventoryStatus: InventoryStatus;
-  quantityOnHand: number;
-  priceCents: number | null;
-  tradePriceCents: number | null;
-  tradeOnly: boolean;
-  featured: boolean;
-  b2bEligible: boolean;
-  categoryId: string | null;
-  categoryName: string | null;
-  supplierName: string | null;
-  imageCount: number;
-  primaryImageUrl: string | null;
-  createdAt: string;
-  updatedAt: string;
+export interface ListParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: string;
 }
 
-export interface AdminProductDetail {
-  id: string;
-  sku: string | null;
-  slug: string;
-  name: string;
-  shortDescription: string | null;
-  description: string | null;
-  status: ProductStatus;
-  categoryId: string | null;
-  category: CategoryRef | null;
-  supplierId: string | null;
-  supplierName: string | null;
-  priceCents: number | null;
-  currency: string;
-  tradePriceCents: number | null;
-  tradeOnly: boolean;
-  featured: boolean;
-  b2bEligible: boolean;
-  inventoryStatus: InventoryStatus;
-  quantityOnHand: number;
-  quantityReserved: number;
-  reorderPoint: number | null;
-  images: ProductImage[];
-  attributes: unknown;
-  publishedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+// ─── Frontend type aliases ────────────────────────────────────────────────────
+// Alias the canonical backend types for backward-compat with existing hooks/UI.
 
-export interface AdminProductInput {
-  name: string;
-  slug?: string;
-  sku?: string;
-  shortDescription?: string;
-  description?: string;
-  status: ProductStatus;
-  categoryId?: string;
-  supplierId?: string;
-  priceCents?: number;
-  currency?: string;
-  tradePriceCents?: number;
-  tradeOnly?: boolean;
-  featured?: boolean;
-  b2bEligible?: boolean;
-  attributes?: Record<string, unknown>;
-}
+export type AdminLoginInput = LoginInput;
+export type AdminDashboardMetrics = DashboardMetrics;
+export type AdminProductListItem = AdminProduct;
+export type AdminProductDetail = AdminProduct;
+export type AdminProductInput = ProductCreateInput;
+export type AdminArticleListItem = AdminArticle;
+export type AdminArticleDetail = AdminArticle;
+export type AdminArticleInput = ArticleCreateInput;
+export type BinUploadRecord = AdminBinUpload;
+export type QuoteRequestRecord = QuoteRequest;
+export type WorkshopLeadRecord = WorkshopConsultation;
+export type ProductInquiryRecord = ProductInquiry;
 
-// ─── Admin inventory types ────────────────────────────────────────────────────
+// ─── IntakeRow (normalised view for the combined inquiries table) ─────────────
 
-export interface AdminInventoryItem {
-  productId: string;
-  productName: string;
-  sku: string | null;
-  slug: string;
-  status: InventoryStatus;
-  quantityOnHand: number;
-  quantityReserved: number;
-  quantityAvailable: number;
-  reorderPoint: number | null;
-  primaryImageUrl: string | null;
-  updatedAt: string;
-}
-
-export interface AdminInventoryUpdate {
-  status?: InventoryStatus;
-  quantityOnHand?: number;
-  reorderPoint?: number;
-}
-
-// ─── Admin article types ──────────────────────────────────────────────────────
-
-export type ArticleStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
-
-export interface AdminArticleListItem {
-  id: string;
-  slug: string;
-  title: string;
-  excerpt: string | null;
-  status: ArticleStatus;
-  category: string | null;
-  coverImageUrl: string | null;
-  author: string | null;
-  publishedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AdminArticleDetail {
-  id: string;
-  slug: string;
-  title: string;
-  excerpt: string | null;
-  content: string;
-  status: ArticleStatus;
-  category: string | null;
-  tags: string[];
-  coverImageUrl: string | null;
-  author: string | null;
-  seoTitle: string | null;
-  seoDescription: string | null;
-  publishedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AdminArticleInput {
-  title: string;
-  slug?: string;
-  excerpt?: string;
-  content: string;
-  status: ArticleStatus;
-  category?: string;
-  tags?: string[];
-  coverImageUrl?: string;
-  author?: string;
-  seoTitle?: string;
-  seoDescription?: string;
-}
-
-// ─── Dashboard metrics ────────────────────────────────────────────────────────
-
-export interface AdminDashboardMetrics {
-  totalProducts: number;
-  activeProducts: number;
-  draftProducts: number;
-  totalArticles: number;
-  publishedArticles: number;
-  newInquiries: number;
-  pendingUploads: number;
-  lowStockProducts: number;
-  outOfStockProducts: number;
-}
-
-// ─── Auth types ───────────────────────────────────────────────────────────────
-
-export interface AdminLoginInput {
-  email: string;
-  password: string;
-}
-
-export interface AdminSession {
-  token: string;
-  userId: string;
-  email: string;
-  role: 'ADMIN' | 'SUPER_ADMIN';
-  expiresAt: string;
-}
-
-// ─── Quote request records ────────────────────────────────────────────────────
-
-export interface QuoteRequestRecord {
-  id: string;
-  referenceCode: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone?: string;
-  companyName?: string;
-  workshopName?: string;
-  vehicleDetails?: string;
-  requestedItems: string[];
-  message: string;
-  source: string;
-  status: IntakeStatus;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// ─── Product inquiry records ──────────────────────────────────────────────────
-
-export interface ProductInquiryRecord {
-  id: string;
-  referenceCode: string;
-  productId?: string;
-  productSku?: string;
-  productName: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone?: string;
-  companyName?: string;
-  quantity?: number;
-  message: string;
-  source: string;
-  status: IntakeStatus;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// ─── Workshop lead records ────────────────────────────────────────────────────
-
-export interface WorkshopLeadRecord {
-  id: string;
-  referenceCode: string;
-  workshopName: string;
-  contactName: string;
-  contactEmail: string;
-  contactPhone?: string;
-  location?: string;
-  monthlyVolume?: number;
-  serviceInterests: string[];
-  preferredTimeline?: string;
-  message: string;
-  source: string;
-  status: IntakeStatus;
-  createdAt: string;
-  updatedAt: string;
-}
+export type IntakeRowType =
+  | 'quote_request'
+  | 'product_inquiry'
+  | 'workshop_consultation';
 
 export interface IntakeRow {
   id: string;
+  type: IntakeRowType;
   referenceCode: string;
-  type: 'quote_request' | 'product_inquiry' | 'workshop_consultation';
   contact: string;
   email: string;
   subject: string;
@@ -278,45 +626,36 @@ export interface IntakeRow {
   createdAt: string;
 }
 
+// ─── AdminInventoryItem (flattened for the inventory editor) ──────────────────
+
+export interface AdminInventoryItem {
+  /** Inventory item's own ID — used for PATCH /api/admin/inventory/:id */
+  id: string;
+  productId: string;
+  productName: string;
+  sku: string | null;
+  status: InventoryStatus;
+  quantityOnHand: number;
+  quantityReserved: number;
+  quantityAvailable: number;
+  reorderPoint: number | null;
+  locationKey: string;
+}
+
+export interface AdminInventoryUpdate {
+  status?: InventoryStatus;
+  quantityOnHand?: number;
+  quantityReserved?: number;
+  reorderPoint?: number;
+}
+
+// ─── RequestQueueRow (backward-compat stub) ───────────────────────────────────
+
 export interface RequestQueueRow {
   id: string;
+  type: IntakeRowType;
   referenceCode: string;
-  type: 'quote_request' | 'product_inquiry';
-  customerName: string;
-  customerEmail: string;
-  subject: string;
   status: IntakeStatus;
-  source: string;
-  createdAt: string;
-}
-
-// ─── Bin upload records ───────────────────────────────────────────────────────
-
-export interface BinUploadRecord {
-  id: string;
-  originalFileName: string;
-  storedObjectKey: string;
-  storageProvider: StorageProvider;
-  byteSize: number;
-  sha256: string;
-  status: BinUploadStatus;
-  requesterName?: string;
-  requesterEmail?: string;
-  productContext?: string;
-  notes?: string;
-  quoteRequestId?: string;
-  createdAt: string;
-}
-
-// ─── Audit log records ────────────────────────────────────────────────────────
-
-export interface AuditLogRecord {
-  id: string;
-  action: string;
-  entityType: string;
-  entityId: string;
-  ipAddress?: string;
-  userAgent?: string;
-  metadata?: Record<string, unknown>;
+  customerName: string;
   createdAt: string;
 }

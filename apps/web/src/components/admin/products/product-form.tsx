@@ -2,7 +2,9 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import type { AdminProductDetail, AdminProductInput } from '@/lib/api/admin-types';
+import type { AdminProduct, ProductCreateInput } from '@/lib/api/admin-types';
+type AdminProductDetail = AdminProduct;
+type AdminProductInput = ProductCreateInput;
 import type { ProductStatus, InventoryStatus } from '@/lib/api/catalog-types';
 import { useCreateProduct, useUpdateProduct } from '@/hooks/queries/use-admin-products';
 import { useToastContext } from '@/lib/toast/context';
@@ -47,21 +49,21 @@ export function ProductForm({ product }: ProductFormProps) {
   const [shortDesc, setShortDesc]   = useState(product?.shortDescription ?? '');
   const [description, setDesc]      = useState(product?.description ?? '');
   const [status, setStatus]         = useState<ProductStatus>(product?.status ?? 'DRAFT');
-  const [categoryId, setCategoryId] = useState(product?.categoryId ?? '');
+  const [categoryId, setCategoryId] = useState(product?.category?.id ?? '');
   const [priceCents, setPriceCents] = useState(
     product?.priceCents ? String(product.priceCents / 100) : '',
   );
   const [tradePriceCents, setTradePriceCents] = useState(
     product?.tradePriceCents ? String(product.tradePriceCents / 100) : '',
   );
-  const [tradeOnly, setTradeOnly]     = useState(product?.tradeOnly ?? false);
-  const [featured, setFeatured]       = useState(product?.featured ?? false);
-  const [b2bEligible, setB2bEligible] = useState(product?.b2bEligible ?? false);
+  const [tradeOnly, setTradeOnly]     = useState(product?.isTradeOnly ?? false);
+  const [featured, setFeatured]       = useState(product?.isFeatured ?? false);
+  const [b2bEligible, setB2bEligible] = useState(product?.isB2BEligible ?? false);
   const [invStatus, setInvStatus]     = useState<InventoryStatus>(
-    product?.inventoryStatus ?? 'OUT_OF_STOCK',
+    product?.inventory.summary.status ?? 'OUT_OF_STOCK',
   );
-  const [qty, setQty]             = useState(String(product?.quantityOnHand ?? 0));
-  const [reorderPt, setReorderPt] = useState(String(product?.reorderPoint ?? ''));
+  const [qty, setQty]             = useState(String(product?.inventory.summary.quantityOnHand ?? 0));
+  const [reorderPt, setReorderPt] = useState(String(product?.inventory.summary.reorderPoint ?? ''));
   const [error, setError]         = useState('');
 
   const createMut = useCreateProduct();
@@ -78,17 +80,17 @@ export function ProductForm({ product }: ProductFormProps) {
 
   const buildInput = (): AdminProductInput => ({
     name,
-    slug: slug || undefined,
-    sku: sku || undefined,
+    slug: slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    sku: sku || name.toUpperCase().replace(/[^A-Z0-9]+/g, '-'),
     shortDescription: shortDesc || undefined,
     description: description || undefined,
     status,
     categoryId: categoryId || undefined,
     priceCents: priceCents ? Math.round(parseFloat(priceCents) * 100) : undefined,
     tradePriceCents: tradePriceCents ? Math.round(parseFloat(tradePriceCents) * 100) : undefined,
-    tradeOnly,
-    featured,
-    b2bEligible,
+    isTradeOnly: tradeOnly,
+    isFeatured: featured,
+    isB2BEligible: b2bEligible,
   });
 
   const handleSubmit = async (e: FormEvent) => {

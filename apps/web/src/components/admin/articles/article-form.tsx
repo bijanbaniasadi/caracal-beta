@@ -2,7 +2,9 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import type { AdminArticleDetail, AdminArticleInput, ArticleStatus } from '@/lib/api/admin-types';
+import type { AdminArticle, ArticleCreateInput, ArticleStatus } from '@/lib/api/admin-types';
+type AdminArticleDetail = AdminArticle;
+type AdminArticleInput = ArticleCreateInput;
 import { useCreateArticle, useUpdateArticle } from '@/hooks/queries/use-admin-articles';
 import { useToastContext } from '@/lib/toast/context';
 
@@ -40,12 +42,14 @@ export function ArticleForm({ article }: ArticleFormProps) {
   const [title, setTitle]           = useState(article?.title ?? '');
   const [slug, setSlug]             = useState(article?.slug ?? '');
   const [excerpt, setExcerpt]       = useState(article?.excerpt ?? '');
-  const [content, setContent]       = useState(article?.content ?? '');
+  const [content, setContent]       = useState(article?.contentHtml ?? '');
   const [status, setStatus]         = useState<ArticleStatus>(article?.status ?? 'DRAFT');
   const [category, setCategory]     = useState(article?.category ?? '');
-  const [author, setAuthor]         = useState(article?.author ?? '');
-  const [coverUrl, setCoverUrl]     = useState(article?.coverImageUrl ?? '');
-  const [tags, setTags]             = useState(article?.tags?.join(', ') ?? '');
+  const [authorId, setAuthorId]     = useState(
+    typeof article?.author === 'object' ? (article.author?.id ?? '') : '',
+  );
+  const [coverUrl, setCoverUrl]     = useState(article?.coverImage ?? '');
+  const [tags, setTags]             = useState(article?.keywords?.join(', ') ?? '');
   const [seoTitle, setSeoTitle]     = useState(article?.seoTitle ?? '');
   const [seoDesc, setSeoDesc]       = useState(article?.seoDescription ?? '');
   const [error, setError]           = useState('');
@@ -63,14 +67,14 @@ export function ArticleForm({ article }: ArticleFormProps) {
 
   const buildInput = (): AdminArticleInput => ({
     title,
-    slug: slug || undefined,
+    slug: slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
     excerpt: excerpt || undefined,
-    content,
+    contentHtml: content || undefined,
     status,
     category: category || undefined,
-    author: author || undefined,
-    coverImageUrl: coverUrl || undefined,
-    tags: tags ? tags.split(',').map((t) => t.trim()).filter(Boolean) : undefined,
+    authorId: authorId || undefined,
+    coverImage: coverUrl || undefined,
+    keywords: tags ? tags.split(',').map((t: string) => t.trim()).filter(Boolean) : undefined,
     seoTitle: seoTitle || undefined,
     seoDescription: seoDesc || undefined,
   });
@@ -180,12 +184,12 @@ export function ArticleForm({ article }: ArticleFormProps) {
               ))}
             </select>
           </Field>
-          <Field label="Author">
+          <Field label="Author ID (UUID)">
             <input
               className={inputCls}
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              placeholder="Caracal Tech Team"
+              value={authorId}
+              onChange={(e) => setAuthorId(e.target.value)}
+              placeholder="leave blank for anonymous"
             />
           </Field>
           <Field label="Tags (comma-separated)">

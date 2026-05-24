@@ -14,12 +14,16 @@ import {
   updateAdminArticle,
 } from '@/lib/api/admin-client';
 import type {
-  AdminArticleDetail,
-  AdminArticleInput,
-  AdminArticleListItem,
+  AdminArticle,
+  ArticleCreateInput,
   ListParams,
   PaginatedList,
 } from '@/lib/api/admin-types';
+
+// Aliases used by this module
+type AdminArticleDetail = AdminArticle;
+type AdminArticleListItem = AdminArticle;
+type AdminArticleInput = ArticleCreateInput;
 
 // ─── Query keys ───────────────────────────────────────────────────────────────
 

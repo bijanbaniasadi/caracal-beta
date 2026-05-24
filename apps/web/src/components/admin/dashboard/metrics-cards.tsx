@@ -1,4 +1,4 @@
-import type { AdminDashboardMetrics } from '@/lib/api/admin-types';
+import type { DashboardMetrics } from '@/lib/api/admin-types';
 import { MetricCardSkeleton } from '@/components/admin/ui/admin-skeleton';
 
 interface MetricCardProps {
@@ -23,7 +23,7 @@ function MetricCard({ label, value, sub, accent = 'text-brand-text' }: MetricCar
 }
 
 interface MetricsCardsProps {
-  metrics: AdminDashboardMetrics | undefined;
+  metrics: DashboardMetrics | undefined;
   isLoading: boolean;
 }
 
@@ -38,47 +38,60 @@ export function MetricsCards({ metrics, isLoading }: MetricsCardsProps) {
     );
   }
 
+  // Derive flat counts from the real nested shape
+  const activeProducts   = metrics.products.ACTIVE ?? 0;
+  const draftProducts    = metrics.products.DRAFT ?? 0;
+  const totalProducts    = Object.values(metrics.products).reduce((a, b) => a + (b ?? 0), 0);
+  const publishedArticles = metrics.articles.PUBLISHED ?? 0;
+  const totalArticles    = Object.values(metrics.articles).reduce((a, b) => a + (b ?? 0), 0);
+  const newInquiries     = (metrics.inquiries.quoteRequests.NEW ?? 0)
+    + (metrics.inquiries.productInquiries.NEW ?? 0)
+    + (metrics.inquiries.workshopConsultations.NEW ?? 0);
+  const pendingUploads   = metrics.uploads.RECEIVED ?? 0;
+  const lowStock         = metrics.inventory.LOW_STOCK ?? 0;
+  const outOfStock       = metrics.inventory.OUT_OF_STOCK ?? 0;
+
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       <MetricCard
         label="Active Products"
-        value={metrics.activeProducts}
-        sub={`${metrics.totalProducts} total`}
+        value={activeProducts}
+        sub={`${totalProducts} total`}
         accent="text-brand-green"
       />
       <MetricCard
         label="Draft Products"
-        value={metrics.draftProducts}
+        value={draftProducts}
       />
       <MetricCard
         label="Published Articles"
-        value={metrics.publishedArticles}
-        sub={`${metrics.totalArticles} total`}
+        value={publishedArticles}
+        sub={`${totalArticles} total`}
         accent="text-sky-400"
       />
       <MetricCard
         label="New Inquiries"
-        value={metrics.newInquiries}
-        accent={metrics.newInquiries > 0 ? 'text-brand-orange' : 'text-brand-text'}
+        value={newInquiries}
+        accent={newInquiries > 0 ? 'text-brand-orange' : 'text-brand-text'}
       />
       <MetricCard
         label="Pending Uploads"
-        value={metrics.pendingUploads}
-        accent={metrics.pendingUploads > 0 ? 'text-amber-400' : 'text-brand-text'}
+        value={pendingUploads}
+        accent={pendingUploads > 0 ? 'text-amber-400' : 'text-brand-text'}
       />
       <MetricCard
         label="Low Stock"
-        value={metrics.lowStockProducts}
-        accent={metrics.lowStockProducts > 0 ? 'text-amber-400' : 'text-brand-text'}
+        value={lowStock}
+        accent={lowStock > 0 ? 'text-amber-400' : 'text-brand-text'}
       />
       <MetricCard
         label="Out of Stock"
-        value={metrics.outOfStockProducts}
-        accent={metrics.outOfStockProducts > 0 ? 'text-red-400' : 'text-brand-text'}
+        value={outOfStock}
+        accent={outOfStock > 0 ? 'text-red-400' : 'text-brand-text'}
       />
       <MetricCard
         label="Total Products"
-        value={metrics.totalProducts}
+        value={totalProducts}
       />
     </div>
   );

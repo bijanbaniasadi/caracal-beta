@@ -41,12 +41,12 @@ export function useUpdateInventory() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({
-      productId,
+      id,
       update,
     }: {
-      productId: string;
+      id: string;
       update: AdminInventoryUpdate;
-    }) => updateInventory(productId, update),
+    }) => updateInventory(id, update),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: adminInventoryKeys.all });
     },
