@@ -2,8 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
 import { Providers } from '@/providers';
-import { SiteNav } from '@/components/site/nav';
-import { SiteFooter } from '@/components/site/footer';
+import { ConditionalSiteShell } from '@/components/site/conditional-shell';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -26,9 +25,9 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
     <html lang="en">
       <body className="flex min-h-screen flex-col bg-brand-bg text-brand-text">
         <Providers>
-          <SiteNav />
-          <main className="flex-1">{children}</main>
-          <SiteFooter />
+          <ConditionalSiteShell>
+            {children}
+          </ConditionalSiteShell>
         </Providers>
       </body>
     </html>
