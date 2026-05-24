@@ -7,6 +7,8 @@ import { httpLogger } from './lib/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { apiLimiter } from './middleware/rate-limit.js';
 import { requestContext } from './middleware/request-context.js';
+import { adminRouter } from './routes/admin.js';
+import { authRouter } from './routes/auth.js';
 import { binUploadsRouter } from './routes/bin-uploads.js';
 import { categoriesRouter } from './routes/categories.js';
 import { healthRouter } from './routes/health.js';
@@ -41,6 +43,8 @@ export function createApp(): express.Express {
 
   app.use('/health', healthRouter);
   app.use('/api', apiLimiter);
+  app.use('/api/auth', authRouter);
+  app.use('/api/admin', adminRouter);
   app.use('/api/bin-uploads', binUploadsRouter);
   app.use('/api/categories', categoriesRouter);
   app.use('/api/products', productsRouter);

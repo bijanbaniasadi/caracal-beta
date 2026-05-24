@@ -1,5 +1,6 @@
 import 'dotenv/config';
 
+import bcrypt from 'bcryptjs';
 import { PrismaClient, type InventoryStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -339,6 +340,12 @@ async function seedCatalog(): Promise<SeedProduct[]> {
 
 async function main(): Promise<void> {
   const seededProducts = await seedCatalog();
+  const adminEmail = process.env.ADMIN_EMAIL ?? 'admin@caracaltechmotors.com';
+  const adminPassword = process.env.ADMIN_PASSWORD ?? 'ChangeMeAdmin123!';
+  const adminPasswordHash = await bcrypt.hash(
+    adminPassword,
+    Number.parseInt(process.env.BCRYPT_ROUNDS ?? '12', 10)
+  );
   const kess3 = await prisma.product.findUniqueOrThrow({
     where: { sku: 'KESS3-MASTER' },
     select: { id: true, sku: true, name: true },
@@ -346,11 +353,19 @@ async function main(): Promise<void> {
 
   const [user, quoteRequest, productInquiry, workshopLead] = await prisma.$transaction([
     prisma.user.upsert({
-      where: { email: 'dev@caracaltechmotors.com' },
-      update: { name: 'Caracal Dev' },
+      where: { email: adminEmail },
+      update: {
+        name: 'Caracal Admin',
+        passwordHash: adminPasswordHash,
+        role: 'ADMIN',
+        isActive: true,
+      },
       create: {
-        email: 'dev@caracaltechmotors.com',
-        name: 'Caracal Dev',
+        email: adminEmail,
+        name: 'Caracal Admin',
+        passwordHash: adminPasswordHash,
+        role: 'ADMIN',
+        isActive: true,
       },
       select: { id: true, email: true },
     }),
@@ -446,6 +461,7 @@ async function main(): Promise<void> {
       entityType: 'SeedRun',
       metadata: {
         userEmail: user.email,
+        adminEmail,
         quoteReferenceCode: quoteRequest.referenceCode,
         productReferenceCode: productInquiry.referenceCode,
         workshopReferenceCode: workshopLead.referenceCode,

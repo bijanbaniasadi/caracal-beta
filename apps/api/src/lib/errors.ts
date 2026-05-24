@@ -16,6 +16,14 @@ export function badRequest(message: string, details?: unknown): AppError {
   return new AppError('bad_request', message, 400, details);
 }
 
+export function unauthorized(message = 'Authentication required.', details?: unknown): AppError {
+  return new AppError('unauthorized', message, 401, details);
+}
+
+export function forbidden(message = 'Insufficient permissions.', details?: unknown): AppError {
+  return new AppError('forbidden', message, 403, details);
+}
+
 export function notFound(message: string, details?: unknown): AppError {
   return new AppError('not_found', message, 404, details);
 }

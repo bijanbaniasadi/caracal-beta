@@ -14,6 +14,16 @@ export const apiLimiter = rateLimit({
   },
 });
 
+export const authLimiter = rateLimit({
+  windowMs: fifteenMinutes,
+  limit: Number.parseInt(process.env.AUTH_RATE_LIMIT_MAX ?? '20', 10),
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, _res, next) => {
+    next(tooManyRequests('Too many authentication attempts. Please try again later.'));
+  },
+});
+
 export const intakeLimiter = rateLimit({
   windowMs: fifteenMinutes,
   limit: Number.parseInt(process.env.INTAKE_RATE_LIMIT_MAX ?? '30', 10),

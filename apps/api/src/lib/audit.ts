@@ -22,8 +22,8 @@ export async function writeAuditLog(req: Request, input: AuditInput): Promise<vo
   try {
     await prisma.auditLog.create({
       data: {
-        actorType: input.actorType ?? 'ANONYMOUS',
-        actorId: input.actorId,
+        actorType: input.actorType ?? (req.auth ? 'USER' : 'ANONYMOUS'),
+        actorId: input.actorId ?? req.auth?.userId,
         action: input.action,
         entityType: input.entityType,
         entityId: input.entityId,
@@ -34,6 +34,9 @@ export async function writeAuditLog(req: Request, input: AuditInput): Promise<vo
       },
     });
   } catch (error) {
-    logger.error({ err: error, action: input.action, entityType: input.entityType }, 'audit log write failed');
+    logger.error(
+      { err: error, action: input.action, entityType: input.entityType },
+      'audit log write failed'
+    );
   }
 }
