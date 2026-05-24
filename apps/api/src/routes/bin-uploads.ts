@@ -6,6 +6,7 @@ import { Router, type Router as ExpressRouter } from 'express';
 import { sendSuccess } from '../lib/api-response.js';
 import { asyncHandler } from '../lib/async-handler.js';
 import { writeAuditLog } from '../lib/audit.js';
+import { enqueueBinAnalysisJobForUpload } from '../lib/bin-analysis/queue.js';
 import { badRequest } from '../lib/errors.js';
 import { toPrismaJson } from '../lib/prisma-json.js';
 import { storeObject } from '../lib/storage.js';
@@ -118,6 +119,16 @@ binUploadsRouter.post(
         quoteRequestId: input.quoteRequestId,
       },
     });
+
+    if (process.env.BIN_ANALYSIS_AUTO_QUEUE !== 'false') {
+      await enqueueBinAnalysisJobForUpload(req, {
+        uploadId: upload.id,
+        metadata: {
+          source: 'bin_upload.created',
+          sha256,
+        },
+      });
+    }
 
     sendSuccess(res, upload, 201);
   })

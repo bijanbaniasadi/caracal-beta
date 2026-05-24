@@ -11,6 +11,7 @@ import { Router, type Request, type Router as ExpressRouter } from 'express';
 import { sendSuccess } from '../lib/api-response.js';
 import { asyncHandler } from '../lib/async-handler.js';
 import { writeAuditLog } from '../lib/audit.js';
+import { enqueueBinAnalysisJob, retryBinAnalysisJob } from '../lib/bin-analysis/queue.js';
 import { badRequest, notFound } from '../lib/errors.js';
 import { toPrismaJson } from '../lib/prisma-json.js';
 import { authenticateAccessToken, requireRoles } from '../middleware/auth.js';
@@ -19,6 +20,7 @@ import {
   adminListQuerySchema,
   articleCreateSchema,
   articleUpdateSchema,
+  binAnalysisEnqueueSchema,
   categoryCreateSchema,
   categoryUpdateSchema,
   inquiryUpdateSchema,
@@ -30,6 +32,7 @@ import {
   type AdminListQuery,
   type ArticleCreateInput,
   type ArticleUpdateInput,
+  type BinAnalysisEnqueueInput,
   type CategoryCreateInput,
   type CategoryUpdateInput,
   type InquiryUpdateInput,
@@ -351,6 +354,7 @@ adminRouter.get(
       workshopCounts,
       uploadCounts,
       inventoryCounts,
+      binAnalysisCounts,
       recentAuditLogs,
     ] = await prisma.$transaction([
       prisma.user.count(),
@@ -389,6 +393,11 @@ adminRouter.get(
         orderBy: { status: 'asc' },
         _count: { _all: true },
       }),
+      prisma.binAnalysisJob.groupBy({
+        by: ['status'],
+        orderBy: { status: 'asc' },
+        _count: { _all: true },
+      }),
       prisma.auditLog.findMany({
         orderBy: { createdAt: 'desc' },
         take: 10,
@@ -421,6 +430,7 @@ adminRouter.get(
       },
       uploads: groupCounts(uploadCounts),
       inventory: groupCounts(inventoryCounts),
+      binAnalysis: groupCounts(binAnalysisCounts),
       recentAuditLogs,
     });
   })
@@ -956,6 +966,18 @@ adminRouter.get(
       where: query.status
         ? { status: query.status as Prisma.BinUploadWhereInput['status'] }
         : undefined,
+      include: {
+        analysisJobs: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          include: {
+            results: {
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
+          },
+        },
+      },
       orderBy: [{ createdAt: 'desc' }],
       take: query.limit + 1,
       ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
@@ -980,6 +1002,14 @@ adminRouter.get(
             customerName: true,
             customerEmail: true,
             status: true,
+          },
+        },
+        analysisJobs: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            results: {
+              orderBy: { createdAt: 'desc' },
+            },
           },
         },
       },
@@ -1044,6 +1074,116 @@ adminRouter.delete(
     });
 
     sendSuccess(res, upload);
+  })
+);
+
+adminRouter.get(
+  '/bin-analysis/jobs',
+  asyncHandler(async (req, res) => {
+    const query = parseListQuery(req);
+    const prisma = getPrismaClient();
+    const rows = await prisma.binAnalysisJob.findMany({
+      where: query.status
+        ? { status: query.status as Prisma.BinAnalysisJobWhereInput['status'] }
+        : undefined,
+      include: {
+        upload: {
+          select: {
+            id: true,
+            originalFileName: true,
+            storedObjectKey: true,
+            byteSize: true,
+            sha256: true,
+            status: true,
+            createdAt: true,
+          },
+        },
+        results: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: [{ createdAt: 'desc' }],
+      take: query.limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+    });
+    const { pageItems, pagination } = paginationMeta(rows, query.limit);
+
+    sendSuccess(res, pageItems, 200, { pagination });
+  })
+);
+
+adminRouter.get(
+  '/bin-analysis/jobs/:id',
+  asyncHandler(async (req, res) => {
+    const prisma = getPrismaClient();
+    const job = await prisma.binAnalysisJob.findUnique({
+      where: { id: req.params.id },
+      include: {
+        upload: true,
+        results: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!job) {
+      throw notFound('BIN analysis job not found.', { id: req.params.id });
+    }
+
+    sendSuccess(res, job);
+  })
+);
+
+adminRouter.post(
+  '/bin-analysis/uploads/:uploadId/enqueue',
+  validateBody(binAnalysisEnqueueSchema),
+  asyncHandler(async (req, res) => {
+    const input = req.body as BinAnalysisEnqueueInput;
+    const result = await enqueueBinAnalysisJob({
+      uploadId: req.params.uploadId,
+      priority: input.priority,
+      force: input.force,
+      metadata: {
+        ...input.metadata,
+        source: 'admin.bin_analysis.enqueue',
+        actorId: req.auth?.userId,
+      },
+    });
+
+    await writeAuditLog(req, {
+      action: result.queued ? 'admin.bin_analysis.queued' : 'admin.bin_analysis.queue_skipped',
+      entityType: 'BinAnalysisJob',
+      entityId: result.job.id,
+      metadata: {
+        uploadId: req.params.uploadId,
+        status: result.job.status,
+        force: input.force,
+      },
+    });
+
+    sendSuccess(res, result.job, result.queued ? 201 : 200);
+  })
+);
+
+adminRouter.post(
+  '/bin-analysis/jobs/:id/retry',
+  validateBody(binAnalysisEnqueueSchema),
+  asyncHandler(async (req, res) => {
+    const input = req.body as BinAnalysisEnqueueInput;
+    const job = await retryBinAnalysisJob(req.params.id, input.priority ?? 0);
+
+    await writeAuditLog(req, {
+      action: 'admin.bin_analysis.retry_queued',
+      entityType: 'BinAnalysisJob',
+      entityId: job.id,
+      metadata: {
+        uploadId: job.uploadId,
+        status: job.status,
+      },
+    });
+
+    sendSuccess(res, job, 202);
   })
 );
 

@@ -147,6 +147,14 @@ export const inventoryUpdateSchema = z.object({
 
 export const inventoryUpsertSchema = inventoryInputSchema;
 
+export const binAnalysisEnqueueSchema = z
+  .object({
+    priority: z.coerce.number().int().min(0).max(100).optional(),
+    force: z.coerce.boolean().default(false),
+    metadata: jsonRecord.optional(),
+  })
+  .default({});
+
 export type AdminListQuery = z.infer<typeof adminListQuerySchema>;
 export type ProductCreateInput = z.infer<typeof productCreateSchema>;
 export type ProductUpdateInput = z.infer<typeof productUpdateSchema>;
@@ -158,3 +166,4 @@ export type UploadUpdateInput = z.infer<typeof uploadUpdateSchema>;
 export type InquiryUpdateInput = z.infer<typeof inquiryUpdateSchema>;
 export type InventoryUpdateInput = z.infer<typeof inventoryUpdateSchema>;
 export type InventoryUpsertInput = z.infer<typeof inventoryUpsertSchema>;
+export type BinAnalysisEnqueueInput = z.infer<typeof binAnalysisEnqueueSchema>;

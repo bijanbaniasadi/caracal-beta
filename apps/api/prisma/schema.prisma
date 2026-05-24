@@ -47,6 +47,30 @@ enum BinUploadStatus {
   STORED
 }
 
+enum BinAnalysisJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum BinAnalysisStage {
+  QUEUED
+  FILE_HASHING
+  MCU_DETECTION
+  METADATA_EXTRACTION
+  RESULT_STORAGE
+  COMPLETED
+  FAILED
+}
+
+enum BinAnalysisResultKind {
+  PIPELINE_SUMMARY
+  FILE_METADATA
+  MCU_DETECTION
+}
+
 enum StorageProvider {
   LOCAL
   R2
@@ -285,14 +309,14 @@ model CartItem {
 }
 
 model BinUpload {
-  id               String          @id @default(cuid())
+  id               String              @id @default(cuid())
   originalFileName String
-  storedObjectKey  String          @unique
-  storageProvider  StorageProvider @default(LOCAL)
+  storedObjectKey  String              @unique
+  storageProvider  StorageProvider     @default(LOCAL)
   mimeType         String
   byteSize         Int
   sha256           String
-  status           BinUploadStatus @default(RECEIVED)
+  status           BinUploadStatus     @default(RECEIVED)
   requesterName    String?
   requesterEmail   String?
   productContext   String?
@@ -300,13 +324,71 @@ model BinUpload {
   rejectionReason  String?
   metadata         Json?
   quoteRequestId   String?
-  quoteRequest     QuoteRequest?   @relation(fields: [quoteRequestId], references: [id], onDelete: SetNull)
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  quoteRequest     QuoteRequest?       @relation(fields: [quoteRequestId], references: [id], onDelete: SetNull)
+  analysisJobs     BinAnalysisJob[]
+  analysisResults  BinAnalysisResult[]
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
 
   @@index([requesterEmail])
   @@index([sha256])
   @@index([quoteRequestId])
+  @@index([createdAt])
+}
+
+model BinAnalysisJob {
+  id           String               @id @default(cuid())
+  uploadId     String
+  upload       BinUpload            @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  queueName    String
+  bullJobId    String?              @unique
+  status       BinAnalysisJobStatus @default(QUEUED)
+  stage        BinAnalysisStage     @default(QUEUED)
+  priority     Int                  @default(0)
+  attempts     Int                  @default(0)
+  maxAttempts  Int                  @default(3)
+  progress     Int                  @default(0)
+  errorCode    String?
+  errorMessage String?
+  queuedAt     DateTime             @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
+  failedAt     DateTime?
+  nextRetryAt  DateTime?
+  metadata     Json?
+  results      BinAnalysisResult[]
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@index([uploadId])
+  @@index([status])
+  @@index([stage])
+  @@index([queueName])
+  @@index([createdAt])
+}
+
+model BinAnalysisResult {
+  id              String                @id @default(cuid())
+  jobId           String                @unique
+  job             BinAnalysisJob        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  uploadId        String
+  upload          BinUpload             @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  kind            BinAnalysisResultKind @default(PIPELINE_SUMMARY)
+  fileSha256      String
+  fileSizeBytes   Int
+  mcuFamily       String?
+  mcuConfidence   Float?
+  resultObjectKey String?
+  storageProvider StorageProvider?
+  summary         Json?
+  metadata        Json?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([uploadId])
+  @@index([kind])
+  @@index([fileSha256])
+  @@index([mcuFamily])
   @@index([createdAt])
 }
 
