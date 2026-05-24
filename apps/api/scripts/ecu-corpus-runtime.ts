@@ -5,6 +5,7 @@ import { disconnectPrismaClient } from '@caracal/db';
 import {
   discoverCorpusOptimized,
   extractRelationsOptimized,
+  getIngestionBottleneckReport,
   fingerprintCorpusOptimized,
   getOptimizedCorpusMetrics,
   pauseOptimizedIngestion,
@@ -148,6 +149,11 @@ async function main() {
         2
       )
     );
+    return;
+  }
+
+  if (command === 'bottlenecks') {
+    console.log(JSON.stringify(await getIngestionBottleneckReport(runId), null, 2));
     return;
   }
 

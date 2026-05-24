@@ -4,7 +4,9 @@ import helmet from 'helmet';
 
 import { sendSuccess } from './lib/api-response.js';
 import { httpLogger } from './lib/logger.js';
+import { prometheusContentType, prometheusMetricsText } from './lib/observability/metrics.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
+import { metricsMiddleware } from './middleware/metrics.js';
 import { apiLimiter } from './middleware/rate-limit.js';
 import { requestContext } from './middleware/request-context.js';
 import { adminRouter } from './routes/admin.js';
@@ -32,6 +34,7 @@ export function createApp(): express.Express {
   app.use(cors({ origin: parseCorsOrigins(), credentials: true }));
   app.use(requestContext);
   app.use(httpLogger);
+  app.use(metricsMiddleware);
   app.use(express.json({ limit: '1mb' }));
 
   app.get('/', (_req, res) => {
@@ -39,6 +42,11 @@ export function createApp(): express.Express {
       service: 'caracal-api',
       status: 'ok',
     });
+  });
+
+  app.get('/metrics', async (_req, res) => {
+    res.set('Content-Type', prometheusContentType());
+    res.send(await prometheusMetricsText());
   });
 
   app.use('/health', healthRouter);

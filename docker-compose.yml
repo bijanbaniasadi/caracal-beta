@@ -13,6 +13,8 @@ services:
       BIN_ANALYSIS_QUEUE_NAME: bin-analysis
     ports:
       - '3001:3001'
+    restart: unless-stopped
+    stop_grace_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -21,6 +23,11 @@ services:
     volumes:
       - api-uploads:/app/apps/api/uploads
       - api-logs:/app/logs/api
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3001/health/ready >/dev/null 2>&1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
   api-worker:
     build:
       context: .
@@ -32,6 +39,9 @@ services:
       LOCAL_UPLOAD_DIR: /app/apps/api/uploads
       BIN_ANALYSIS_QUEUE_NAME: bin-analysis
       BIN_ANALYSIS_WORKER_CONCURRENCY: 2
+      WORKER_SHUTDOWN_TIMEOUT_MS: 30000
+    restart: unless-stopped
+    stop_grace_period: 35s
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,6 +65,11 @@ services:
       ECU_CORPUS_DISCOVERY_BATCH_SIZE: ${ECU_CORPUS_DISCOVERY_BATCH_SIZE:-2000}
       ECU_CORPUS_FINGERPRINT_BATCH_SIZE: ${ECU_CORPUS_FINGERPRINT_BATCH_SIZE:-100}
       ECU_CORPUS_MAX_ANALYSIS_BYTES: ${ECU_CORPUS_MAX_ANALYSIS_BYTES:-262144}
+      ECU_CORPUS_QUEUE_BACKPRESSURE_MAX_DEPTH: ${ECU_CORPUS_QUEUE_BACKPRESSURE_MAX_DEPTH:-5000}
+      ECU_CORPUS_WORKER_MEMORY_LIMIT_BYTES: ${ECU_CORPUS_WORKER_MEMORY_LIMIT_BYTES:-1610612736}
+      WORKER_SHUTDOWN_TIMEOUT_MS: 30000
+    restart: unless-stopped
+    stop_grace_period: 35s
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,6 +78,15 @@ services:
     volumes:
       - ${ECU_CORPUS_HOST_PATH:-./data/ecu-corpus}:/data/ecu-corpus:ro
       - api-logs:/app/logs/api
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "const net=require(''node:net''); const s=net.connect(6379,''redis'',()=>process.exit(0)); s.on(''error'',()=>process.exit(1)); setTimeout(()=>process.exit(1),3000).unref()"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
   postgres:
     image: postgres:15-alpine
     environment:

@@ -1,0 +1,87 @@
+{
+  "title": "Caracal ECU Corpus Runtime",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "tags": ["caracal", "ecu-corpus", "runtime"],
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Stage Throughput",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "caracal_ecu_corpus_files_per_second",
+          "legendFormat": "{{stage}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Queue Depth",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "caracal_ecu_corpus_queue_depth{state=~\"waiting|active|delayed|failed|prioritized\"}",
+          "legendFormat": "{{stage}} {{state}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Worker Memory",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "caracal_ecu_corpus_worker_memory_bytes{field=~\"rss|heapUsed|external\"}",
+          "legendFormat": "{{worker_id}} {{field}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Queue Latency",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(caracal_ecu_corpus_queue_latency_seconds_bucket[5m])) by (le, stage))",
+          "legendFormat": "p95 {{stage}}"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Backpressure Active",
+      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(caracal_ecu_corpus_queue_backpressure)",
+          "legendFormat": "queues"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Stalled Jobs",
+      "gridPos": { "h": 5, "w": 8, "x": 8, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(increase(caracal_ecu_corpus_stalled_jobs_total[15m]))",
+          "legendFormat": "15m"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Redis Errors",
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(increase(caracal_ecu_corpus_redis_errors_total[15m]))",
+          "legendFormat": "15m"
+        }
+      ]
+    }
+  ]
+}

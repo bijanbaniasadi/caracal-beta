@@ -1,7 +1,13 @@
 import { Queue, type JobsOptions } from 'bullmq';
+import { setTimeout as delay } from 'node:timers/promises';
 
 import { getRedisConnectionOptions } from '../bin-analysis/queue.js';
 import { logger } from '../logger.js';
+import {
+  ecuCorpusQueueBackpressure,
+  ecuCorpusQueueDepth,
+  ecuCorpusQueueLatency,
+} from '../observability/metrics.js';
 import type { EcuIngestionStage, OptimizedIngestionInput } from './optimized-ingestion.js';
 
 export const ecuCorpusQueuePrefix = process.env.ECU_CORPUS_QUEUE_PREFIX ?? 'ecu-corpus';
@@ -21,6 +27,20 @@ export const ecuCorpusStages: EcuIngestionStage[] = [
 ];
 
 const sharedQueues = new Map<EcuIngestionStage, Queue<EcuCorpusStageJobData>>();
+
+interface QueueRuntimeStats {
+  stage: EcuIngestionStage;
+  queueName: string;
+  counts: Record<string, number>;
+  isPaused: boolean;
+  oldestWaitingAgeMs: number | null;
+  backpressure: {
+    enabled: boolean;
+    maxDepth: number;
+    currentDepth: number;
+    overLimit: boolean;
+  };
+}
 
 export function ecuCorpusQueueName(stage: EcuIngestionStage): string {
   return `${ecuCorpusQueuePrefix}-${stage}`;
@@ -52,12 +72,72 @@ export function getEcuCorpusQueue(stage: EcuIngestionStage): Queue<EcuCorpusStag
   return queue;
 }
 
+function backpressureMaxDepth(): number {
+  return Number.parseInt(process.env.ECU_CORPUS_QUEUE_BACKPRESSURE_MAX_DEPTH ?? '5000', 10);
+}
+
+function isBackpressureEnabled(): boolean {
+  return process.env.ECU_CORPUS_QUEUE_BACKPRESSURE_DISABLED !== 'true';
+}
+
+async function readQueueRuntimeStats(stage: EcuIngestionStage): Promise<QueueRuntimeStats> {
+  const queue = getEcuCorpusQueue(stage);
+  const [counts, isPaused, oldestJobs] = await Promise.all([
+    queue.getJobCounts(
+      'waiting',
+      'active',
+      'completed',
+      'failed',
+      'delayed',
+      'paused',
+      'prioritized',
+      'waiting-children'
+    ),
+    queue.isPaused(),
+    queue.getJobs(['waiting', 'delayed', 'prioritized'], 0, 0, true),
+  ]);
+  const maxDepth = backpressureMaxDepth();
+  const currentDepth =
+    (counts.waiting ?? 0) +
+    (counts.delayed ?? 0) +
+    (counts.prioritized ?? 0) +
+    (counts['waiting-children'] ?? 0);
+  const oldestWaitingAgeMs =
+    oldestJobs[0]?.timestamp && currentDepth > 0 ? Date.now() - oldestJobs[0].timestamp : null;
+  const stats = {
+    stage,
+    queueName: ecuCorpusQueueName(stage),
+    counts,
+    isPaused,
+    oldestWaitingAgeMs,
+    backpressure: {
+      enabled: isBackpressureEnabled(),
+      maxDepth,
+      currentDepth,
+      overLimit: isBackpressureEnabled() && currentDepth >= maxDepth,
+    },
+  };
+
+  for (const [state, value] of Object.entries(counts)) {
+    ecuCorpusQueueDepth.set({ stage, state }, value);
+  }
+
+  ecuCorpusQueueBackpressure.set({ stage }, stats.backpressure.overLimit ? 1 : 0);
+
+  if (oldestWaitingAgeMs !== null) {
+    ecuCorpusQueueLatency.observe({ stage }, oldestWaitingAgeMs / 1000);
+  }
+
+  return stats;
+}
+
 export async function closeEcuCorpusQueues(): Promise<void> {
   await Promise.all(Array.from(sharedQueues.values()).map((queue) => queue.close()));
   sharedQueues.clear();
 }
 
 export async function enqueueEcuCorpusStage(stage: EcuIngestionStage, data: EcuCorpusStageJobData) {
+  await waitForEcuCorpusQueueCapacity(stage);
   const queue = getEcuCorpusQueue(stage);
   return queue.add(stage, data, {
     jobId: `${data.runId ?? 'new'}-${stage}-${Date.now()}`,
@@ -72,24 +152,47 @@ export async function enqueueEcuCorpusPipeline(input: OptimizedIngestionInput) {
 }
 
 export async function getEcuCorpusQueueStats() {
-  const entries = await Promise.all(
-    ecuCorpusStages.map(async (stage) => {
-      const queue = getEcuCorpusQueue(stage);
-      const [counts, isPaused] = await Promise.all([
-        queue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed', 'paused'),
-        queue.isPaused(),
-      ]);
+  return Promise.all(ecuCorpusStages.map((stage) => readQueueRuntimeStats(stage)));
+}
 
-      return {
-        stage,
-        queueName: ecuCorpusQueueName(stage),
-        counts,
-        isPaused,
-      };
-    })
+export async function waitForEcuCorpusQueueCapacity(stage: EcuIngestionStage): Promise<void> {
+  if (!isBackpressureEnabled()) {
+    return;
+  }
+
+  const timeoutMs = Number.parseInt(
+    process.env.ECU_CORPUS_QUEUE_BACKPRESSURE_TIMEOUT_MS ?? '30000',
+    10
   );
+  const pollMs = Number.parseInt(process.env.ECU_CORPUS_QUEUE_BACKPRESSURE_POLL_MS ?? '1000', 10);
+  const started = Date.now();
 
-  return entries;
+  while (true) {
+    const stats = await readQueueRuntimeStats(stage);
+
+    if (!stats.backpressure.overLimit) {
+      return;
+    }
+
+    logger.warn(
+      {
+        stage,
+        queueName: stats.queueName,
+        currentDepth: stats.backpressure.currentDepth,
+        maxDepth: stats.backpressure.maxDepth,
+        oldestWaitingAgeMs: stats.oldestWaitingAgeMs,
+      },
+      'ECU corpus queue backpressure active'
+    );
+
+    if (Date.now() - started >= timeoutMs) {
+      throw new Error(
+        `ECU corpus queue backpressure timeout for ${stage}: depth=${stats.backpressure.currentDepth}`
+      );
+    }
+
+    await delay(pollMs);
+  }
 }
 
 export async function pauseEcuCorpusQueues(): Promise<void> {

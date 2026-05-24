@@ -14,6 +14,7 @@ module.exports = {
       exec_mode: process.env.API_PM2_EXEC_MODE || 'fork',
       instances: process.env.API_PM2_INSTANCES || 1,
       autorestart: true,
+      watch: false,
       min_uptime: '10s',
       max_restarts: Number.parseInt(process.env.API_PM2_MAX_RESTARTS || '10', 10),
       exp_backoff_restart_delay: Number.parseInt(process.env.PM2_RESTART_BACKOFF_MS || '1000', 10),
@@ -36,6 +37,7 @@ module.exports = {
       exec_mode: 'fork',
       instances: process.env.BIN_ANALYSIS_WORKER_PM2_INSTANCES || 1,
       autorestart: true,
+      watch: false,
       min_uptime: '10s',
       max_restarts: Number.parseInt(process.env.WORKER_PM2_MAX_RESTARTS || '20', 10),
       exp_backoff_restart_delay: Number.parseInt(process.env.PM2_RESTART_BACKOFF_MS || '1000', 10),
@@ -49,6 +51,7 @@ module.exports = {
       env: {
         NODE_ENV: process.env.NODE_ENV || 'production',
         BIN_ANALYSIS_WORKER_CONCURRENCY: process.env.BIN_ANALYSIS_WORKER_CONCURRENCY || '2',
+        WORKER_SHUTDOWN_TIMEOUT_MS: process.env.WORKER_SHUTDOWN_TIMEOUT_MS || '30000',
       },
     },
     {
@@ -58,6 +61,7 @@ module.exports = {
       exec_mode: 'fork',
       instances: process.env.ECU_CORPUS_WORKER_PM2_INSTANCES || 1,
       autorestart: true,
+      watch: false,
       min_uptime: '10s',
       max_restarts: Number.parseInt(process.env.WORKER_PM2_MAX_RESTARTS || '20', 10),
       exp_backoff_restart_delay: Number.parseInt(process.env.PM2_RESTART_BACKOFF_MS || '1000', 10),
@@ -74,6 +78,12 @@ module.exports = {
         ECU_CORPUS_DISCOVERY_BATCH_SIZE: process.env.ECU_CORPUS_DISCOVERY_BATCH_SIZE || '2000',
         ECU_CORPUS_FINGERPRINT_BATCH_SIZE: process.env.ECU_CORPUS_FINGERPRINT_BATCH_SIZE || '100',
         ECU_CORPUS_MAX_ANALYSIS_BYTES: process.env.ECU_CORPUS_MAX_ANALYSIS_BYTES || '262144',
+        ECU_CORPUS_QUEUE_BACKPRESSURE_MAX_DEPTH:
+          process.env.ECU_CORPUS_QUEUE_BACKPRESSURE_MAX_DEPTH || '5000',
+        ECU_CORPUS_WORKER_MEMORY_LIMIT_BYTES:
+          process.env.ECU_CORPUS_WORKER_MEMORY_LIMIT_BYTES || String(1536 * 1024 * 1024),
+        RUNTIME_MEMORY_SAMPLE_INTERVAL_MS: process.env.RUNTIME_MEMORY_SAMPLE_INTERVAL_MS || '15000',
+        WORKER_SHUTDOWN_TIMEOUT_MS: process.env.WORKER_SHUTDOWN_TIMEOUT_MS || '30000',
       },
     },
   ],

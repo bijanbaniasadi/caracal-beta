@@ -5,6 +5,8 @@ import { readdir, stat } from 'node:fs/promises';
 import { getPrismaClient } from '@caracal/db';
 import { Prisma } from '@prisma/client';
 
+import { withDbRetry } from '../observability/db-retry.js';
+import { recordStageMetrics } from '../observability/metrics.js';
 import { toPrismaJson } from '../prisma-json.js';
 import {
   classifyKnownFamilies,
@@ -133,6 +135,37 @@ function filesPerSecond(processed: number, elapsedMs: number): number {
   return Number((processed / Math.max(elapsedMs / 1000, 0.001)).toFixed(2));
 }
 
+function stageResult(input: {
+  runId: string;
+  stage: EcuIngestionStage;
+  processedFiles: number;
+  skippedFiles?: number;
+  failedFiles?: number;
+  elapsedMs: number;
+  filesPerSecond: number;
+}): OptimizedStageResult {
+  recordStageMetrics({
+    stage: input.stage,
+    status: 'success',
+    elapsedMs: input.elapsedMs,
+    processedFiles: input.processedFiles,
+    skippedFiles: input.skippedFiles,
+    failedFiles: input.failedFiles,
+    filesPerSecond: input.filesPerSecond,
+  });
+
+  return {
+    runId: input.runId,
+    stage: input.stage,
+    processedFiles: input.processedFiles,
+    skippedFiles: input.skippedFiles ?? 0,
+    failedFiles: input.failedFiles ?? 0,
+    elapsedMs: input.elapsedMs,
+    filesPerSecond: input.filesPerSecond,
+    memoryUsage: process.memoryUsage(),
+  };
+}
+
 function extensionOf(filePath: string): string {
   return path.extname(filePath).toLowerCase();
 }
@@ -205,32 +238,36 @@ async function createOrResumeRun(input: OptimizedIngestionInput) {
   const rootPath = path.resolve(input.rootPath ?? process.env.ECU_CORPUS_ROOT ?? defaultCorpusRoot);
 
   if (input.runId) {
-    return prisma.ecuAnalysisRun.update({
-      where: { id: input.runId },
-      data: {
-        status: 'RUNNING',
-        metadata: toPrismaJson({
-          ...(typeof input.resume === 'boolean' ? { resume: input.resume } : {}),
-          mode: optimizedMode,
-          host: os.hostname(),
-        }),
-      },
-    });
+    return withDbRetry('ecu_analysis_run_resume', () =>
+      prisma.ecuAnalysisRun.update({
+        where: { id: input.runId },
+        data: {
+          status: 'RUNNING',
+          metadata: toPrismaJson({
+            ...(typeof input.resume === 'boolean' ? { resume: input.resume } : {}),
+            mode: optimizedMode,
+            host: os.hostname(),
+          }),
+        },
+      })
+    );
   }
 
-  return prisma.ecuAnalysisRun.create({
-    data: {
-      rootPath,
-      status: 'RUNNING',
-      metadata: toPrismaJson({
-        mode: optimizedMode,
-        host: os.hostname(),
-        discoveryBatchSize: discoveryBatchSize(input),
-        fingerprintBatchSize: fingerprintBatchSize(input),
-        maxAnalysisBytes: maxAnalysisBytes(input),
-      }),
-    },
-  });
+  return withDbRetry('ecu_analysis_run_create', () =>
+    prisma.ecuAnalysisRun.create({
+      data: {
+        rootPath,
+        status: 'RUNNING',
+        metadata: toPrismaJson({
+          mode: optimizedMode,
+          host: os.hostname(),
+          discoveryBatchSize: discoveryBatchSize(input),
+          fingerprintBatchSize: fingerprintBatchSize(input),
+          maxAnalysisBytes: maxAnalysisBytes(input),
+        }),
+      },
+    })
+  );
 }
 
 async function upsertCheckpoint(input: {
@@ -248,34 +285,36 @@ async function upsertCheckpoint(input: {
 }) {
   const prisma = getPrismaClient();
 
-  return prisma.ecuIngestionCheckpoint.upsert({
-    where: { runId_stage: { runId: input.runId, stage: input.stage } },
-    update: {
-      status: input.status,
-      lastPath: input.lastPath === undefined ? undefined : input.lastPath,
-      discoveredFiles: input.discoveredFiles,
-      skippedFiles: input.skippedFiles,
-      processedFiles: input.processedFiles,
-      failedFiles: input.failedFiles,
-      batchCount: input.batchCount,
-      metrics: input.metrics ? toPrismaJson(input.metrics) : undefined,
-      pausedAt:
-        input.status === 'PAUSED' ? new Date() : input.status === 'RUNNING' ? null : undefined,
-    },
-    create: {
-      runId: input.runId,
-      stage: input.stage,
-      rootPath: input.rootPath,
-      status: input.status ?? 'RUNNING',
-      lastPath: input.lastPath,
-      discoveredFiles: input.discoveredFiles ?? 0,
-      skippedFiles: input.skippedFiles ?? 0,
-      processedFiles: input.processedFiles ?? 0,
-      failedFiles: input.failedFiles ?? 0,
-      batchCount: input.batchCount ?? 0,
-      metrics: input.metrics ? toPrismaJson(input.metrics) : undefined,
-    },
-  });
+  return withDbRetry('ecu_checkpoint_upsert', () =>
+    prisma.ecuIngestionCheckpoint.upsert({
+      where: { runId_stage: { runId: input.runId, stage: input.stage } },
+      update: {
+        status: input.status,
+        lastPath: input.lastPath === undefined ? undefined : input.lastPath,
+        discoveredFiles: input.discoveredFiles,
+        skippedFiles: input.skippedFiles,
+        processedFiles: input.processedFiles,
+        failedFiles: input.failedFiles,
+        batchCount: input.batchCount,
+        metrics: input.metrics ? toPrismaJson(input.metrics) : undefined,
+        pausedAt:
+          input.status === 'PAUSED' ? new Date() : input.status === 'RUNNING' ? null : undefined,
+      },
+      create: {
+        runId: input.runId,
+        stage: input.stage,
+        rootPath: input.rootPath,
+        status: input.status ?? 'RUNNING',
+        lastPath: input.lastPath,
+        discoveredFiles: input.discoveredFiles ?? 0,
+        skippedFiles: input.skippedFiles ?? 0,
+        processedFiles: input.processedFiles ?? 0,
+        failedFiles: input.failedFiles ?? 0,
+        batchCount: input.batchCount ?? 0,
+        metrics: input.metrics ? toPrismaJson(input.metrics) : undefined,
+      },
+    })
+  );
 }
 
 async function shouldPause(runId: string, stage: EcuIngestionStage): Promise<boolean> {
@@ -321,16 +360,18 @@ async function recordMetric(input: {
   metadata?: Record<string, unknown>;
 }) {
   const prisma = getPrismaClient();
-  await prisma.ecuCorpusMetric.create({
-    data: {
-      runId: input.runId,
-      stage: input.stage,
-      metricKey: input.metricKey,
-      value: input.value,
-      unit: input.unit,
-      metadata: toPrismaJson(input.metadata),
-    },
-  });
+  await withDbRetry('ecu_metric_create', () =>
+    prisma.ecuCorpusMetric.create({
+      data: {
+        runId: input.runId,
+        stage: input.stage,
+        metricKey: input.metricKey,
+        value: input.value,
+        unit: input.unit,
+        metadata: toPrismaJson(input.metadata),
+      },
+    })
+  );
 }
 
 async function bulkUpsertCorpusFiles(rows: ChangedDiscoveryFile[]) {
@@ -347,30 +388,32 @@ async function bulkUpsertCorpusFiles(rows: ChangedDiscoveryFile[]) {
     )
   );
 
-  await prisma.$executeRaw(Prisma.sql`
-    INSERT INTO "EcuCorpusFile" (
-      "id", "runId", "rootPath", "relativePath", "fullPath", "fileName", "extension",
-      "detectedKind", "sizeBytes", "sha256", "createdAtOnDisk", "modifiedAtOnDisk",
-      "indexedAt", "isReadable", "readError", "metadata", "createdAt", "updatedAt"
-    )
-    VALUES ${values}
-    ON CONFLICT ("fullPath") DO UPDATE SET
-      "runId" = EXCLUDED."runId",
-      "rootPath" = EXCLUDED."rootPath",
-      "relativePath" = EXCLUDED."relativePath",
-      "fileName" = EXCLUDED."fileName",
-      "extension" = EXCLUDED."extension",
-      "detectedKind" = EXCLUDED."detectedKind",
-      "sizeBytes" = EXCLUDED."sizeBytes",
-      "sha256" = EXCLUDED."sha256",
-      "createdAtOnDisk" = EXCLUDED."createdAtOnDisk",
-      "modifiedAtOnDisk" = EXCLUDED."modifiedAtOnDisk",
-      "indexedAt" = EXCLUDED."indexedAt",
-      "isReadable" = true,
-      "readError" = NULL,
-      "metadata" = EXCLUDED."metadata",
-      "updatedAt" = EXCLUDED."updatedAt"
-  `);
+  await withDbRetry('ecu_corpus_file_bulk_upsert_changed', () =>
+    prisma.$executeRaw(Prisma.sql`
+      INSERT INTO "EcuCorpusFile" (
+        "id", "runId", "rootPath", "relativePath", "fullPath", "fileName", "extension",
+        "detectedKind", "sizeBytes", "sha256", "createdAtOnDisk", "modifiedAtOnDisk",
+        "indexedAt", "isReadable", "readError", "metadata", "createdAt", "updatedAt"
+      )
+      VALUES ${values}
+      ON CONFLICT ("fullPath") DO UPDATE SET
+        "runId" = EXCLUDED."runId",
+        "rootPath" = EXCLUDED."rootPath",
+        "relativePath" = EXCLUDED."relativePath",
+        "fileName" = EXCLUDED."fileName",
+        "extension" = EXCLUDED."extension",
+        "detectedKind" = EXCLUDED."detectedKind",
+        "sizeBytes" = EXCLUDED."sizeBytes",
+        "sha256" = EXCLUDED."sha256",
+        "createdAtOnDisk" = EXCLUDED."createdAtOnDisk",
+        "modifiedAtOnDisk" = EXCLUDED."modifiedAtOnDisk",
+        "indexedAt" = EXCLUDED."indexedAt",
+        "isReadable" = true,
+        "readError" = NULL,
+        "metadata" = EXCLUDED."metadata",
+        "updatedAt" = EXCLUDED."updatedAt"
+    `)
+  );
 }
 
 async function bulkAttachUnchangedCorpusFiles(rows: ChangedDiscoveryFile[]) {
@@ -387,28 +430,30 @@ async function bulkAttachUnchangedCorpusFiles(rows: ChangedDiscoveryFile[]) {
     )
   );
 
-  await prisma.$executeRaw(Prisma.sql`
-    INSERT INTO "EcuCorpusFile" (
-      "id", "runId", "rootPath", "relativePath", "fullPath", "fileName", "extension",
-      "detectedKind", "sizeBytes", "sha256", "createdAtOnDisk", "modifiedAtOnDisk",
-      "indexedAt", "isReadable", "readError", "metadata", "createdAt", "updatedAt"
-    )
-    VALUES ${values}
-    ON CONFLICT ("fullPath") DO UPDATE SET
-      "runId" = EXCLUDED."runId",
-      "rootPath" = EXCLUDED."rootPath",
-      "relativePath" = EXCLUDED."relativePath",
-      "fileName" = EXCLUDED."fileName",
-      "extension" = EXCLUDED."extension",
-      "detectedKind" = EXCLUDED."detectedKind",
-      "sizeBytes" = EXCLUDED."sizeBytes",
-      "sha256" = EXCLUDED."sha256",
-      "createdAtOnDisk" = EXCLUDED."createdAtOnDisk",
-      "modifiedAtOnDisk" = EXCLUDED."modifiedAtOnDisk",
-      "indexedAt" = EXCLUDED."indexedAt",
-      "metadata" = COALESCE("EcuCorpusFile"."metadata", '{}'::jsonb) || EXCLUDED."metadata",
-      "updatedAt" = EXCLUDED."updatedAt"
-  `);
+  await withDbRetry('ecu_corpus_file_bulk_attach_unchanged', () =>
+    prisma.$executeRaw(Prisma.sql`
+      INSERT INTO "EcuCorpusFile" (
+        "id", "runId", "rootPath", "relativePath", "fullPath", "fileName", "extension",
+        "detectedKind", "sizeBytes", "sha256", "createdAtOnDisk", "modifiedAtOnDisk",
+        "indexedAt", "isReadable", "readError", "metadata", "createdAt", "updatedAt"
+      )
+      VALUES ${values}
+      ON CONFLICT ("fullPath") DO UPDATE SET
+        "runId" = EXCLUDED."runId",
+        "rootPath" = EXCLUDED."rootPath",
+        "relativePath" = EXCLUDED."relativePath",
+        "fileName" = EXCLUDED."fileName",
+        "extension" = EXCLUDED."extension",
+        "detectedKind" = EXCLUDED."detectedKind",
+        "sizeBytes" = EXCLUDED."sizeBytes",
+        "sha256" = EXCLUDED."sha256",
+        "createdAtOnDisk" = EXCLUDED."createdAtOnDisk",
+        "modifiedAtOnDisk" = EXCLUDED."modifiedAtOnDisk",
+        "indexedAt" = EXCLUDED."indexedAt",
+        "metadata" = COALESCE("EcuCorpusFile"."metadata", '{}'::jsonb) || EXCLUDED."metadata",
+        "updatedAt" = EXCLUDED."updatedAt"
+    `)
+  );
 }
 
 async function bulkUpsertHashCache(rows: ChangedDiscoveryFile[]) {
@@ -425,22 +470,24 @@ async function bulkUpsertHashCache(rows: ChangedDiscoveryFile[]) {
     )
   );
 
-  await prisma.$executeRaw(Prisma.sql`
-    INSERT INTO "EcuFileHashCache" (
-      "id", "fullPath", "sizeBytes", "modifiedAtOnDisk", "sha256", "sampledHash",
-      "lastRunId", "lastIndexedAt", "metadata", "createdAt", "updatedAt"
-    )
-    VALUES ${values}
-    ON CONFLICT ("fullPath") DO UPDATE SET
-      "sizeBytes" = EXCLUDED."sizeBytes",
-      "modifiedAtOnDisk" = EXCLUDED."modifiedAtOnDisk",
-      "sha256" = EXCLUDED."sha256",
-      "sampledHash" = EXCLUDED."sampledHash",
-      "lastRunId" = EXCLUDED."lastRunId",
-      "lastIndexedAt" = EXCLUDED."lastIndexedAt",
-      "metadata" = EXCLUDED."metadata",
-      "updatedAt" = EXCLUDED."updatedAt"
-  `);
+  await withDbRetry('ecu_hash_cache_bulk_upsert', () =>
+    prisma.$executeRaw(Prisma.sql`
+      INSERT INTO "EcuFileHashCache" (
+        "id", "fullPath", "sizeBytes", "modifiedAtOnDisk", "sha256", "sampledHash",
+        "lastRunId", "lastIndexedAt", "metadata", "createdAt", "updatedAt"
+      )
+      VALUES ${values}
+      ON CONFLICT ("fullPath") DO UPDATE SET
+        "sizeBytes" = EXCLUDED."sizeBytes",
+        "modifiedAtOnDisk" = EXCLUDED."modifiedAtOnDisk",
+        "sha256" = EXCLUDED."sha256",
+        "sampledHash" = EXCLUDED."sampledHash",
+        "lastRunId" = EXCLUDED."lastRunId",
+        "lastIndexedAt" = EXCLUDED."lastIndexedAt",
+        "metadata" = EXCLUDED."metadata",
+        "updatedAt" = EXCLUDED."updatedAt"
+    `)
+  );
 }
 
 async function processDiscoveryBatch(input: {
@@ -514,18 +561,20 @@ async function processDiscoveryBatch(input: {
       select: { id: true },
     });
     const fileIds = changedFiles.map((file) => file.id);
-    await prisma.$transaction([
-      prisma.ecuBinaryFingerprint.deleteMany({ where: { fileId: { in: fileIds } } }),
-      prisma.ecuDetectedFamily.deleteMany({ where: { fileId: { in: fileIds } } }),
-      prisma.ecuProjectLabel.deleteMany({ where: { fileId: { in: fileIds } } }),
-      prisma.ecuMapDefinition.deleteMany({ where: { fileId: { in: fileIds } } }),
-      prisma.ecuMapRegion.deleteMany({ where: { fileId: { in: fileIds } } }),
-      prisma.ecuChecksumCandidate.deleteMany({ where: { fileId: { in: fileIds } } }),
-      prisma.ecuDtcCandidate.deleteMany({ where: { fileId: { in: fileIds } } }),
-      prisma.ecuCorpusRelationStage.deleteMany({
-        where: { runId: input.runId, fileId: { in: fileIds } },
-      }),
-    ]);
+    await withDbRetry('ecu_changed_file_relation_cleanup', () =>
+      prisma.$transaction([
+        prisma.ecuBinaryFingerprint.deleteMany({ where: { fileId: { in: fileIds } } }),
+        prisma.ecuDetectedFamily.deleteMany({ where: { fileId: { in: fileIds } } }),
+        prisma.ecuProjectLabel.deleteMany({ where: { fileId: { in: fileIds } } }),
+        prisma.ecuMapDefinition.deleteMany({ where: { fileId: { in: fileIds } } }),
+        prisma.ecuMapRegion.deleteMany({ where: { fileId: { in: fileIds } } }),
+        prisma.ecuChecksumCandidate.deleteMany({ where: { fileId: { in: fileIds } } }),
+        prisma.ecuDtcCandidate.deleteMany({ where: { fileId: { in: fileIds } } }),
+        prisma.ecuCorpusRelationStage.deleteMany({
+          where: { runId: input.runId, fileId: { in: fileIds } },
+        }),
+      ])
+    );
   }
 
   return {
@@ -669,20 +718,22 @@ export async function discoverCorpusOptimized(
     failedFiles: failed,
     batchCount,
   });
-  await prisma.ecuAnalysisRun.update({
-    where: { id: run.id },
-    data: {
-      totalFiles: seen,
-      unreadableFiles: failed,
-      indexedFiles: seen - failed,
-      metadata: toPrismaJson({
-        mode: optimizedMode,
-        discovery: { seen, processed, skipped, failed, batchCount, elapsedMs },
-      }),
-    },
-  });
+  await withDbRetry('ecu_analysis_run_update_discovery', () =>
+    prisma.ecuAnalysisRun.update({
+      where: { id: run.id },
+      data: {
+        totalFiles: seen,
+        unreadableFiles: failed,
+        indexedFiles: seen - failed,
+        metadata: toPrismaJson({
+          mode: optimizedMode,
+          discovery: { seen, processed, skipped, failed, batchCount, elapsedMs },
+        }),
+      },
+    })
+  );
 
-  return {
+  return stageResult({
     runId: run.id,
     stage: 'discovery',
     processedFiles: processed,
@@ -690,8 +741,7 @@ export async function discoverCorpusOptimized(
     failedFiles: failed,
     elapsedMs,
     filesPerSecond: filesPerSecond(seen, elapsedMs),
-    memoryUsage: process.memoryUsage(),
-  };
+  });
 }
 
 function buildFingerprintFeature(input: {
@@ -827,34 +877,36 @@ async function writeFingerprintBatch(runId: string, features: FingerprintFeature
   }
 
   const now = new Date();
-  await prisma.ecuBinaryFingerprint.createMany({
-    data: features.map((feature) => ({
-      fileId: feature.fileId,
-      entropy: feature.entropy,
-      entropyProfile: toPrismaJson(feature.entropyProfile),
-      architecture: feature.architecture,
-      supplier: feature.supplier,
-      probableOem: feature.probableOem,
-      controllerType: feature.controllerType,
-      fuelType: feature.fuelType,
-      softwareVersion: feature.softwareVersion,
-      hardwareNumber: feature.hardwareNumber,
-      filenameTokens: toPrismaJson(feature.filenameTokens),
-      stringTable: toPrismaJson(feature.stringMatches.slice(0, 300)),
-      byteSignatures: toPrismaJson(feature.byteSignatures),
-      vectorPatterns: toPrismaJson(feature.vectorPatterns),
-      calibrationRegions: toPrismaJson(feature.calibrationRegions),
-      mapBlockCandidates: toPrismaJson(feature.mapBlockCandidates),
-      checksumCandidates: toPrismaJson(feature.checksumCandidates),
-      dtcCandidates: toPrismaJson(feature.dtcCandidates),
-      intelligenceSummary: toPrismaJson(feature.intelligenceSummary),
-      metadata: toPrismaJson({
-        optimized: true,
-        project: feature.projectMetadata,
-      }),
-    })),
-    skipDuplicates: true,
-  });
+  await withDbRetry('ecu_fingerprint_batch_create', () =>
+    prisma.ecuBinaryFingerprint.createMany({
+      data: features.map((feature) => ({
+        fileId: feature.fileId,
+        entropy: feature.entropy,
+        entropyProfile: toPrismaJson(feature.entropyProfile),
+        architecture: feature.architecture,
+        supplier: feature.supplier,
+        probableOem: feature.probableOem,
+        controllerType: feature.controllerType,
+        fuelType: feature.fuelType,
+        softwareVersion: feature.softwareVersion,
+        hardwareNumber: feature.hardwareNumber,
+        filenameTokens: toPrismaJson(feature.filenameTokens),
+        stringTable: toPrismaJson(feature.stringMatches.slice(0, 300)),
+        byteSignatures: toPrismaJson(feature.byteSignatures),
+        vectorPatterns: toPrismaJson(feature.vectorPatterns),
+        calibrationRegions: toPrismaJson(feature.calibrationRegions),
+        mapBlockCandidates: toPrismaJson(feature.mapBlockCandidates),
+        checksumCandidates: toPrismaJson(feature.checksumCandidates),
+        dtcCandidates: toPrismaJson(feature.dtcCandidates),
+        intelligenceSummary: toPrismaJson(feature.intelligenceSummary),
+        metadata: toPrismaJson({
+          optimized: true,
+          project: feature.projectMetadata,
+        }),
+      })),
+      skipDuplicates: true,
+    })
+  );
 
   const familyRows = features.flatMap((feature) =>
     feature.detections.map((detection) => ({
@@ -871,16 +923,20 @@ async function writeFingerprintBatch(runId: string, features: FingerprintFeature
     }))
   );
   if (familyRows.length > 0) {
-    await prisma.ecuDetectedFamily.createMany({ data: familyRows });
+    await withDbRetry('ecu_detected_family_batch_create', () =>
+      prisma.ecuDetectedFamily.createMany({ data: familyRows })
+    );
   }
 
   const stageRows = features.flatMap((feature) => buildRelationStageRows(runId, feature, now));
 
   for (const rows of chunk(stageRows, 5000)) {
-    await prisma.ecuCorpusRelationStage.createMany({
-      data: rows,
-      skipDuplicates: true,
-    });
+    await withDbRetry('ecu_relation_stage_batch_create', () =>
+      prisma.ecuCorpusRelationStage.createMany({
+        data: rows,
+        skipDuplicates: true,
+      })
+    );
   }
 }
 
@@ -1002,7 +1058,7 @@ export async function fingerprintCorpusOptimized(input: {
     failedFiles: failed,
   });
 
-  return {
+  return stageResult({
     runId: run.id,
     stage: 'fingerprinting',
     processedFiles: processed,
@@ -1010,8 +1066,7 @@ export async function fingerprintCorpusOptimized(input: {
     failedFiles: failed,
     elapsedMs,
     filesPerSecond: filesPerSecond(processed, elapsedMs),
-    memoryUsage: process.memoryUsage(),
-  };
+  });
 }
 
 export async function extractRelationsOptimized(input: {
@@ -1115,10 +1170,12 @@ export async function extractRelationsOptimized(input: {
     );
 
     for (const rows of chunk(stageRows, 5000)) {
-      await prisma.ecuCorpusRelationStage.createMany({
-        data: rows,
-        skipDuplicates: true,
-      });
+      await withDbRetry('ecu_relation_extract_stage_create', () =>
+        prisma.ecuCorpusRelationStage.createMany({
+          data: rows,
+          skipDuplicates: true,
+        })
+      );
     }
 
     processed += files.length;
@@ -1155,7 +1212,7 @@ export async function extractRelationsOptimized(input: {
     processedFiles: processed,
   });
 
-  return {
+  return stageResult({
     runId: run.id,
     stage: 'relation-extraction',
     processedFiles: processed,
@@ -1163,8 +1220,7 @@ export async function extractRelationsOptimized(input: {
     failedFiles: 0,
     elapsedMs,
     filesPerSecond: filesPerSecond(processed, elapsedMs),
-    memoryUsage: process.memoryUsage(),
-  };
+  });
 }
 
 export async function rebuildClustersOptimized(runId: string) {
@@ -1212,10 +1268,12 @@ export async function rebuildClustersOptimized(runId: string) {
     }
   >();
 
-  await prisma.$transaction([
-    prisma.ecuUnknownFamily.deleteMany({ where: { runId } }),
-    prisma.ecuFileCluster.deleteMany({ where: { runId } }),
-  ]);
+  await withDbRetry('ecu_cluster_rebuild_cleanup', () =>
+    prisma.$transaction([
+      prisma.ecuUnknownFamily.deleteMany({ where: { runId } }),
+      prisma.ecuFileCluster.deleteMany({ where: { runId } }),
+    ])
+  );
 
   for (const file of files) {
     const family = file.detectedFamilies[0];
@@ -1261,7 +1319,9 @@ export async function rebuildClustersOptimized(runId: string) {
       metadata: toPrismaJson({ optimized: true }),
     }));
 
-    await prisma.ecuFileCluster.createMany({ data: clusterRows });
+    await withDbRetry('ecu_cluster_batch_create', () =>
+      prisma.ecuFileCluster.createMany({ data: clusterRows })
+    );
     const clusterByKey = new Map(clusterRows.map((row) => [row.clusterKey, row]));
     const memberRows = groupChunk.flatMap(([clusterKey, group]) =>
       group.members.map((member) => ({
@@ -1273,7 +1333,9 @@ export async function rebuildClustersOptimized(runId: string) {
     );
 
     for (const rows of chunk(memberRows, 5000)) {
-      await prisma.ecuFileClusterMember.createMany({ data: rows });
+      await withDbRetry('ecu_cluster_member_batch_create', () =>
+        prisma.ecuFileClusterMember.createMany({ data: rows })
+      );
     }
 
     const unknownRows = groupChunk
@@ -1295,7 +1357,9 @@ export async function rebuildClustersOptimized(runId: string) {
       }));
 
     if (unknownRows.length > 0) {
-      await prisma.ecuUnknownFamily.createMany({ data: unknownRows });
+      await withDbRetry('ecu_unknown_family_batch_create', () =>
+        prisma.ecuUnknownFamily.createMany({ data: unknownRows })
+      );
     }
   }
 
@@ -1321,27 +1385,28 @@ export async function rebuildClustersOptimized(runId: string) {
       memoryUsage: process.memoryUsage(),
     },
   });
-  await prisma.ecuAnalysisRun.update({
-    where: { id: runId },
-    data: {
-      clusterCount: groups.size,
-      unknownFamilyCount: Array.from(groups.values()).filter(
-        (group) => group.clusterType === 'UNKNOWN_FAMILY'
-      ).length,
-      knownFamilyCount: files.filter((file) => file.detectedFamilies.length > 0).length,
-    },
-  });
+  await withDbRetry('ecu_analysis_run_update_clusters', () =>
+    prisma.ecuAnalysisRun.update({
+      where: { id: runId },
+      data: {
+        clusterCount: groups.size,
+        unknownFamilyCount: Array.from(groups.values()).filter(
+          (group) => group.clusterType === 'UNKNOWN_FAMILY'
+        ).length,
+        knownFamilyCount: files.filter((file) => file.detectedFamilies.length > 0).length,
+      },
+    })
+  );
 
-  return {
+  return stageResult({
     runId,
-    stage: 'clustering' as EcuIngestionStage,
+    stage: 'clustering',
     processedFiles: files.length,
     skippedFiles: 0,
     failedFiles: 0,
     elapsedMs,
     filesPerSecond: filesPerSecond(files.length, elapsedMs),
-    memoryUsage: process.memoryUsage(),
-  };
+  });
 }
 
 export async function rebuildSignaturesOptimized(runId: string) {
@@ -1354,7 +1419,9 @@ export async function rebuildSignaturesOptimized(runId: string) {
     rootPath: run.rootPath,
     status: 'RUNNING',
   });
-  await prisma.ecuLearnedSignature.deleteMany({ where: { runId } });
+  await withDbRetry('ecu_signature_rebuild_cleanup', () =>
+    prisma.ecuLearnedSignature.deleteMany({ where: { runId } })
+  );
   const groups = await prisma.ecuCorpusRelationStage.groupBy({
     by: ['relationType', 'relationKey'],
     where: { runId, relationType: { startsWith: 'signature:' } },
@@ -1390,7 +1457,9 @@ export async function rebuildSignaturesOptimized(runId: string) {
   });
 
   for (const rowChunk of chunk(rows, 5000)) {
-    await prisma.ecuLearnedSignature.createMany({ data: rowChunk });
+    await withDbRetry('ecu_signature_batch_create', () =>
+      prisma.ecuLearnedSignature.createMany({ data: rowChunk })
+    );
   }
 
   const elapsedMs = Date.now() - started;
@@ -1416,16 +1485,15 @@ export async function rebuildSignaturesOptimized(runId: string) {
     },
   });
 
-  return {
+  return stageResult({
     runId,
-    stage: 'signature-generation' as EcuIngestionStage,
+    stage: 'signature-generation',
     processedFiles: rows.length,
     skippedFiles: 0,
     failedFiles: 0,
     elapsedMs,
     filesPerSecond: filesPerSecond(rows.length, elapsedMs),
-    memoryUsage: process.memoryUsage(),
-  };
+  });
 }
 
 export async function runOptimizedCorpusIngestion(input: OptimizedIngestionInput = {}) {
@@ -1614,5 +1682,93 @@ export async function getOptimizedCorpusMetrics(runId?: string) {
       filesPerSec,
       etaSeconds,
     },
+  });
+}
+
+export async function getIngestionBottleneckReport(runId?: string) {
+  const prisma = getPrismaClient();
+  const run =
+    runId ??
+    (
+      await prisma.ecuAnalysisRun.findFirst({
+        orderBy: { startedAt: 'desc' },
+        select: { id: true },
+      })
+    )?.id;
+
+  if (!run) {
+    throw new Error('No ECU corpus run found.');
+  }
+
+  const [analysisRun, checkpoints, metrics] = await withDbRetry('ecu_bottleneck_report_read', () =>
+    Promise.all([
+      prisma.ecuAnalysisRun.findUnique({ where: { id: run } }),
+      prisma.ecuIngestionCheckpoint.findMany({
+        where: { runId: run },
+        orderBy: { stage: 'asc' },
+      }),
+      prisma.ecuCorpusMetric.findMany({
+        where: { runId: run },
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+      }),
+    ])
+  );
+
+  const stageSummaries = checkpoints.map((checkpoint) => {
+    const checkpointMetrics = checkpoint.metrics as {
+      filesPerSecond?: number;
+      memoryUsage?: { rss?: number; heapUsed?: number };
+    } | null;
+    const stageMetrics = metrics.filter((metric) => metric.stage === checkpoint.stage);
+    const latestThroughput =
+      stageMetrics.find((metric) => metric.metricKey.includes('files_per_second'))?.value ??
+      checkpointMetrics?.filesPerSecond ??
+      null;
+
+    return {
+      stage: checkpoint.stage,
+      status: checkpoint.status,
+      processedFiles: checkpoint.processedFiles,
+      skippedFiles: checkpoint.skippedFiles,
+      failedFiles: checkpoint.failedFiles,
+      batchCount: checkpoint.batchCount,
+      filesPerSecond: latestThroughput,
+      rssBytes: checkpointMetrics?.memoryUsage?.rss ?? null,
+      updatedAt: checkpoint.updatedAt,
+    };
+  });
+  const slowestStages = [...stageSummaries]
+    .filter((stage) => typeof stage.filesPerSecond === 'number' && stage.processedFiles > 0)
+    .sort((left, right) => (left.filesPerSecond ?? Infinity) - (right.filesPerSecond ?? Infinity))
+    .slice(0, 3);
+  const memoryHotspots = [...stageSummaries]
+    .filter((stage) => typeof stage.rssBytes === 'number')
+    .sort((left, right) => (right.rssBytes ?? 0) - (left.rssBytes ?? 0))
+    .slice(0, 3);
+
+  return toJsonSafe({
+    run: analysisRun,
+    stageSummaries,
+    bottlenecks: {
+      slowestStages,
+      memoryHotspots,
+      failedStages: stageSummaries.filter(
+        (stage) => stage.failedFiles > 0 || stage.status === 'FAILED'
+      ),
+    },
+    recommendations: [
+      slowestStages[0]?.stage === 'fingerprinting'
+        ? 'Fingerprinting is the current throughput bottleneck; tune ECU_CORPUS_FINGERPRINT_BATCH_SIZE and worker concurrency before changing analysis logic.'
+        : null,
+      memoryHotspots[0]?.rssBytes &&
+      memoryHotspots[0].rssBytes >
+        Number.parseInt(
+          process.env.ECU_CORPUS_WORKER_MEMORY_LIMIT_BYTES ?? String(1536 * 1024 * 1024),
+          10
+        )
+        ? 'RSS exceeded configured memory limit; reduce batch size or worker concurrency.'
+        : null,
+    ].filter(Boolean),
   });
 }

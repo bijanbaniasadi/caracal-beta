@@ -2,6 +2,7 @@ import os from 'node:os';
 import { getPrismaClient } from '@caracal/db';
 
 import { logger } from '../logger.js';
+import { withDbRetry } from '../observability/db-retry.js';
 import { toPrismaJson } from '../prisma-json.js';
 
 export interface WorkerHeartbeatConfig {
@@ -30,37 +31,39 @@ export async function markWorkerHeartbeat(
   const prisma = getPrismaClient();
   const now = new Date();
 
-  await prisma.workerHeartbeat.upsert({
-    where: { workerId: config.workerId },
-    update: {
-      status,
-      processId: process.pid,
-      hostname: os.hostname(),
-      concurrency: config.concurrency,
-      lastSeenAt: now,
-      stoppedAt: status === 'OFFLINE' ? now : undefined,
-      metadata: toPrismaJson({
-        ...config.metadata,
-        ...metadata,
-      }),
-    },
-    create: {
-      workerId: config.workerId,
-      workerType: config.workerType,
-      queueName: config.queueName,
-      status,
-      processId: process.pid,
-      hostname: os.hostname(),
-      concurrency: config.concurrency,
-      startedAt: now,
-      lastSeenAt: now,
-      stoppedAt: status === 'OFFLINE' ? now : undefined,
-      metadata: toPrismaJson({
-        ...config.metadata,
-        ...metadata,
-      }),
-    },
-  });
+  await withDbRetry('worker_heartbeat_upsert', () =>
+    prisma.workerHeartbeat.upsert({
+      where: { workerId: config.workerId },
+      update: {
+        status,
+        processId: process.pid,
+        hostname: os.hostname(),
+        concurrency: config.concurrency,
+        lastSeenAt: now,
+        stoppedAt: status === 'OFFLINE' ? now : undefined,
+        metadata: toPrismaJson({
+          ...config.metadata,
+          ...metadata,
+        }),
+      },
+      create: {
+        workerId: config.workerId,
+        workerType: config.workerType,
+        queueName: config.queueName,
+        status,
+        processId: process.pid,
+        hostname: os.hostname(),
+        concurrency: config.concurrency,
+        startedAt: now,
+        lastSeenAt: now,
+        stoppedAt: status === 'OFFLINE' ? now : undefined,
+        metadata: toPrismaJson({
+          ...config.metadata,
+          ...metadata,
+        }),
+      },
+    })
+  );
 }
 
 export function startWorkerHeartbeat(config: WorkerHeartbeatConfig): () => Promise<void> {

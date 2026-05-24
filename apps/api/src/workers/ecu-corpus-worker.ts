@@ -3,6 +3,7 @@ import 'dotenv/config';
 import { disconnectPrismaClient } from '@caracal/db';
 import { Worker } from 'bullmq';
 import os from 'node:os';
+import { setTimeout as delay } from 'node:timers/promises';
 
 import {
   createWorkerId,
@@ -19,14 +20,25 @@ import {
 } from '../lib/ecu-corpus/optimized-ingestion.js';
 import {
   closeEcuCorpusQueues,
+  ecuCorpusQueueName,
   ecuCorpusQueuePrefix,
   ecuCorpusStages,
-  ecuCorpusQueueName,
   enqueueEcuCorpusStage,
   startEcuCorpusQueueMaintenanceCron,
   type EcuCorpusStageJobData,
 } from '../lib/ecu-corpus/queues.js';
 import { logger } from '../lib/logger.js';
+import { startMemoryMonitor } from '../lib/observability/memory-monitor.js';
+import {
+  ecuCorpusQueueLatency,
+  ecuCorpusRedisErrors,
+  ecuCorpusShutdownDuration,
+  ecuCorpusStalledJobs,
+  ecuCorpusWorkerJobs,
+  recordStageMetrics,
+  setWorkerMemory,
+} from '../lib/observability/metrics.js';
+import { installRuntimeProcessGuards } from '../lib/observability/runtime-events.js';
 
 const cpuCount = Math.max(1, Math.floor(os.cpus().length / 2));
 const configuredConcurrency = Number.parseInt(
@@ -46,8 +58,6 @@ const heartbeatConfig = {
     stages: ecuCorpusStages,
   },
 };
-const stopHeartbeat = startWorkerHeartbeat(heartbeatConfig);
-const stopMaintenance = startEcuCorpusQueueMaintenanceCron();
 const workers: Worker<EcuCorpusStageJobData>[] = [];
 let shuttingDown = false;
 
@@ -58,13 +68,32 @@ function memoryLimitBytes(): number {
   );
 }
 
+const stopHeartbeat = startWorkerHeartbeat(heartbeatConfig);
+const stopMaintenance = startEcuCorpusQueueMaintenanceCron();
+const memoryMonitor = startMemoryMonitor({
+  workerId,
+  warningRssBytes: memoryLimitBytes(),
+});
+
 function assertMemoryHeadroom() {
   const usage = process.memoryUsage();
+  setWorkerMemory(workerId, usage);
 
   if (usage.rss > memoryLimitBytes()) {
     throw new Error(`ECU corpus worker memory limit exceeded: rss=${usage.rss}`);
   }
 }
+
+installRuntimeProcessGuards({
+  service: 'ecu-corpus-worker',
+  workerId,
+  onFatal: async (error) => {
+    await markWorkerHeartbeat(heartbeatConfig, 'ERROR', {
+      error: error.message,
+      memory: memoryMonitor.read(),
+    });
+  },
+});
 
 for (const stage of ecuCorpusStages) {
   const worker = new Worker<EcuCorpusStageJobData>(
@@ -72,9 +101,20 @@ for (const stage of ecuCorpusStages) {
     async (job) => {
       assertMemoryHeadroom();
       const data = job.data;
+      const queueLatencyMs = Math.max(Date.now() - job.timestamp, 0);
+      ecuCorpusQueueLatency.observe({ stage }, queueLatencyMs / 1000);
 
       logger.info(
-        { stage, jobId: job.id, runId: data.runId, workerId },
+        {
+          event: 'ecu_corpus_stage_started',
+          stage,
+          jobId: job.id,
+          runId: data.runId,
+          workerId,
+          queueLatencyMs,
+          attemptsMade: job.attemptsMade,
+          memory: memoryMonitor.read(),
+        },
         'ECU corpus stage started'
       );
 
@@ -147,15 +187,68 @@ for (const stage of ecuCorpusStages) {
     }
   );
 
-  worker.on('completed', (job) => {
-    logger.info({ stage, jobId: job.id, workerId }, 'ECU corpus stage completed');
+  worker.on('active', (job) => {
+    logger.debug(
+      { event: 'ecu_corpus_job_active', stage, jobId: job.id, workerId },
+      'ECU corpus job active'
+    );
+  });
+  worker.on('completed', (job, result) => {
+    ecuCorpusWorkerJobs.inc({ stage, result: 'completed' });
+    logger.info(
+      {
+        event: 'ecu_corpus_stage_completed',
+        stage,
+        jobId: job.id,
+        runId: job.data.runId,
+        workerId,
+        attemptsMade: job.attemptsMade,
+        result,
+        memory: memoryMonitor.read(),
+      },
+      'ECU corpus stage completed'
+    );
   });
   worker.on('failed', (job, error) => {
-    logger.error({ err: error, stage, jobId: job?.id, workerId }, 'ECU corpus stage failed');
+    ecuCorpusWorkerJobs.inc({ stage, result: 'failed' });
+    recordStageMetrics({
+      stage,
+      status: 'failed',
+      elapsedMs: job?.processedOn ? Date.now() - job.processedOn : 0,
+      processedFiles: 0,
+      failedFiles: 1,
+    });
+    logger.error(
+      {
+        err: error,
+        event: 'ecu_corpus_stage_failed',
+        stage,
+        jobId: job?.id,
+        runId: job?.data.runId,
+        workerId,
+        attemptsMade: job?.attemptsMade,
+        memory: memoryMonitor.read(),
+      },
+      'ECU corpus stage failed'
+    );
   });
   worker.on('error', (error) => {
-    logger.error({ err: error, stage, workerId }, 'ECU corpus worker error');
+    ecuCorpusRedisErrors.inc({ stage });
+    logger.error(
+      { err: error, event: 'ecu_corpus_worker_error', stage, workerId },
+      'ECU corpus worker error'
+    );
     void markWorkerHeartbeat(heartbeatConfig, 'ERROR', { error: error.message, stage });
+  });
+  worker.on('stalled', (jobId) => {
+    ecuCorpusStalledJobs.inc({ stage });
+    logger.warn(
+      { event: 'ecu_corpus_job_stalled', stage, jobId, workerId },
+      'ECU corpus job stalled'
+    );
+  });
+  worker.on('drained', () => {
+    logger.info({ event: 'ecu_corpus_queue_drained', stage, workerId }, 'ECU corpus queue drained');
   });
   workers.push(worker);
 }
@@ -165,17 +258,52 @@ async function shutdown(signal: NodeJS.Signals) {
     return;
   }
 
+  const started = Date.now();
   shuttingDown = true;
-  logger.info({ signal, workerId }, 'shutting down ECU corpus workers');
+  logger.info(
+    { event: 'ecu_corpus_worker_shutdown_started', signal, workerId },
+    'shutting down ECU corpus workers'
+  );
   stopMaintenance();
-  await markWorkerHeartbeat(heartbeatConfig, 'STOPPING', { signal });
-  await Promise.allSettled([
+  memoryMonitor.stop();
+  await markWorkerHeartbeat(heartbeatConfig, 'STOPPING', { signal, memory: memoryMonitor.read() });
+
+  const timeoutMs = Number.parseInt(process.env.WORKER_SHUTDOWN_TIMEOUT_MS ?? '30000', 10);
+  const shutdownWork = Promise.allSettled([
     ...workers.map((worker) => worker.close()),
     closeEcuCorpusQueues(),
     stopHeartbeat(),
+    disconnectPrismaClient(),
   ]);
-  await disconnectPrismaClient();
+  const results = await Promise.race([
+    shutdownWork,
+    delay(timeoutMs).then(() => 'timeout' as const),
+  ]);
+  const result = results === 'timeout' ? 'timeout' : 'success';
+  ecuCorpusShutdownDuration.observe({ result }, (Date.now() - started) / 1000);
+
+  if (results === 'timeout') {
+    logger.error(
+      { event: 'ecu_corpus_worker_shutdown_timeout', signal, workerId, timeoutMs },
+      'ECU corpus worker shutdown timed out'
+    );
+  } else {
+    for (const shutdownResult of results) {
+      if (shutdownResult.status === 'rejected') {
+        logger.error(
+          { err: shutdownResult.reason, event: 'ecu_corpus_worker_shutdown_step_failed', workerId },
+          'ECU corpus worker shutdown step failed'
+        );
+      }
+    }
+  }
+
   process.exit(0);
+}
+
+const selfShutdownMs = Number.parseInt(process.env.ECU_CORPUS_WORKER_SELF_SHUTDOWN_MS ?? '0', 10);
+if (selfShutdownMs > 0) {
+  setTimeout(() => void shutdown('SIGTERM'), selfShutdownMs).unref();
 }
 
 process.on('SIGINT', (signal) => void shutdown(signal));
