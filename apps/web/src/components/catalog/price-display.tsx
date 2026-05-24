@@ -20,7 +20,7 @@ export function PriceDisplay({
 }: PriceDisplayProps) {
   if (!price.formatted) {
     return (
-      <span className={`font-medium text-slate-500 ${SIZE[size]}`}>
+      <span className={`font-medium text-brand-muted ${SIZE[size]}`}>
         Contact for price
       </span>
     );
@@ -28,11 +28,11 @@ export function PriceDisplay({
 
   return (
     <div className="flex flex-col gap-0.5">
-      <span className={`font-semibold text-slate-900 ${SIZE[size]}`}>
+      <span className={`font-semibold text-brand-orange ${SIZE[size]}`}>
         {price.formatted}
       </span>
       {showTrade && price.tradeFormatted && (
-        <span className="text-xs text-violet-600">
+        <span className="text-xs text-violet-400">
           Trade: {price.tradeFormatted}
         </span>
       )}

@@ -18,13 +18,13 @@ export function ProductCard({ product }: ProductCardProps) {
     <Link
       href={`/shop/${product.slug}`}
       className={[
-        'group flex flex-col overflow-hidden rounded-lg border border-slate-200',
-        'bg-white transition-shadow hover:shadow-md',
-        isUnavailable ? 'opacity-75' : '',
+        'group flex flex-col overflow-hidden rounded-xl border border-white/10',
+        'bg-white/5 transition-colors hover:border-brand-orange/30',
+        isUnavailable ? 'opacity-60' : '',
       ].join(' ')}
     >
       {/* Image */}
-      <div className="relative aspect-square overflow-hidden bg-slate-50">
+      <div className="relative aspect-square overflow-hidden bg-brand-deep">
         {primaryImage ? (
           <Image
             src={primaryImage.url}
@@ -36,7 +36,7 @@ export function ProductCard({ product }: ProductCardProps) {
         ) : (
           <div className="flex h-full items-center justify-center">
             <svg
-              className="h-12 w-12 text-slate-300"
+              className="h-12 w-12 text-white/20"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -61,17 +61,17 @@ export function ProductCard({ product }: ProductCardProps) {
       {/* Body */}
       <div className="flex flex-1 flex-col gap-2 p-3">
         {product.category && (
-          <span className="text-xs font-medium uppercase tracking-wider text-slate-400">
+          <span className="font-technical text-xs font-medium uppercase tracking-wider text-brand-orange/70">
             {product.category.name}
           </span>
         )}
 
-        <h3 className="line-clamp-2 text-sm font-semibold text-slate-900 leading-snug group-hover:text-slate-700">
+        <h3 className="line-clamp-2 text-sm font-semibold text-brand-text leading-snug group-hover:text-brand-orange transition-colors">
           {product.name}
         </h3>
 
         {product.shortDescription && (
-          <p className="line-clamp-2 text-xs text-slate-500 leading-relaxed">
+          <p className="line-clamp-2 text-xs text-brand-muted leading-relaxed">
             {product.shortDescription}
           </p>
         )}
@@ -89,15 +89,15 @@ export function ProductCard({ product }: ProductCardProps) {
 
 export function ProductCardSkeleton() {
   return (
-    <div className="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
-      <div className="aspect-square animate-pulse bg-slate-100" />
+    <div className="flex flex-col overflow-hidden rounded-xl border border-white/10 bg-white/5">
+      <div className="aspect-square animate-pulse bg-white/5" />
       <div className="flex flex-col gap-2 p-3">
-        <div className="h-3 w-20 animate-pulse rounded bg-slate-100" />
-        <div className="h-4 w-full animate-pulse rounded bg-slate-100" />
-        <div className="h-4 w-3/4 animate-pulse rounded bg-slate-100" />
+        <div className="h-3 w-20 animate-pulse rounded bg-white/10" />
+        <div className="h-4 w-full animate-pulse rounded bg-white/10" />
+        <div className="h-4 w-3/4 animate-pulse rounded bg-white/10" />
         <div className="mt-auto flex items-center justify-between pt-2">
-          <div className="h-4 w-24 animate-pulse rounded bg-slate-100" />
-          <div className="h-5 w-16 animate-pulse rounded-full bg-slate-100" />
+          <div className="h-4 w-24 animate-pulse rounded bg-white/10" />
+          <div className="h-5 w-16 animate-pulse rounded-full bg-white/10" />
         </div>
       </div>
     </div>
