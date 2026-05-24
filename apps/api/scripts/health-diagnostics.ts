@@ -76,6 +76,7 @@ async function main(): Promise<void> {
     binUploads,
     binAnalysisJobs,
     binAnalysisResults,
+    workerHeartbeats,
     auditLogs,
   ] = await prisma.$transaction([
     prisma.supplier.count(),
@@ -91,6 +92,7 @@ async function main(): Promise<void> {
     prisma.binUpload.count(),
     prisma.binAnalysisJob.count(),
     prisma.binAnalysisResult.count(),
+    prisma.workerHeartbeat.count(),
     prisma.auditLog.count(),
   ]);
 
@@ -132,6 +134,7 @@ async function main(): Promise<void> {
           binUploads,
           binAnalysisJobs,
           binAnalysisResults,
+          workerHeartbeats,
           auditLogs,
         },
       },

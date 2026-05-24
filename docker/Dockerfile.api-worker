@@ -7,8 +7,7 @@ RUN pnpm install
 RUN pnpm --filter @caracal/api build
 RUN mkdir -p /app/logs/api /app/apps/api/uploads
 
-EXPOSE 3001
 STOPSIGNAL SIGTERM
 
 WORKDIR /app/apps/api
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/workers/bin-analysis-worker.js"]

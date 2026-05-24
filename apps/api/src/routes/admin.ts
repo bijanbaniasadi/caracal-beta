@@ -1,3 +1,6 @@
+import { createBullBoard } from '@bull-board/api';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { ExpressAdapter } from '@bull-board/express';
 import { getPrismaClient } from '@caracal/db';
 import {
   Prisma,
@@ -5,13 +8,24 @@ import {
   type InventoryItem,
   type InventoryStatus,
   type ProductStatus,
+  type WorkerHeartbeat,
 } from '@prisma/client';
 import { Router, type Request, type Router as ExpressRouter } from 'express';
 
 import { sendSuccess } from '../lib/api-response.js';
 import { asyncHandler } from '../lib/async-handler.js';
 import { writeAuditLog } from '../lib/audit.js';
-import { enqueueBinAnalysisJob, retryBinAnalysisJob } from '../lib/bin-analysis/queue.js';
+import {
+  cleanBinAnalysisQueue,
+  recoverStalledAnalysisJobs,
+} from '../lib/bin-analysis/maintenance.js';
+import {
+  binAnalysisQueueName,
+  createBinAnalysisQueue,
+  enqueueBinAnalysisJob,
+  getBinAnalysisQueue,
+  retryBinAnalysisJob,
+} from '../lib/bin-analysis/queue.js';
 import { badRequest, notFound } from '../lib/errors.js';
 import { toPrismaJson } from '../lib/prisma-json.js';
 import { authenticateAccessToken, requireRoles } from '../middleware/auth.js';
@@ -44,8 +58,16 @@ import {
 } from '../schemas/admin.js';
 
 export const adminRouter: ExpressRouter = Router();
+const queueBoardAdapter = new ExpressAdapter();
+
+queueBoardAdapter.setBasePath('/api/admin/queues/ui');
+createBullBoard({
+  queues: [new BullMQAdapter(getBinAnalysisQueue())],
+  serverAdapter: queueBoardAdapter,
+});
 
 adminRouter.use(authenticateAccessToken, requireRoles('admin', 'staff'));
+adminRouter.use('/queues/ui', queueBoardAdapter.getRouter());
 
 const productInclude = {
   category: {
@@ -341,6 +363,51 @@ function groupCounts<T extends string>(
   ) as Record<T, number>;
 }
 
+async function readBinAnalysisQueueStats() {
+  const queue = createBinAnalysisQueue();
+
+  try {
+    const [counts, isPaused] = await Promise.all([
+      queue.getJobCounts(
+        'waiting',
+        'active',
+        'completed',
+        'failed',
+        'delayed',
+        'paused',
+        'prioritized',
+        'waiting-children'
+      ),
+      queue.isPaused(),
+    ]);
+
+    return {
+      queueName: binAnalysisQueueName,
+      isPaused,
+      counts,
+      settings: {
+        concurrency: Number.parseInt(process.env.BIN_ANALYSIS_WORKER_CONCURRENCY ?? '2', 10),
+        maxAttempts: Number.parseInt(process.env.BIN_ANALYSIS_MAX_ATTEMPTS ?? '3', 10),
+        retryBackoffMs: Number.parseInt(process.env.BIN_ANALYSIS_RETRY_BACKOFF_MS ?? '30000', 10),
+        stalledAfterMs: Number.parseInt(process.env.BIN_ANALYSIS_STALLED_AFTER_MS ?? '300000', 10),
+      },
+    };
+  } finally {
+    await queue.close();
+  }
+}
+
+function serializeWorkerHeartbeat(worker: WorkerHeartbeat, staleAfterMs: number, now = new Date()) {
+  const isStale =
+    worker.status === 'ONLINE' && now.getTime() - worker.lastSeenAt.getTime() > staleAfterMs;
+
+  return {
+    ...worker,
+    isStale,
+    effectiveStatus: isStale ? 'STALE' : worker.status,
+  };
+}
+
 adminRouter.get(
   '/dashboard/metrics',
   asyncHandler(async (req, res) => {
@@ -433,6 +500,72 @@ adminRouter.get(
       binAnalysis: groupCounts(binAnalysisCounts),
       recentAuditLogs,
     });
+  })
+);
+
+adminRouter.get(
+  '/queues/bin-analysis',
+  asyncHandler(async (_req, res) => {
+    sendSuccess(res, await readBinAnalysisQueueStats());
+  })
+);
+
+adminRouter.get(
+  '/queues/health',
+  asyncHandler(async (_req, res) => {
+    const prisma = getPrismaClient();
+    const staleAfterMs = Number.parseInt(
+      process.env.WORKER_HEARTBEAT_STALE_AFTER_MS ?? '60000',
+      10
+    );
+    const [queue, heartbeats] = await Promise.all([
+      readBinAnalysisQueueStats(),
+      prisma.workerHeartbeat.findMany({
+        where: { queueName: binAnalysisQueueName },
+        orderBy: { lastSeenAt: 'desc' },
+        take: 20,
+      }),
+    ]);
+
+    sendSuccess(res, {
+      queue,
+      workers: heartbeats.map((worker) => serializeWorkerHeartbeat(worker, staleAfterMs)),
+      heartbeat: {
+        staleAfterMs,
+      },
+    });
+  })
+);
+
+adminRouter.post(
+  '/queues/bin-analysis/cleanup',
+  asyncHandler(async (req, res) => {
+    const queue = createBinAnalysisQueue();
+
+    try {
+      const [cleanup, recovery] = await Promise.all([
+        cleanBinAnalysisQueue(queue),
+        recoverStalledAnalysisJobs(),
+      ]);
+
+      await writeAuditLog(req, {
+        action: 'admin.queue.cleanup',
+        entityType: 'Queue',
+        entityId: binAnalysisQueueName,
+        metadata: {
+          cleanup,
+          recovery,
+        },
+      });
+
+      sendSuccess(res, {
+        queueName: binAnalysisQueueName,
+        cleanup,
+        recovery,
+      });
+    } finally {
+      await queue.close();
+    }
   })
 );
 

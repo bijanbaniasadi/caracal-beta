@@ -8,6 +8,7 @@ import { toPrismaJson } from '../prisma-json.js';
 
 export const binAnalysisQueueName = process.env.BIN_ANALYSIS_QUEUE_NAME ?? 'bin-analysis';
 export const binAnalysisJobName = 'analyze-bin-upload';
+let sharedBinAnalysisQueue: Queue<BinAnalysisJobData> | null = null;
 
 export interface BinAnalysisJobData {
   analysisJobId: string;
@@ -33,6 +34,13 @@ export function getRedisConnectionOptions() {
     db: url.pathname ? Number.parseInt(url.pathname.slice(1) || '0', 10) : 0,
     tls: url.protocol === 'rediss:' ? {} : undefined,
     maxRetriesPerRequest: null,
+    connectTimeout: Number.parseInt(process.env.REDIS_CONNECT_TIMEOUT_MS ?? '10000', 10),
+    keepAlive: Number.parseInt(process.env.REDIS_KEEP_ALIVE_MS ?? '30000', 10),
+    retryStrategy: (attempt: number) =>
+      Math.min(
+        attempt * Number.parseInt(process.env.REDIS_RECONNECT_BASE_DELAY_MS ?? '500', 10),
+        Number.parseInt(process.env.REDIS_RECONNECT_MAX_DELAY_MS ?? '10000', 10)
+      ),
   };
 }
 
@@ -44,6 +52,14 @@ export function getBinAnalysisBackoffMs(): number {
   return Number.parseInt(process.env.BIN_ANALYSIS_RETRY_BACKOFF_MS ?? '30000', 10);
 }
 
+export function getBinAnalysisRemoveOnComplete(): number {
+  return Number.parseInt(process.env.BIN_ANALYSIS_REMOVE_ON_COMPLETE_COUNT ?? '1000', 10);
+}
+
+export function getBinAnalysisRemoveOnFail(): number {
+  return Number.parseInt(process.env.BIN_ANALYSIS_REMOVE_ON_FAIL_COUNT ?? '5000', 10);
+}
+
 export function createBinAnalysisQueue(): Queue<BinAnalysisJobData> {
   return new Queue<BinAnalysisJobData>(binAnalysisQueueName, {
     connection: getRedisConnectionOptions(),
@@ -53,10 +69,22 @@ export function createBinAnalysisQueue(): Queue<BinAnalysisJobData> {
         type: 'exponential',
         delay: getBinAnalysisBackoffMs(),
       },
-      removeOnComplete: false,
-      removeOnFail: false,
+      removeOnComplete: getBinAnalysisRemoveOnComplete(),
+      removeOnFail: getBinAnalysisRemoveOnFail(),
     },
   });
+}
+
+export function getBinAnalysisQueue(): Queue<BinAnalysisJobData> {
+  sharedBinAnalysisQueue ??= createBinAnalysisQueue();
+  return sharedBinAnalysisQueue;
+}
+
+export async function closeBinAnalysisQueue(): Promise<void> {
+  if (sharedBinAnalysisQueue) {
+    await sharedBinAnalysisQueue.close();
+    sharedBinAnalysisQueue = null;
+  }
 }
 
 function queueJobOptions(input: EnqueueBinAnalysisInput): JobsOptions {
