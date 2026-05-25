@@ -40,6 +40,7 @@
     "db:studio": "pnpm --filter @caracal/api db:studio",
     "db:reset": "pnpm --filter @caracal/api db:reset",
     "db:health": "pnpm --filter @caracal/api db:health",
+    "prod:env:check": "node scripts/validate-production-env.mjs .env.production",
     "setup": "powershell -ExecutionPolicy Bypass -File scripts/setup.ps1",
     "start:dev": "powershell -ExecutionPolicy Bypass -File scripts/dev.ps1",
     "precommit": "lint-staged",

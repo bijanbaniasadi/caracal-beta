@@ -1,0 +1,182 @@
+name: caracal-production
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_started
+    ports:
+      - '80:80'
+      - '443:443'
+    restart: unless-stopped
+    volumes:
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:ro
+      - nginx-logs:/var/log/nginx
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost/health/live >/dev/null 2>&1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 25m
+        max-file: '5'
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+      args:
+        NEXT_PUBLIC_API_URL: ${PUBLIC_SITE_URL:?Set PUBLIC_SITE_URL}
+        NEXT_PUBLIC_APP_URL: ${PUBLIC_SITE_URL:?Set PUBLIC_SITE_URL}
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${PUBLIC_SITE_URL:?Set PUBLIC_SITE_URL}
+      NEXT_PUBLIC_APP_URL: ${PUBLIC_SITE_URL:?Set PUBLIC_SITE_URL}
+    expose:
+      - '3000'
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: 25m
+        max-file: '5'
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    env_file:
+      - path: .env.production
+        required: false
+    environment:
+      NODE_ENV: production
+      API_PORT: 3001
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:?Set PUBLIC_SITE_URL}
+      CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:?Set REFRESH_TOKEN_SECRET}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:?Set STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:?Set STRIPE_WEBHOOK_SECRET}
+      AUTH_COOKIE_SECURE: 'true'
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOCAL_UPLOAD_DIR: /app/apps/api/uploads
+      BIN_ANALYSIS_AUTO_QUEUE: ${BIN_ANALYSIS_AUTO_QUEUE:-true}
+      BIN_ANALYSIS_QUEUE_NAME: ${BIN_ANALYSIS_QUEUE_NAME:-bin-analysis}
+    expose:
+      - '3001'
+    restart: unless-stopped
+    stop_grace_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - api-uploads:/app/apps/api/uploads
+      - api-logs:/app/logs/api
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3001/health/ready >/dev/null 2>&1']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: '10'
+
+  api-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-worker
+    env_file:
+      - path: .env.production
+        required: false
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      LOCAL_UPLOAD_DIR: /app/apps/api/uploads
+      BIN_ANALYSIS_QUEUE_NAME: ${BIN_ANALYSIS_QUEUE_NAME:-bin-analysis}
+      BIN_ANALYSIS_WORKER_CONCURRENCY: ${BIN_ANALYSIS_WORKER_CONCURRENCY:-2}
+      WORKER_SHUTDOWN_TIMEOUT_MS: ${WORKER_SHUTDOWN_TIMEOUT_MS:-30000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    restart: unless-stopped
+    stop_grace_period: 35s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - api-uploads:/app/apps/api/uploads
+      - api-logs:/app/logs/api
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: '10'
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+    expose:
+      - '5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 25m
+        max-file: '5'
+
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes', '--save', '60', '1000']
+    expose:
+      - '6379'
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 25m
+        max-file: '5'
+
+volumes:
+  api-logs:
+    name: caracal-api-logs
+  api-uploads:
+    name: caracal-api-uploads
+  nginx-logs:
+    name: caracal-nginx-logs
+  postgres-data:
+    name: caracal-postgres-data
+  redis-data:
+    name: caracal-redis-data
