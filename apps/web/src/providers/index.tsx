@@ -21,6 +21,7 @@ import type { ReactNode } from 'react';
 
 import { Toaster } from '@/components/toaster';
 import { ToastProvider } from '@/lib/toast/context';
+import { CustomerAuthProvider } from '@/contexts/customer-auth';
 import { ApiProvider } from './api-provider';
 import { QueryProvider } from './query-provider';
 
@@ -28,10 +29,12 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <ApiProvider>
       <ToastProvider>
-        <QueryProvider>
-          {children}
-          <Toaster />
-        </QueryProvider>
+        <CustomerAuthProvider>
+          <QueryProvider>
+            {children}
+            <Toaster />
+          </QueryProvider>
+        </CustomerAuthProvider>
       </ToastProvider>
     </ApiProvider>
   );

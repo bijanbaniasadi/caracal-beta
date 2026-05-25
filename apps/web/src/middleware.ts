@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
+const customerSessionCookie = 'caracal_customer_session';
+
 const legacyPhpRedirects: Record<string, string> = {
   '/academy.php': '/knowledge',
   '/admin.php': '/admin',
@@ -93,6 +95,15 @@ function redirectTarget(request: NextRequest): string | null {
 }
 
 export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const isAccountRoute = pathname === '/account' || pathname.startsWith('/account/');
+
+  if (isAccountRoute && !request.cookies.get(customerSessionCookie)?.value) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('returnTo', `${pathname}${request.nextUrl.search}`);
+    return NextResponse.redirect(loginUrl);
+  }
+
   const target = redirectTarget(request);
 
   if (!target) {
