@@ -7,17 +7,27 @@ const config: Config = {
       colors: {
         // ── Brand dark palette (from legacy site.css) ─────────────────────
         brand: {
-          bg: '#071015',         // --bg
-          deep: '#0b1218',       // --bg-deep
+          bg: '#071015', // --bg
+          deep: '#0b1218', // --bg-deep
           panel: 'rgba(255,255,255,0.05)',
           'panel-strong': 'rgba(255,255,255,0.08)',
           line: 'rgba(255,255,255,0.10)',
           'line-strong': 'rgba(255,255,255,0.18)',
-          text: '#ecf2ff',       // --text
-          muted: '#9aa8bf',      // --muted
-          orange: '#ff7a18',     // --orange
+          text: '#ecf2ff', // --text
+          muted: '#9aa8bf', // --muted
+          orange: '#ff7a18', // --orange
           'orange-soft': '#ffb980', // --orange-soft
-          green: '#24c768',      // --green
+          green: '#24c768', // --green
+        },
+        ecu: {
+          base: '#0F1419',
+          card: '#151B24',
+          border: '#1F2937',
+          hover: '#1A2332',
+          orange: '#FF8A34',
+          green: '#20C65E',
+          amber: '#FFB842',
+          red: '#FF5757',
         },
       },
       fontFamily: {
