@@ -32,6 +32,12 @@ import {
   getEcuCorpusQueueStats,
 } from '../lib/ecu-corpus/queues.js';
 import { badRequest, notFound } from '../lib/errors.js';
+import {
+  orderInclude,
+  releaseOrderReservations,
+  serializeOrder,
+} from '../lib/payments/orders.js';
+import { getStripeClient, paymentLogger } from '../lib/payments/stripe.js';
 import { toPrismaJson } from '../lib/prisma-json.js';
 import { authenticateAccessToken, requireRoles } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
@@ -46,6 +52,8 @@ import {
   inquiryUpdateSchema,
   inventoryUpdateSchema,
   inventoryUpsertSchema,
+  orderRefundSchema,
+  orderUpdateSchema,
   productCreateSchema,
   productUpdateSchema,
   uploadUpdateSchema,
@@ -58,6 +66,8 @@ import {
   type InquiryUpdateInput,
   type InventoryUpdateInput,
   type InventoryUpsertInput,
+  type OrderRefundInput,
+  type OrderUpdateInput,
   type ProductCreateInput,
   type ProductUpdateInput,
   type UploadUpdateInput,
@@ -231,6 +241,52 @@ function productWhere(query: AdminListQuery): Prisma.ProductWhereInput {
         { name: { contains: query.q, mode: 'insensitive' } },
         { sku: { contains: query.q, mode: 'insensitive' } },
         { slug: { contains: query.q, mode: 'insensitive' } },
+      ],
+    });
+  }
+
+  if (and.length > 0) {
+    where.AND = and;
+  }
+
+  return where;
+}
+
+function orderWhere(query: AdminListQuery): Prisma.OrderWhereInput {
+  const where: Prisma.OrderWhereInput = {};
+  const and: Prisma.OrderWhereInput[] = [];
+
+  if (query.status) {
+    where.status = query.status as Prisma.OrderWhereInput['status'];
+  }
+  if (query.paymentStatus) {
+    where.paymentStatus = query.paymentStatus as Prisma.OrderWhereInput['paymentStatus'];
+  }
+  if (query.fulfillmentStatus) {
+    where.fulfillmentStatus = query.fulfillmentStatus as Prisma.OrderWhereInput['fulfillmentStatus'];
+  }
+  if (query.refundStatus) {
+    where.refundStatus = query.refundStatus as Prisma.OrderWhereInput['refundStatus'];
+  }
+
+  if (query.q) {
+    and.push({
+      OR: [
+        { orderNumber: { contains: query.q, mode: 'insensitive' } },
+        { customerEmail: { contains: query.q, mode: 'insensitive' } },
+        { customerName: { contains: query.q, mode: 'insensitive' } },
+        { stripeCheckoutSessionId: { contains: query.q, mode: 'insensitive' } },
+        { stripePaymentIntentId: { contains: query.q, mode: 'insensitive' } },
+        {
+          items: {
+            some: {
+              OR: [
+                { sku: { contains: query.q, mode: 'insensitive' } },
+                { name: { contains: query.q, mode: 'insensitive' } },
+              ],
+            },
+          },
+        },
       ],
     });
   }
@@ -429,6 +485,9 @@ adminRouter.get(
       quoteCounts,
       productInquiryCounts,
       workshopCounts,
+      orderCounts,
+      paymentCounts,
+      fulfillmentCounts,
       uploadCounts,
       inventoryCounts,
       binAnalysisCounts,
@@ -458,6 +517,21 @@ adminRouter.get(
       prisma.workshopConsultationLead.groupBy({
         by: ['status'],
         orderBy: { status: 'asc' },
+        _count: { _all: true },
+      }),
+      prisma.order.groupBy({
+        by: ['status'],
+        orderBy: { status: 'asc' },
+        _count: { _all: true },
+      }),
+      prisma.order.groupBy({
+        by: ['paymentStatus'],
+        orderBy: { paymentStatus: 'asc' },
+        _count: { _all: true },
+      }),
+      prisma.order.groupBy({
+        by: ['fulfillmentStatus'],
+        orderBy: { fulfillmentStatus: 'asc' },
         _count: { _all: true },
       }),
       prisma.binUpload.groupBy({
@@ -504,6 +578,21 @@ adminRouter.get(
         quoteRequests: groupCounts(quoteCounts),
         productInquiries: groupCounts(productInquiryCounts),
         workshopConsultations: groupCounts(workshopCounts),
+      },
+      orders: {
+        byStatus: groupCounts(orderCounts),
+        byPaymentStatus: Object.fromEntries(
+          paymentCounts.map((row) => [
+            row.paymentStatus,
+            typeof row._count === 'object' ? (row._count._all ?? 0) : 0,
+          ])
+        ),
+        byFulfillmentStatus: Object.fromEntries(
+          fulfillmentCounts.map((row) => [
+            row.fulfillmentStatus,
+            typeof row._count === 'object' ? (row._count._all ?? 0) : 0,
+          ])
+        ),
       },
       uploads: groupCounts(uploadCounts),
       inventory: groupCounts(inventoryCounts),
@@ -585,6 +674,246 @@ adminRouter.post(
     } finally {
       await queue.close();
     }
+  })
+);
+
+adminRouter.get(
+  '/orders',
+  asyncHandler(async (req, res) => {
+    const query = parseListQuery(req);
+    const prisma = getPrismaClient();
+    const rows = await prisma.order.findMany({
+      where: orderWhere(query),
+      include: orderInclude,
+      orderBy: [{ createdAt: 'desc' }],
+      take: query.limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+    });
+    const { pageItems, pagination } = paginationMeta(rows, query.limit);
+
+    sendSuccess(res, pageItems.map(serializeOrder), 200, { pagination });
+  })
+);
+
+adminRouter.get(
+  '/orders/:id',
+  asyncHandler(async (req, res) => {
+    const prisma = getPrismaClient();
+    const order = await prisma.order.findUnique({
+      where: { id: req.params.id },
+      include: orderInclude,
+    });
+
+    if (!order) {
+      throw notFound('Order not found.', { id: req.params.id });
+    }
+
+    sendSuccess(res, serializeOrder(order));
+  })
+);
+
+adminRouter.patch(
+  '/orders/:id',
+  validateBody(orderUpdateSchema),
+  asyncHandler(async (req, res) => {
+    const input = req.body as OrderUpdateInput;
+    const prisma = getPrismaClient();
+    const order = await prisma.order.update({
+      where: { id: req.params.id },
+      data: {
+        status: input.status,
+        paymentStatus: input.paymentStatus,
+        fulfillmentStatus: input.fulfillmentStatus,
+        refundStatus: input.refundStatus,
+        shippingTracking: input.shippingTracking,
+        adminNotes: input.adminNotes,
+        metadata: input.metadata ? toPrismaJson(input.metadata) : undefined,
+      },
+      include: orderInclude,
+    });
+
+    await writeAuditLog(req, {
+      action: 'admin.order.updated',
+      entityType: 'Order',
+      entityId: order.id,
+      metadata: {
+        orderNumber: order.orderNumber,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        fulfillmentStatus: order.fulfillmentStatus,
+        refundStatus: order.refundStatus,
+      },
+    });
+
+    sendSuccess(res, serializeOrder(order));
+  })
+);
+
+adminRouter.post(
+  '/orders/:id/cancel',
+  asyncHandler(async (req, res) => {
+    const prisma = getPrismaClient();
+    const order = await prisma.order.findUnique({
+      where: { id: req.params.id },
+      include: orderInclude,
+    });
+
+    if (!order) {
+      throw notFound('Order not found.', { id: req.params.id });
+    }
+
+    if (order.paymentStatus === 'PAID') {
+      throw badRequest('Paid orders must be refunded instead of cancelled.', {
+        id: order.id,
+        orderNumber: order.orderNumber,
+      });
+    }
+
+    if (order.stripeCheckoutSessionId && process.env.STRIPE_SECRET_KEY) {
+      try {
+        await getStripeClient().checkout.sessions.expire(order.stripeCheckoutSessionId);
+      } catch (error) {
+        paymentLogger.warn(
+          { err: error, orderId: order.id, sessionId: order.stripeCheckoutSessionId },
+          'stripe checkout session expire failed during admin cancel'
+        );
+      }
+    }
+
+    const cancelled = await prisma.$transaction(async (tx) => {
+      await releaseOrderReservations(tx, order.id);
+      await tx.orderPayment.updateMany({
+        where: { orderId: order.id, provider: 'STRIPE' },
+        data: {
+          status: 'CANCELLED',
+          failedAt: new Date(),
+          failureMessage: 'Cancelled by admin',
+        },
+      });
+
+      return tx.order.update({
+        where: { id: order.id },
+        data: {
+          status: 'CANCELLED',
+          paymentStatus: 'CANCELLED',
+          fulfillmentStatus: 'CANCELLED',
+          cancelledAt: new Date(),
+        },
+        include: orderInclude,
+      });
+    });
+
+    await writeAuditLog(req, {
+      action: 'admin.order.cancelled',
+      entityType: 'Order',
+      entityId: order.id,
+      metadata: {
+        orderNumber: order.orderNumber,
+        stripeCheckoutSessionId: order.stripeCheckoutSessionId,
+      },
+    });
+
+    sendSuccess(res, serializeOrder(cancelled));
+  })
+);
+
+adminRouter.post(
+  '/orders/:id/refund',
+  validateBody(orderRefundSchema),
+  asyncHandler(async (req, res) => {
+    const input = req.body as OrderRefundInput;
+    const prisma = getPrismaClient();
+    const order = await prisma.order.findUnique({
+      where: { id: req.params.id },
+      include: orderInclude,
+    });
+
+    if (!order) {
+      throw notFound('Order not found.', { id: req.params.id });
+    }
+
+    if (order.paymentStatus !== 'PAID' && order.paymentStatus !== 'PARTIALLY_REFUNDED') {
+      throw badRequest('Only paid orders can be refunded.', {
+        id: order.id,
+        paymentStatus: order.paymentStatus,
+      });
+    }
+
+    const paymentIntent = order.stripePaymentIntentId ?? order.payments[0]?.stripePaymentIntentId;
+    if (!paymentIntent) {
+      throw badRequest('Order does not have a Stripe payment intent to refund.', {
+        id: order.id,
+      });
+    }
+
+    const refundAmount = input.amountCents ?? order.totalCents;
+    if (refundAmount > order.totalCents) {
+      throw badRequest('Refund amount cannot exceed order total.', {
+        refundAmount,
+        totalCents: order.totalCents,
+      });
+    }
+
+    const refund = await getStripeClient().refunds.create({
+      payment_intent: paymentIntent,
+      amount: refundAmount,
+      reason: input.reason,
+      metadata: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        actorId: req.auth?.userId ?? '',
+      },
+    });
+
+    const updated = await prisma.$transaction(async (tx) => {
+      await tx.orderPayment.updateMany({
+        where: { orderId: order.id, provider: 'STRIPE' },
+        data: {
+          status: 'REFUND_PENDING',
+          stripeRefundId: refund.id,
+        },
+      });
+
+      return tx.order.update({
+        where: { id: order.id },
+        data: {
+          paymentStatus: 'REFUND_PENDING',
+          refundStatus: 'REQUESTED',
+        },
+        include: orderInclude,
+      });
+    });
+
+    paymentLogger.info(
+      {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        refundId: refund.id,
+        refundAmount,
+      },
+      'stripe refund requested by admin'
+    );
+
+    await writeAuditLog(req, {
+      action: 'admin.order.refund_requested',
+      entityType: 'Order',
+      entityId: order.id,
+      metadata: {
+        orderNumber: order.orderNumber,
+        refundId: refund.id,
+        refundAmount,
+        reason: input.reason,
+      },
+    });
+
+    sendSuccess(res, {
+      order: serializeOrder(updated),
+      refund: {
+        id: refund.id,
+        status: refund.status,
+        amount: refund.amount,
+      },
+    });
   })
 );
 

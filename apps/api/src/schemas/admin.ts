@@ -27,6 +27,32 @@ const inventoryStatus = z.enum(['IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK', 'DISCON
 const articleStatus = z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']);
 const intakeStatus = z.enum(['NEW', 'IN_REVIEW', 'RESPONDED', 'CLOSED', 'SPAM']);
 const binUploadStatus = z.enum(['RECEIVED', 'VALIDATED', 'REJECTED', 'STORED']);
+const orderStatus = z.enum([
+  'PENDING_PAYMENT',
+  'PAID',
+  'FULFILLING',
+  'FULFILLED',
+  'CANCELLED',
+  'PARTIALLY_REFUNDED',
+  'REFUNDED',
+]);
+const paymentStatus = z.enum([
+  'PENDING',
+  'PAID',
+  'FAILED',
+  'CANCELLED',
+  'REFUND_PENDING',
+  'PARTIALLY_REFUNDED',
+  'REFUNDED',
+]);
+const fulfillmentStatus = z.enum([
+  'UNFULFILLED',
+  'PROCESSING',
+  'SHIPPED',
+  'DELIVERED',
+  'CANCELLED',
+]);
+const refundStatus = z.enum(['NONE', 'REQUESTED', 'PARTIALLY_REFUNDED', 'REFUNDED', 'FAILED']);
 
 const imageInputSchema = z.object({
   id: z.string().trim().min(1).max(120).optional(),
@@ -51,6 +77,9 @@ const inventoryInputSchema = z.object({
 export const adminListQuerySchema = z.object({
   q: queryText(200),
   status: queryText(80),
+  paymentStatus: queryText(80),
+  fulfillmentStatus: queryText(80),
+  refundStatus: queryText(80),
   cursor: queryText(120),
   limit: queryLimit,
 });
@@ -147,6 +176,21 @@ export const inventoryUpdateSchema = z.object({
 
 export const inventoryUpsertSchema = inventoryInputSchema;
 
+export const orderUpdateSchema = z.object({
+  status: orderStatus.optional(),
+  paymentStatus: paymentStatus.optional(),
+  fulfillmentStatus: fulfillmentStatus.optional(),
+  refundStatus: refundStatus.optional(),
+  shippingTracking: optionalText(240),
+  adminNotes: optionalText(2000),
+  metadata: jsonRecord.optional(),
+});
+
+export const orderRefundSchema = z.object({
+  amountCents: z.coerce.number().int().positive().max(100000000).optional(),
+  reason: z.enum(['duplicate', 'fraudulent', 'requested_by_customer']).default('requested_by_customer'),
+});
+
 export const binAnalysisEnqueueSchema = z
   .object({
     priority: z.coerce.number().int().min(0).max(100).optional(),
@@ -166,4 +210,6 @@ export type UploadUpdateInput = z.infer<typeof uploadUpdateSchema>;
 export type InquiryUpdateInput = z.infer<typeof inquiryUpdateSchema>;
 export type InventoryUpdateInput = z.infer<typeof inventoryUpdateSchema>;
 export type InventoryUpsertInput = z.infer<typeof inventoryUpsertSchema>;
+export type OrderUpdateInput = z.infer<typeof orderUpdateSchema>;
+export type OrderRefundInput = z.infer<typeof orderRefundSchema>;
 export type BinAnalysisEnqueueInput = z.infer<typeof binAnalysisEnqueueSchema>;
