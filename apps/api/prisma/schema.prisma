@@ -16,6 +16,7 @@ model User {
   isActive      Boolean        @default(true)
   lastLoginAt   DateTime?
   carts         Cart[]
+  orders        Order[]
   articles      Article[]      @relation("ArticleAuthor")
   refreshTokens RefreshToken[]
   createdAt     DateTime       @default(now())
@@ -100,6 +101,47 @@ enum CartStatus {
   ABANDONED
   CHECKED_OUT
   EXPIRED
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  FULFILLING
+  FULFILLED
+  CANCELLED
+  PARTIALLY_REFUNDED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  STRIPE
+  MANUAL
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUND_PENDING
+  PARTIALLY_REFUNDED
+  REFUNDED
+}
+
+enum FulfillmentStatus {
+  UNFULFILLED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum RefundStatus {
+  NONE
+  REQUESTED
+  PARTIALLY_REFUNDED
+  REFUNDED
+  FAILED
 }
 
 enum ArticleStatus {
@@ -214,6 +256,7 @@ model Product {
   images           ProductImage[]
   inventoryItems   InventoryItem[]
   cartItems        CartItem[]
+  orderItems       OrderItem[]
   inquiries        ProductInquiry[]
   isFeatured       Boolean          @default(false)
   isB2BEligible    Boolean          @default(false)
@@ -305,6 +348,124 @@ model CartItem {
 
   @@unique([cartId, productId])
   @@index([productId])
+  @@index([createdAt])
+}
+
+model Order {
+  id                      String            @id @default(cuid())
+  orderNumber             String            @unique
+  userId                  String?
+  user                    User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerEmail           String?
+  customerName            String?
+  customerPhone           String?
+  currency                String            @default("AED")
+  subtotalCents           Int
+  shippingCents           Int               @default(0)
+  taxCents                Int               @default(0)
+  discountCents           Int               @default(0)
+  totalCents              Int
+  status                  OrderStatus       @default(PENDING_PAYMENT)
+  paymentStatus           PaymentStatus     @default(PENDING)
+  fulfillmentStatus       FulfillmentStatus @default(UNFULFILLED)
+  refundStatus            RefundStatus      @default(NONE)
+  reservationsReleased    Boolean           @default(false)
+  stripeCheckoutSessionId String?           @unique
+  stripePaymentIntentId   String?           @unique
+  stripeCustomerId        String?
+  stripePaymentStatus     String?
+  checkoutExpiresAt       DateTime?
+  paidAt                  DateTime?
+  cancelledAt             DateTime?
+  refundedAt              DateTime?
+  shippingTracking        String?
+  adminNotes              String?
+  metadata                Json?
+  items                   OrderItem[]
+  payments                OrderPayment[]
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([customerEmail])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([fulfillmentStatus])
+  @@index([refundStatus])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id                      String   @id @default(cuid())
+  orderId                 String
+  order                   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId               String?
+  product                 Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  sku                     String?
+  slug                    String?
+  name                    String
+  quantity                Int
+  unitPriceCents          Int
+  lineTotalCents          Int
+  currency                String   @default("AED")
+  reservedInventoryItemId String?
+  reservedQuantity        Int      @default(0)
+  metadata                Json?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([sku])
+  @@index([createdAt])
+}
+
+model OrderPayment {
+  id                      String          @id @default(cuid())
+  orderId                 String
+  order                   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider                PaymentProvider @default(STRIPE)
+  status                  PaymentStatus   @default(PENDING)
+  amountCents             Int
+  refundedCents           Int             @default(0)
+  currency                String          @default("AED")
+  stripeCheckoutSessionId String?         @unique
+  stripePaymentIntentId   String?
+  stripeChargeId          String?
+  stripeRefundId          String?
+  failureCode             String?
+  failureMessage          String?
+  metadata                Json?
+  paidAt                  DateTime?
+  failedAt                DateTime?
+  refundedAt              DateTime?
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  @@index([orderId])
+  @@index([provider])
+  @@index([status])
+  @@index([stripePaymentIntentId])
+  @@index([createdAt])
+}
+
+model PaymentWebhookEvent {
+  id              String          @id @default(cuid())
+  provider        PaymentProvider @default(STRIPE)
+  providerEventId String          @unique
+  type            String
+  objectId        String?
+  livemode        Boolean         @default(false)
+  payload         Json?
+  processedAt     DateTime?
+  processingError String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([provider])
+  @@index([type])
+  @@index([objectId])
+  @@index([processedAt])
   @@index([createdAt])
 }
 

@@ -13,7 +13,7 @@ import { adminRouter } from './routes/admin.js';
 import { authRouter } from './routes/auth.js';
 import { binUploadsRouter } from './routes/bin-uploads.js';
 import { categoriesRouter } from './routes/categories.js';
-import { checkoutRouter } from './routes/checkout.js';
+import { checkoutRouter, checkoutWebhookRouter } from './routes/checkout.js';
 import { healthRouter } from './routes/health.js';
 import { productInquiriesRouter } from './routes/product-inquiries.js';
 import { productsRouter } from './routes/products.js';
@@ -36,6 +36,7 @@ export function createApp(): express.Express {
   app.use(requestContext);
   app.use(httpLogger);
   app.use(metricsMiddleware);
+  app.use('/api/checkout/webhook', express.raw({ type: 'application/json' }), checkoutWebhookRouter);
   app.use(express.json({ limit: '1mb' }));
 
   app.get('/', (_req, res) => {
