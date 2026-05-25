@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 /**
  * MobileCTABar
  * Fixed bottom bar visible only on mobile/tablet (hidden md:hidden).
@@ -29,14 +31,14 @@ export function MobileCTABar() {
       <div className="w-px bg-white/10" />
 
       {/* Shop */}
-      <a
+      <Link
         href="/shop"
         className="flex flex-1 flex-col items-center justify-center gap-1 py-3 text-brand-muted active:bg-white/5 active:text-brand-text"
         aria-label="Browse Shop"
       >
         <ShopIcon />
         <span className="text-[10px] font-semibold leading-none">Shop</span>
-      </a>
+      </Link>
 
       {/* Divider */}
       <div className="w-px bg-white/10" />
