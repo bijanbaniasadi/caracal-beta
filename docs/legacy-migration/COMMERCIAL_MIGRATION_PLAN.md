@@ -36,7 +36,7 @@ Reusable from the legacy site:
 - Footer policy routes returned 404 for `/privacy`, `/terms`, `/shipping`, and `/refund`.
 - No Next.js `robots.ts` or `sitemap.ts`.
 - No runtime redirects for legacy PHP routes.
-- Catalog seed only had 6 products and pointed several product images at missing `/catalog/*.jpg` paths.
+- Catalog seed only had 6 products and pointed several product images at missing legacy product placeholders.
 - Legacy shop inventory was not represented in the current Prisma seed.
 - Shop page did not explain payment, fulfilment, or compatibility-support expectations.
 

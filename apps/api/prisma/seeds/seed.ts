@@ -25,6 +25,22 @@ interface SeedProduct {
   attributes: Record<string, unknown>;
 }
 
+const productImageUrls = {
+  kess3: '/images/products/legacy-commercial/alientech-kess3.png',
+  autotuner: '/images/products/legacy-commercial/autotuner-tool.webp',
+  bflash: '/images/products/legacy-commercial/bflash-master-tool.png',
+  winols: '/images/products/legacy-commercial/winols-calibration-software.png',
+  benchPowerSupply: '/images/products/legacy-commercial/ecu-bench-power-supply.png',
+  benchAdapterKit: '/images/products/legacy-commercial/ecu-bench-adapter-kit.png',
+  ecuProgrammerTools: '/images/products/legacy-commercial/ecu-programmer-tools.png',
+  chipTuningTool: '/images/products/legacy-commercial/chip-tuning-tool.png',
+  keyProgrammingTool: '/images/products/legacy-commercial/key-programming-tool.png',
+  diagnosticInterface: '/images/products/legacy-commercial/automotive-diagnostic-interface.png',
+  diagnosticScanner: '/images/products/legacy-commercial/automotive-diagnostic-scanner.png',
+  softwareDongle: '/images/products/legacy-commercial/diagnostic-software-dongle.png',
+  workshopEquipment: '/images/products/legacy-commercial/workshop-equipment.png',
+} as const;
+
 const categories = [
   {
     name: 'ECU and TCU Tuning Tools',
@@ -130,7 +146,7 @@ const products: SeedProduct[] = [
     quantityOnHand: 4,
     reorderPoint: 1,
     inventoryStatus: 'IN_STOCK',
-    imageUrl: '/images/devices/kess3.png',
+    imageUrl: productImageUrls.kess3,
     attributes: {
       brand: 'Alientech',
       channels: ['OBD', 'Bench', 'Boot'],
@@ -153,7 +169,7 @@ const products: SeedProduct[] = [
     quantityOnHand: 3,
     reorderPoint: 1,
     inventoryStatus: 'IN_STOCK',
-    imageUrl: '/images/devices/autotuner.png',
+    imageUrl: productImageUrls.autotuner,
     attributes: {
       brand: 'AutoTuner',
       channels: ['OBD', 'Bench'],
@@ -176,7 +192,7 @@ const products: SeedProduct[] = [
     quantityOnHand: 2,
     reorderPoint: 1,
     inventoryStatus: 'LOW_STOCK',
-    imageUrl: '/images/devices/bflash.png',
+    imageUrl: productImageUrls.bflash,
     attributes: {
       brand: 'BFlash',
       channels: ['OBD', 'Bench', 'Boot'],
@@ -200,7 +216,7 @@ const products: SeedProduct[] = [
     quantityOnHand: 12,
     reorderPoint: 2,
     inventoryStatus: 'IN_STOCK',
-    imageUrl: '/images/diagnostic-bench.png',
+    imageUrl: productImageUrls.winols,
     attributes: {
       brand: 'EVC',
       delivery: 'License',
@@ -222,7 +238,7 @@ const products: SeedProduct[] = [
     quantityOnHand: 6,
     reorderPoint: 2,
     inventoryStatus: 'IN_STOCK',
-    imageUrl: '/images/diagnostic-bench.png',
+    imageUrl: productImageUrls.benchPowerSupply,
     attributes: {
       outputCurrentAmps: 120,
       useCases: ['Bench flashing', 'Diagnostics', 'Module programming'],
@@ -244,7 +260,7 @@ const products: SeedProduct[] = [
     quantityOnHand: 9,
     reorderPoint: 3,
     inventoryStatus: 'IN_STOCK',
-    imageUrl: '/images/diagnostic-bench.png',
+    imageUrl: productImageUrls.benchAdapterKit,
     attributes: {
       adapterTypes: ['Bench harness', 'Boot probes', 'Power leads'],
       inquiryReady: true,
@@ -272,6 +288,38 @@ interface LegacyProductInput {
   attributes?: Record<string, unknown>;
 }
 
+const legacyProductImageBySku: Record<string, string> = {
+  MK18000: productImageUrls.kess3,
+  MKON482: productImageUrls.kess3,
+  MKON481: productImageUrls.kess3,
+  MKON332: productImageUrls.autotuner,
+  MKON331: productImageUrls.autotuner,
+  MKON525: productImageUrls.autotuner,
+  MK22621: productImageUrls.ecuProgrammerTools,
+  MK17318: productImageUrls.ecuProgrammerTools,
+  MK22671: productImageUrls.chipTuningTool,
+  MK26269: productImageUrls.benchPowerSupply,
+  MKON553: productImageUrls.keyProgrammingTool,
+  MK26449: productImageUrls.keyProgrammingTool,
+  MKON184: productImageUrls.diagnosticInterface,
+  MK17353: productImageUrls.diagnosticScanner,
+  MKON501: productImageUrls.diagnosticInterface,
+  MK25248: productImageUrls.diagnosticScanner,
+  MK25353: productImageUrls.diagnosticInterface,
+  MKON289: productImageUrls.benchAdapterKit,
+  MK25522: productImageUrls.softwareDongle,
+  MK24017: productImageUrls.diagnosticInterface,
+  MK19872: productImageUrls.ecuProgrammerTools,
+  MK26801: productImageUrls.softwareDongle,
+  MK24914: productImageUrls.softwareDongle,
+  MK12384: productImageUrls.workshopEquipment,
+  MKON533: productImageUrls.benchAdapterKit,
+  MK20125: productImageUrls.keyProgrammingTool,
+  MK20064: productImageUrls.keyProgrammingTool,
+  MK20056: productImageUrls.keyProgrammingTool,
+  MK15798: productImageUrls.keyProgrammingTool,
+};
+
 function legacyProduct(input: LegacyProductInput): SeedProduct {
   return {
     sku: input.sku,
@@ -287,7 +335,8 @@ function legacyProduct(input: LegacyProductInput): SeedProduct {
     quantityOnHand: input.quantityOnHand,
     reorderPoint: input.reorderPoint,
     inventoryStatus: input.inventoryStatus ?? 'IN_STOCK',
-    imageUrl: input.imageUrl ?? '/images/diagnostic-bench.png',
+    imageUrl:
+      input.imageUrl ?? legacyProductImageBySku[input.sku] ?? productImageUrls.ecuProgrammerTools,
     attributes: {
       brand: input.brand,
       legacyId: input.legacyId,
@@ -314,7 +363,7 @@ products.push(
     legacyId: 'CT-0001',
     quantityOnHand: 8,
     reorderPoint: 2,
-    imageUrl: '/images/devices/kess3.png',
+    imageUrl: productImageUrls.kess3,
     attributes: {
       channels: ['OBD', 'Bench', 'Boot'],
       vehicleTypes: ['Cars', 'Trucks', 'Agriculture', 'Motorcycles', 'Marine'],
@@ -336,7 +385,7 @@ products.push(
     quantityOnHand: 4,
     reorderPoint: 1,
     isFeatured: true,
-    imageUrl: '/images/devices/kess3.png',
+    imageUrl: productImageUrls.kess3,
     attributes: {
       channels: ['OBD', 'Bench', 'Boot'],
       vehicleTypes: ['Cars', 'Agriculture', 'Trucks', 'Bikes', 'Marine'],
@@ -358,7 +407,7 @@ products.push(
     quantityOnHand: 3,
     reorderPoint: 1,
     isFeatured: true,
-    imageUrl: '/images/devices/kess3.png',
+    imageUrl: productImageUrls.kess3,
     attributes: {
       channels: ['OBD', 'Bench', 'Boot'],
       vehicleTypes: ['Cars', 'Agriculture', 'Trucks', 'Bikes', 'Marine'],
@@ -380,7 +429,7 @@ products.push(
     quantityOnHand: 3,
     reorderPoint: 1,
     isFeatured: true,
-    imageUrl: '/images/devices/autotuner.png',
+    imageUrl: productImageUrls.autotuner,
     attributes: {
       channels: ['OBD', 'Bench', 'Boot'],
     },
@@ -400,7 +449,7 @@ products.push(
     legacyId: 'CT-0005',
     quantityOnHand: 4,
     reorderPoint: 1,
-    imageUrl: '/images/devices/autotuner.png',
+    imageUrl: productImageUrls.autotuner,
     attributes: {
       channels: ['OBD', 'Bench', 'Boot'],
     },
@@ -420,7 +469,7 @@ products.push(
     legacyId: 'CT-0006',
     quantityOnHand: 10,
     reorderPoint: 2,
-    imageUrl: '/images/devices/autotuner.png',
+    imageUrl: productImageUrls.autotuner,
     attributes: {
       channels: ['OBD'],
     },

@@ -10,24 +10,24 @@ Preserve `/knowledge/{slug}` exactly. The legacy `.htaccess` rewrote that path t
 
 Critical 301 redirects:
 
-- `/academy.php` -> `/academy`
+- `/academy.php` -> `/knowledge`
 - `/articles.php` -> `/knowledge`
-- `/ecu-tuning.php` -> `/services/ecu-tuning`
-- `/ecu-remapping-dubai.php` -> `/services/ecu-remapping-dubai`
-- `/ecu-tuning-tools.php` -> `/catalog/ecu-tcu-tuning-tools`
-- `/ecu-tuning-software.php` -> `/catalog/calibration-software`
-- `/immo-dpf-adblue-services.php` -> `/services/immo-dpf-adblue`
-- `/ecu-tuning-dealers.php` -> `/dealers`
-- `/product.php?slug=:slug` -> `/products/:slug`
-- `/course.php?slug=:slug` -> `/academy/:slug`
+- `/ecu-tuning.php` -> `/ecu-tuning`
+- `/ecu-remapping-dubai.php` -> `/ecu-remapping-dubai`
+- `/ecu-tuning-tools.php` -> `/shop?category=ecu-tcu-tuning-tools`
+- `/ecu-tuning-software.php` -> `/shop?category=calibration-software`
+- `/immo-dpf-adblue-services.php` -> `/immo-dpf-adblue-services`
+- `/ecu-tuning-dealers.php` -> `/contact`
+- `/product.php?slug=:slug` -> `/shop/:slug`
+- `/course.php?slug=:slug` -> `/knowledge/:slug`
 - `/knowledge-article.php?slug=:slug` -> `/knowledge/:slug`
 
 Tool redirects:
 
-- `/ecu-lookup.php` -> `/tools/ecu-lookup`
-- `/ecu-calculator.php` -> `/tools/ecu-calculator`
-- `/ecu-patcher.php` -> `/tools/ecu-patcher`
-- `/immo-data.php` -> `/tools/immo-data`
+- `/ecu-lookup.php` -> `/ecu-tools`
+- `/ecu-calculator.php` -> `/ecu-tools`
+- `/ecu-patcher.php` -> `/ecu-tools`
+- `/immo-data.php` -> `/contact`
 
 Checkout/payment routes need careful handling. Public success/cancel/return pages can redirect, but API/webhook endpoints should be recreated securely and old endpoints should return 410 or be blocked once the new gateway is live.
 

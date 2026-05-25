@@ -11,7 +11,7 @@
     },
     {
       "oldPath": "/academy.php",
-      "newPath": "/academy",
+      "newPath": "/knowledge",
       "statusCode": 301,
       "priority": "critical",
       "reason": "Normalize legacy PHP route into modern route shape."
@@ -25,70 +25,70 @@
     },
     {
       "oldPath": "/ecu-tuning.php",
-      "newPath": "/services/ecu-tuning",
+      "newPath": "/ecu-tuning",
       "statusCode": 301,
       "priority": "critical",
       "reason": "Normalize legacy PHP route into modern route shape."
     },
     {
       "oldPath": "/ecu-remapping-dubai.php",
-      "newPath": "/services/ecu-remapping-dubai",
+      "newPath": "/ecu-remapping-dubai",
       "statusCode": 301,
       "priority": "critical",
       "reason": "Normalize legacy PHP route into modern route shape."
     },
     {
       "oldPath": "/ecu-tuning-tools.php",
-      "newPath": "/catalog/ecu-tcu-tuning-tools",
+      "newPath": "/shop?category=ecu-tcu-tuning-tools",
       "statusCode": 301,
       "priority": "critical",
       "reason": "Normalize legacy PHP route into modern route shape."
     },
     {
       "oldPath": "/ecu-tuning-software.php",
-      "newPath": "/catalog/calibration-software",
+      "newPath": "/shop?category=calibration-software",
       "statusCode": 301,
       "priority": "critical",
       "reason": "Normalize legacy PHP route into modern route shape."
     },
     {
       "oldPath": "/immo-dpf-adblue-services.php",
-      "newPath": "/services/immo-dpf-adblue",
+      "newPath": "/immo-dpf-adblue-services",
       "statusCode": 301,
       "priority": "critical",
       "reason": "Normalize legacy PHP route into modern route shape."
     },
     {
       "oldPath": "/ecu-tuning-dealers.php",
-      "newPath": "/dealers",
+      "newPath": "/contact",
       "statusCode": 301,
       "priority": "critical",
       "reason": "Normalize legacy PHP route into modern route shape."
     },
     {
       "oldPath": "/ecu-lookup.php",
-      "newPath": "/tools/ecu-lookup",
+      "newPath": "/ecu-tools",
       "statusCode": 301,
       "priority": "critical",
       "reason": "Normalize legacy PHP route into modern route shape."
     },
     {
       "oldPath": "/ecu-calculator.php",
-      "newPath": "/tools/ecu-calculator",
+      "newPath": "/ecu-tools",
       "statusCode": 301,
       "priority": "critical",
       "reason": "Normalize legacy PHP route into modern route shape."
     },
     {
       "oldPath": "/ecu-patcher.php",
-      "newPath": "/tools/ecu-patcher",
+      "newPath": "/ecu-tools",
       "statusCode": 301,
       "priority": "critical",
       "reason": "Normalize legacy PHP route into modern route shape."
     },
     {
       "oldPath": "/immo-data.php",
-      "newPath": "/tools/immo-data",
+      "newPath": "/contact",
       "statusCode": 301,
       "priority": "critical",
       "reason": "Normalize legacy PHP route into modern route shape."
