@@ -1,4 +1,5 @@
 import { getPrismaClient } from '@caracal/db';
+import { readBearerToken } from '@caracal/auth';
 import type { Prisma, ProductStatus } from '@prisma/client';
 import { Router, type Request, type Router as ExpressRouter } from 'express';
 import Stripe from 'stripe';
@@ -6,6 +7,7 @@ import Stripe from 'stripe';
 import { sendSuccess } from '../lib/api-response.js';
 import { asyncHandler } from '../lib/async-handler.js';
 import { writeAuditLog } from '../lib/audit.js';
+import { verifyAccessToken } from '../lib/auth.js';
 import { AppError, badRequest, notFound } from '../lib/errors.js';
 import {
   generateOrderNumber,
@@ -57,6 +59,31 @@ interface PendingOrderItem {
   product: CheckoutProduct;
   quantity: number;
   reservedInventoryItemId: string;
+}
+
+async function getCheckoutUser(req: Request) {
+  const token = readBearerToken(req.get('authorization'));
+
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const payload = verifyAccessToken(token);
+    const prisma = getPrismaClient();
+    return prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+        isActive: true,
+      },
+    });
+  } catch {
+    return null;
+  }
 }
 
 function getSiteUrl(): string {
@@ -149,7 +176,9 @@ function safeReturnUrl(inputUrl: string | undefined, fallbackUrl: string, siteUr
   return parsed.toString();
 }
 
-function stripeObjectId(value: string | Stripe.PaymentIntent | Stripe.Charge | null): string | undefined {
+function stripeObjectId(
+  value: string | Stripe.PaymentIntent | Stripe.Charge | null
+): string | undefined {
   if (!value) return undefined;
   return typeof value === 'string' ? value : value.id;
 }
@@ -163,35 +192,57 @@ function eventObjectId(event: Stripe.Event): string | undefined {
   return object.id;
 }
 
-function validateSessionAgainstOrder(session: Stripe.Checkout.Session, order: { id: string; totalCents: number; currency: string }) {
+function validateSessionAgainstOrder(
+  session: Stripe.Checkout.Session,
+  order: { id: string; totalCents: number; currency: string }
+) {
   const orderId = sessionOrderId(session);
   if (orderId && orderId !== order.id) {
-    throw new AppError('checkout_session_mismatch', 'Stripe session does not match this order.', 409, {
-      orderId: order.id,
-      sessionOrderId: orderId,
-    });
+    throw new AppError(
+      'checkout_session_mismatch',
+      'Stripe session does not match this order.',
+      409,
+      {
+        orderId: order.id,
+        sessionOrderId: orderId,
+      }
+    );
   }
 
   if (session.amount_total !== null && session.amount_total !== order.totalCents) {
-    throw new AppError('checkout_amount_mismatch', 'Stripe session amount does not match this order.', 409, {
-      orderTotalCents: order.totalCents,
-      sessionAmountTotal: session.amount_total,
-    });
+    throw new AppError(
+      'checkout_amount_mismatch',
+      'Stripe session amount does not match this order.',
+      409,
+      {
+        orderTotalCents: order.totalCents,
+        sessionAmountTotal: session.amount_total,
+      }
+    );
   }
 
   if (session.currency && session.currency.toUpperCase() !== order.currency.toUpperCase()) {
-    throw new AppError('checkout_currency_mismatch', 'Stripe session currency does not match this order.', 409, {
-      orderCurrency: order.currency,
-      sessionCurrency: session.currency,
-    });
+    throw new AppError(
+      'checkout_currency_mismatch',
+      'Stripe session currency does not match this order.',
+      409,
+      {
+        orderCurrency: order.currency,
+        sessionCurrency: session.currency,
+      }
+    );
   }
 }
 
 async function markOrderPaidFromSession(session: Stripe.Checkout.Session): Promise<void> {
   const prisma = getPrismaClient();
   const orderId = sessionOrderId(session);
-  const paymentIntentId = stripeObjectId(session.payment_intent as string | Stripe.PaymentIntent | null);
-  const customerId = stripeId(session.customer as string | Stripe.Customer | Stripe.DeletedCustomer | null);
+  const paymentIntentId = stripeObjectId(
+    session.payment_intent as string | Stripe.PaymentIntent | null
+  );
+  const customerId = stripeId(
+    session.customer as string | Stripe.Customer | Stripe.DeletedCustomer | null
+  );
 
   const order = orderId
     ? await prisma.order.findUnique({ where: { id: orderId } })
@@ -264,7 +315,9 @@ async function markOrderFailedOrCancelled(params: {
     : params.sessionId
       ? await prisma.order.findUnique({ where: { stripeCheckoutSessionId: params.sessionId } })
       : params.paymentIntentId
-        ? await prisma.order.findUnique({ where: { stripePaymentIntentId: params.paymentIntentId } })
+        ? await prisma.order.findUnique({
+            where: { stripePaymentIntentId: params.paymentIntentId },
+          })
         : null;
 
   if (!order || order.paymentStatus === 'PAID') return;
@@ -317,11 +370,7 @@ async function markOrderRefunded(params: {
 
   const totalCents = params.amountCents ?? payment.amountCents;
   const fullyRefunded = params.refundedCents >= totalCents;
-  const paymentStatus = params.failed
-    ? 'PAID'
-    : fullyRefunded
-      ? 'REFUNDED'
-      : 'PARTIALLY_REFUNDED';
+  const paymentStatus = params.failed ? 'PAID' : fullyRefunded ? 'REFUNDED' : 'PARTIALLY_REFUNDED';
   const refundStatus = params.failed ? 'FAILED' : fullyRefunded ? 'REFUNDED' : 'PARTIALLY_REFUNDED';
   const orderStatus = params.failed
     ? payment.order.status
@@ -360,6 +409,14 @@ checkoutRouter.post(
   asyncHandler(async (req, res) => {
     const input = createStripeCheckoutSessionSchema.parse(req.body);
     const prisma = getPrismaClient();
+    const checkoutUser = await getCheckoutUser(req);
+    const customerEmail =
+      input.customerEmail ?? (checkoutUser?.isActive ? checkoutUser.email : undefined);
+
+    if (!customerEmail) {
+      throw badRequest('Customer email is required for checkout.');
+    }
+
     const products = await prisma.product.findMany({
       where: buildProductWhere(input.items),
       include: productInclude,
@@ -446,7 +503,10 @@ checkoutRouter.post(
       const created = await tx.order.create({
         data: {
           orderNumber: generateOrderNumber(),
-          customerEmail: input.customerEmail,
+          userId: checkoutUser?.isActive ? checkoutUser.id : undefined,
+          customerEmail,
+          customerName: checkoutUser?.isActive ? checkoutUser.name : undefined,
+          customerPhone: checkoutUser?.isActive ? checkoutUser.phone : undefined,
           currency: checkoutCurrency,
           subtotalCents,
           shippingCents,
@@ -521,7 +581,7 @@ checkoutRouter.post(
       const session = await stripe.checkout.sessions.create({
         mode: 'payment',
         line_items: lineItems,
-        customer_email: input.customerEmail,
+        customer_email: customerEmail,
         success_url: safeReturnUrl(
           input.successUrl,
           `${siteUrl}/shop/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -555,7 +615,9 @@ checkoutRouter.post(
         throw new AppError('checkout_session_failed', 'Stripe did not return a checkout URL.', 502);
       }
 
-      const checkoutExpiresAt = session.expires_at ? new Date(session.expires_at * 1000) : undefined;
+      const checkoutExpiresAt = session.expires_at
+        ? new Date(session.expires_at * 1000)
+        : undefined;
       const updatedOrder = await prisma.$transaction(async (tx) => {
         await tx.orderPayment.updateMany({
           where: { orderId: order.id, provider: 'STRIPE' },
@@ -809,7 +871,9 @@ checkoutWebhookRouter.post(
         case 'charge.refunded': {
           const charge = event.data.object as Stripe.Charge;
           await markOrderRefunded({
-            paymentIntentId: stripeObjectId(charge.payment_intent as string | Stripe.PaymentIntent | null),
+            paymentIntentId: stripeObjectId(
+              charge.payment_intent as string | Stripe.PaymentIntent | null
+            ),
             chargeId: charge.id,
             refundedCents: charge.amount_refunded,
             amountCents: charge.amount,
@@ -822,7 +886,9 @@ checkoutWebhookRouter.post(
         case 'refund.failed': {
           const refund = event.data.object as Stripe.Refund;
           await markOrderRefunded({
-            paymentIntentId: stripeObjectId(refund.payment_intent as string | Stripe.PaymentIntent | null),
+            paymentIntentId: stripeObjectId(
+              refund.payment_intent as string | Stripe.PaymentIntent | null
+            ),
             chargeId: stripeObjectId(refund.charge as string | Stripe.Charge | null),
             refundId: refund.id,
             refundedCents: refund.amount,
@@ -832,7 +898,10 @@ checkoutWebhookRouter.post(
         }
 
         default:
-          paymentLogger.info({ eventId: event.id, eventType: event.type }, 'stripe webhook ignored');
+          paymentLogger.info(
+            { eventId: event.id, eventType: event.type },
+            'stripe webhook ignored'
+          );
       }
 
       await prisma.paymentWebhookEvent.update({

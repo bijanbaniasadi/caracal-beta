@@ -1,4 +1,5 @@
 import { CaracalApiError } from './client';
+import { getStoredCustomerSession } from './customer-client';
 
 export interface CheckoutLineItemInput {
   productId: string;
@@ -38,12 +39,20 @@ function getApiBase(): string {
 export async function createStripeCheckoutSession(
   input: StripeCheckoutSessionInput
 ): Promise<StripeCheckoutSessionResponse> {
+  const session = getStoredCustomerSession();
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  };
+
+  if (session) {
+    headers.Authorization = `Bearer ${session.accessToken}`;
+  }
+
   const response = await fetch(`${getApiBase()}/api/checkout/stripe-session`, {
     method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
+    headers,
+    credentials: 'include',
     body: JSON.stringify(input),
   });
 

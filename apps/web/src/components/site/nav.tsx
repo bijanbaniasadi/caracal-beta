@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useCart } from '@/hooks/use-cart';
+import { useCustomerAuth } from '@/contexts/customer-auth';
 
 const NAV_LINKS = [
   { href: '/shop', label: 'Shop' },
@@ -18,8 +19,16 @@ const PHONE_HREF = 'tel:+971585796760';
 
 export function SiteNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { count } = useCart();
+  const { session, isLoading, logout } = useCustomerAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    setMobileOpen(false);
+    router.push('/login');
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-brand-bg/90 backdrop-blur-md">
@@ -80,6 +89,34 @@ export function SiteNav() {
           >
             Cart{count > 0 ? ` (${count})` : ''}
           </Link>
+          {session ? (
+            <>
+              <Link
+                href="/account"
+                className="rounded-md border border-white/15 px-3 py-1.5 text-sm font-semibold text-brand-text transition-colors hover:bg-white/5"
+              >
+                Account
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleLogout();
+                }}
+                className="rounded-md px-2 py-1.5 text-sm font-medium text-brand-muted transition-colors hover:text-brand-text"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            !isLoading && (
+              <Link
+                href="/login"
+                className="rounded-md border border-white/15 px-3 py-1.5 text-sm font-semibold text-brand-text transition-colors hover:bg-white/5"
+              >
+                Login
+              </Link>
+            )
+          )}
           <a
             href="https://wa.me/971585796760?text=Hi%2C%20I%27d%20like%20a%20quote"
             target="_blank"
@@ -132,6 +169,36 @@ export function SiteNav() {
             >
               Cart{count > 0 ? ` (${count})` : ''}
             </Link>
+            {session ? (
+              <>
+                <Link
+                  href="/account"
+                  onClick={() => setMobileOpen(false)}
+                  className="rounded-md px-3 py-2.5 text-sm font-medium text-brand-muted transition-colors hover:bg-white/5 hover:text-brand-text"
+                >
+                  Account
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleLogout();
+                  }}
+                  className="rounded-md px-3 py-2.5 text-left text-sm font-medium text-brand-muted transition-colors hover:bg-white/5 hover:text-brand-text"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              !isLoading && (
+                <Link
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="rounded-md px-3 py-2.5 text-sm font-medium text-brand-muted transition-colors hover:bg-white/5 hover:text-brand-text"
+                >
+                  Login
+                </Link>
+              )
+            )}
             <a
               href="https://wa.me/971585796760?text=Hi%2C%20I%27d%20like%20a%20quote"
               target="_blank"

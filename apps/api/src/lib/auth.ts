@@ -32,6 +32,9 @@ export interface AuthenticatedUser {
   id: string;
   email: string;
   name: string | null;
+  phone?: string | null;
+  companyName?: string | null;
+  workshopName?: string | null;
   role: UserRole;
   isActive: boolean;
 }
@@ -75,6 +78,9 @@ export function serializeAuthUser(user: AuthenticatedUser) {
     id: user.id,
     email: user.email,
     name: user.name,
+    phone: user.phone ?? null,
+    companyName: user.companyName ?? null,
+    workshopName: user.workshopName ?? null,
     role: roleFromPrisma(user.role),
     isActive: user.isActive,
   };
@@ -184,12 +190,27 @@ export function createRefreshToken(): string {
   return randomBytes(48).toString('base64url');
 }
 
+export function createPasswordResetToken(): string {
+  return randomBytes(48).toString('base64url');
+}
+
 export function hashRefreshToken(token: string): string {
   return createHmac('sha256', getSecret('REFRESH_TOKEN_SECRET')).update(token).digest('hex');
 }
 
+export function hashPasswordResetToken(token: string): string {
+  return createHmac('sha256', getSecret('REFRESH_TOKEN_SECRET'))
+    .update(`password-reset:${token}`)
+    .digest('hex');
+}
+
 export function getRefreshTokenExpiresAt(): Date {
   return new Date(Date.now() + getRefreshTokenTtlSeconds() * 1000);
+}
+
+export function getPasswordResetTokenExpiresAt(): Date {
+  const ttlSeconds = Number.parseInt(process.env.PASSWORD_RESET_TTL_SECONDS ?? '3600', 10);
+  return new Date(Date.now() + ttlSeconds * 1000);
 }
 
 function getRefreshCookieOptions(maxAgeSeconds = getRefreshTokenTtlSeconds()): CookieOptions {

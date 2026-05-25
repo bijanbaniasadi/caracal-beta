@@ -1,17 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import { createStripeCheckoutSession } from '@/lib/api/checkout-client';
 import { formatAedFromCents } from '@/lib/cart';
 import { useCart } from '@/hooks/use-cart';
+import { useCustomerAuth } from '@/contexts/customer-auth';
 
 export function CheckoutPageContent() {
   const { items, subtotalCents } = useCart();
+  const { session } = useCustomerAuth();
   const [customerEmail, setCustomerEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!customerEmail && session?.user.email) {
+      setCustomerEmail(session.user.email);
+    }
+  }, [customerEmail, session?.user.email]);
 
   async function submitCheckout() {
     setError(null);

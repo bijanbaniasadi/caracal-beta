@@ -9,6 +9,7 @@ import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { metricsMiddleware } from './middleware/metrics.js';
 import { apiLimiter } from './middleware/rate-limit.js';
 import { requestContext } from './middleware/request-context.js';
+import { accountRouter } from './routes/account.js';
 import { adminRouter } from './routes/admin.js';
 import { authRouter } from './routes/auth.js';
 import { binUploadsRouter } from './routes/bin-uploads.js';
@@ -36,7 +37,11 @@ export function createApp(): express.Express {
   app.use(requestContext);
   app.use(httpLogger);
   app.use(metricsMiddleware);
-  app.use('/api/checkout/webhook', express.raw({ type: 'application/json' }), checkoutWebhookRouter);
+  app.use(
+    '/api/checkout/webhook',
+    express.raw({ type: 'application/json' }),
+    checkoutWebhookRouter
+  );
   app.use(express.json({ limit: '1mb' }));
 
   app.get('/', (_req, res) => {
@@ -53,6 +58,7 @@ export function createApp(): express.Express {
 
   app.use('/health', healthRouter);
   app.use('/api', apiLimiter);
+  app.use('/api/account', accountRouter);
   app.use('/api/auth', authRouter);
   app.use('/api/admin', adminRouter);
   app.use('/api/bin-uploads', binUploadsRouter);
