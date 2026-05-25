@@ -1,0 +1,107 @@
+import { NextResponse, type NextRequest } from 'next/server';
+
+const legacyPhpRedirects: Record<string, string> = {
+  '/academy.php': '/knowledge',
+  '/admin.php': '/admin',
+  '/admin_panel.php': '/admin',
+  '/admin_shop.php': '/admin',
+  '/articles.php': '/knowledge',
+  '/cancel.php': '/shop/cancel',
+  '/cart.php': '/shop/cart',
+  '/chat-api.php': '/contact',
+  '/checkout.php': '/shop/checkout',
+  '/client_panel.php': '/contact',
+  '/completed-jobs.php': '/contact',
+  '/create-payment.php': '/shop/checkout',
+  '/db_config.local.php': '/',
+  '/db_config.php': '/',
+  '/db_config.sample.php': '/',
+  '/device-image.php': '/shop',
+  '/ecu-calculator.php': '/ecu-tools',
+  '/ecu-lookup.php': '/ecu-tools',
+  '/ecu-patcher.php': '/ecu-tools',
+  '/ecu-remapping-dubai.php': '/ecu-remapping-dubai',
+  '/ecu-tuning-dealers.php': '/contact',
+  '/ecu-tuning-software.php': '/shop?category=calibration-software',
+  '/ecu-tuning-tools.php': '/shop?category=ecu-tcu-tuning-tools',
+  '/ecu-tuning.php': '/ecu-tuning',
+  '/hosting-check.php': '/',
+  '/immo-data.php': '/contact',
+  '/immo-dpf-adblue-services.php': '/immo-dpf-adblue-services',
+  '/includes/article-library.php': '/knowledge',
+  '/includes/article-overrides.php': '/knowledge',
+  '/includes/auth-security.php': '/',
+  '/includes/google-reviews.php': '/contact',
+  '/includes/growth.php': '/',
+  '/includes/runtime-config.php': '/',
+  '/includes/seo-topics.php': '/knowledge',
+  '/includes/shop-gateways.php': '/shop/checkout',
+  '/includes/shop.php': '/shop',
+  '/includes/site-content.php': '/',
+  '/includes/site-shell.php': '/',
+  '/includes/training-library.php': '/knowledge',
+  '/includes/translations.php': '/',
+  '/index.php': '/',
+  '/invoice-payment.php': '/shop/checkout',
+  '/login.php': '/contact',
+  '/logout.php': '/contact',
+  '/lookup-api.php': '/ecu-tools',
+  '/lookup-data.php': '/ecu-tools',
+  '/lookup-options.php': '/ecu-tools',
+  '/paypal-config.sample.php': '/',
+  '/privacy.php': '/privacy',
+  '/product.php': '/shop',
+  '/projects.php': '/knowledge',
+  '/refund.php': '/refund',
+  '/register.php': '/contact',
+  '/setup-auth.php': '/',
+  '/shipping.php': '/shipping',
+  '/shop-return.php': '/shop/success',
+  '/shop-webhook-stripe.php': '/shop/cancel',
+  '/shop.php': '/shop',
+  '/stripe-config.php': '/',
+  '/success.php': '/shop/success',
+  '/telr-config.sample.php': '/',
+  '/terms.php': '/terms',
+  '/tmp_diag/seogen.php': '/',
+  '/tmp_diag/upd1.php': '/',
+};
+
+function redirectTarget(request: NextRequest): string | null {
+  const { pathname, searchParams } = request.nextUrl;
+
+  if (pathname === '/knowledge-article.php') {
+    const slug = searchParams.get('slug');
+    return slug ? `/knowledge/${slug}` : '/knowledge';
+  }
+
+  if (pathname === '/course.php') {
+    const slug = searchParams.get('slug');
+    return slug ? `/knowledge/${slug}` : '/knowledge';
+  }
+
+  if (pathname === '/product.php') {
+    const slug = searchParams.get('slug');
+    return slug ? `/shop/${slug}` : '/shop';
+  }
+
+  if (pathname.startsWith('/courses/')) {
+    return pathname.replace(/^\/courses/, '/knowledge');
+  }
+
+  return legacyPhpRedirects[pathname] ?? null;
+}
+
+export function middleware(request: NextRequest) {
+  const target = redirectTarget(request);
+
+  if (!target) {
+    return NextResponse.next();
+  }
+
+  return NextResponse.redirect(new URL(target, request.url), 301);
+}
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+};
