@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { getLegacyArticles } from '@/lib/content/legacy-articles';
 
 const baseUrl = 'https://caracaltechmotors.com';
 const lastModified = new Date('2026-05-24');
@@ -6,7 +7,15 @@ const lastModified = new Date('2026-05-24');
 const coreRoutes = [
   '/',
   '/shop',
+  '/shop/cart',
+  '/shop/checkout',
+  '/shop/success',
+  '/shop/cancel',
+  '/knowledge',
   '/articles',
+  '/ecu-remapping-dubai',
+  '/ecu-tuning',
+  '/immo-dpf-adblue-services',
   '/ecu-tools',
   '/contact',
   '/privacy',
@@ -54,5 +63,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
-  return [...staticPages, ...products];
+  const articles = getLegacyArticles().map((article) => ({
+    url: `${baseUrl}/knowledge/${article.slug}`,
+    lastModified: new Date(article.updatedAt),
+    changeFrequency: 'monthly' as const,
+    priority: article.featured || article.landing ? 0.7 : 0.55,
+  }));
+
+  return [...staticPages, ...products, ...articles];
 }
