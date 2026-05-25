@@ -1,0 +1,97 @@
+﻿[
+  {
+    "name": "shop desktop",
+    "url": "http://localhost:3000/shop",
+    "viewport": {
+      "width": 1440,
+      "height": 1100
+    },
+    "status": 200,
+    "productLinks": 25,
+    "categoryButtons": 19,
+    "imageCount": 26,
+    "brokenImageCount": 0,
+    "brokenImages": [],
+    "consoleErrorCount": 0,
+    "consoleErrors": [],
+    "hasLoadMore": true,
+    "hasCategoriesLabel": false,
+    "bodySample": "Caracal Tech\nShop\nServices\nKnowledge\nContact\n058 579 6760\nCart\nLogin\nWhatsApp\n\nCATALOG\n\nShop\n\nProfessional ECU tuning tools and diagnostic solutions\n\nUAE stock and sourcing\n\nDubai-based fulfilment for in-stock tools and verified supplier orders.\n\nSecure payment options\n\nCard, invoice, and bank-trans"
+  },
+  {
+    "name": "shop mobile",
+    "url": "http://localhost:3000/shop",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "status": 200,
+    "productLinks": 25,
+    "categoryButtons": 19,
+    "imageCount": 26,
+    "brokenImageCount": 0,
+    "brokenImages": [],
+    "consoleErrorCount": 0,
+    "consoleErrors": [],
+    "hasLoadMore": true,
+    "hasCategoriesLabel": false,
+    "bodySample": "CATALOG\n\nShop\n\nProfessional ECU tuning tools and diagnostic solutions\n\nUAE stock and sourcing\n\nDubai-based fulfilment for in-stock tools and verified supplier orders.\n\nSecure payment options\n\nCard, invoice, and bank-transfer workflows are confirmed during checkout or quote.\n\nWorkshop compatibility h"
+  },
+  {
+    "name": "search abrites",
+    "url": "http://localhost:3000/shop?q=abrites",
+    "viewport": {
+      "width": 1440,
+      "height": 1100
+    },
+    "status": 200,
+    "productLinks": 25,
+    "categoryButtons": 19,
+    "imageCount": 26,
+    "brokenImageCount": 0,
+    "brokenImages": [],
+    "consoleErrorCount": 0,
+    "consoleErrors": [],
+    "hasLoadMore": true,
+    "hasCategoriesLabel": false,
+    "bodySample": "Caracal Tech\nShop\nServices\nKnowledge\nContact\n058 579 6760\nCart\nLogin\nWhatsApp\n\nCATALOG\n\nShop\n\nProfessional ECU tuning tools and diagnostic solutions\n\nUAE stock and sourcing\n\nDubai-based fulfilment for in-stock tools and verified supplier orders.\n\nSecure payment options\n\nCard, invoice, and bank-trans"
+  },
+  {
+    "name": "category key programming",
+    "url": "http://localhost:3000/shop?category=key-programming",
+    "viewport": {
+      "width": 1440,
+      "height": 1100
+    },
+    "status": 200,
+    "productLinks": 25,
+    "categoryButtons": 19,
+    "imageCount": 26,
+    "brokenImageCount": 0,
+    "brokenImages": [],
+    "consoleErrorCount": 0,
+    "consoleErrors": [],
+    "hasLoadMore": true,
+    "hasCategoriesLabel": false,
+    "bodySample": "Caracal Tech\nShop\nServices\nKnowledge\nContact\n058 579 6760\nCart\nLogin\nWhatsApp\n\nCATALOG\n\nShop\n\nProfessional ECU tuning tools and diagnostic solutions\n\nUAE stock and sourcing\n\nDubai-based fulfilment for in-stock tools and verified supplier orders.\n\nSecure payment options\n\nCard, invoice, and bank-trans"
+  },
+  {
+    "name": "product detail",
+    "url": "http://localhost:3000/shop/1-year-update-service-subscription-for-bosscomm-kmax-850",
+    "viewport": {
+      "width": 1440,
+      "height": 1100
+    },
+    "status": 200,
+    "productLinks": 6,
+    "categoryButtons": 0,
+    "imageCount": 7,
+    "brokenImageCount": 0,
+    "brokenImages": [],
+    "consoleErrorCount": 0,
+    "consoleErrors": [],
+    "hasLoadMore": false,
+    "hasCategoriesLabel": false,
+    "bodySample": "Caracal Tech\nShop\nServices\nKnowledge\nContact\n058 579 6760\nCart\nLogin\nWhatsApp\n\nCATALOG\n\nShop\n\nProfessional ECU tuning tools and diagnostic solutions\n\nShop\n/\nServices\n/\n1 Year Update Service Subscription for BossComm Kmax 850\nZoom\nSERVICES\n1 Year Update Service Subscription for BossComm Kmax 850\n\nSKU"
+  }
+]

@@ -13,28 +13,26 @@ const SIZE: Record<'sm' | 'md' | 'lg', string> = {
   lg: 'text-xl font-semibold',
 };
 
-export function PriceDisplay({
-  price,
-  showTrade = false,
-  size = 'md',
-}: PriceDisplayProps) {
+export function PriceDisplay({ price, showTrade = false, size = 'md' }: PriceDisplayProps) {
   if (!price.formatted) {
-    return (
-      <span className={`font-medium text-brand-muted ${SIZE[size]}`}>
-        Contact for price
-      </span>
-    );
+    return <span className={`font-medium text-brand-muted ${SIZE[size]}`}>Contact for price</span>;
   }
+
+  const hasOldPrice =
+    Boolean(price.oldFormatted) &&
+    price.oldAmountCents !== null &&
+    price.oldAmountCents !== undefined &&
+    price.amountCents !== null &&
+    price.oldAmountCents > price.amountCents;
 
   return (
     <div className="flex flex-col gap-0.5">
-      <span className={`font-semibold text-brand-orange ${SIZE[size]}`}>
-        {price.formatted}
-      </span>
+      <span className={`font-semibold text-brand-orange ${SIZE[size]}`}>{price.formatted}</span>
+      {hasOldPrice && (
+        <span className="text-xs text-brand-muted line-through">{price.oldFormatted}</span>
+      )}
       {showTrade && price.tradeFormatted && (
-        <span className="text-xs text-violet-400">
-          Trade: {price.tradeFormatted}
-        </span>
+        <span className="text-xs text-violet-400">Trade: {price.tradeFormatted}</span>
       )}
     </div>
   );

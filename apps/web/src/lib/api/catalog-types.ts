@@ -1,19 +1,10 @@
 // ─── Shared ───────────────────────────────────────────────────────────────────
 
-export type InventoryStatus =
-  | 'IN_STOCK'
-  | 'LOW_STOCK'
-  | 'OUT_OF_STOCK'
-  | 'DISCONTINUED';
+export type InventoryStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'DISCONTINUED';
 
 export type ProductStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
 
-export type SortOption =
-  | 'featured'
-  | 'newest'
-  | 'name'
-  | 'price_asc'
-  | 'price_desc';
+export type SortOption = 'featured' | 'newest' | 'name' | 'price_asc' | 'price_desc';
 
 // ─── Category ─────────────────────────────────────────────────────────────────
 
@@ -39,6 +30,7 @@ export interface Category extends CategoryRef {
   counts: {
     children: number;
     products: number;
+    directProducts?: number;
   };
   createdAt: string;
   updatedAt: string;
@@ -61,6 +53,11 @@ export interface ProductPrice {
   formatted: string | null;
   tradeAmountCents: number | null;
   tradeFormatted: string | null;
+  saleAmountCents?: number | null;
+  saleFormatted?: string | null;
+  oldAmountCents?: number | null;
+  oldFormatted?: string | null;
+  discountPercent?: number | null;
 }
 
 export interface ProductInventory {
@@ -110,6 +107,10 @@ export interface Product {
 
 export interface PaginationMeta {
   limit: number;
+  page?: number | null;
+  pageSize?: number;
+  total?: number;
+  totalPages?: number;
   hasMore: boolean;
   nextCursor: string | null;
 }
@@ -134,6 +135,7 @@ export interface ProductListParams {
   minPriceCents?: number;
   maxPriceCents?: number;
   cursor?: string;
+  page?: number;
   limit?: number;
   sort?: SortOption;
 }

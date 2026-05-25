@@ -1,0 +1,16 @@
+{
+  "importedAt": "2026-05-25T15:22:19.669Z",
+  "sourceCatalog": "docs/legacy-migration/full-shop-catalog.json",
+  "sourceGeneratedAt": "2026-05-25T14:22:12.364658+00:00",
+  "sourceWebsite": "https://caracaltechmotors.com/",
+  "expectedLegacyProducts": 10452,
+  "normalizedProducts": 10452,
+  "categoriesImported": 14,
+  "totalActiveCategories": 18,
+  "totalProducts": 10459,
+  "legacyProducts": 10452,
+  "legacyProductImages": 10444,
+  "legacyInventoryItems": 10452,
+  "productsWithoutLocalImage": 8,
+  "sourceBrokenImageCount": 5
+}

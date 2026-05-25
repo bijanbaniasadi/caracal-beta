@@ -51,6 +51,11 @@ const productInclude = {
 
 type CatalogProduct = Prisma.ProductGetPayload<{ include: typeof productInclude }>;
 
+interface ResolvedCategoryFilter {
+  requested: string;
+  categoryIds: string[];
+}
+
 interface InventorySummary {
   status: InventoryStatus;
   quantityOnHand: number;
@@ -74,7 +79,35 @@ function formatAed(amountCents: number | null): string | null {
     return null;
   }
 
-  return `AED ${(amountCents / 100).toFixed(2)}`;
+  return `AED ${new Intl.NumberFormat('en-AE', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amountCents / 100)}`;
+}
+
+function asJsonRecord(value: Prisma.JsonValue | null): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function jsonNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function legacyPricing(product: CatalogProduct) {
+  const attributes = asJsonRecord(product.attributes);
+  const saleAmountCents = jsonNumber(attributes.salePriceCents);
+  const oldAmountCents = jsonNumber(attributes.oldPriceCents);
+  const discountPercent = jsonNumber(attributes.saleDiscountPercent);
+
+  return {
+    saleAmountCents,
+    saleFormatted: formatAed(saleAmountCents),
+    oldAmountCents,
+    oldFormatted: formatAed(oldAmountCents),
+    discountPercent,
+  };
 }
 
 function summarizeInventory(
@@ -131,6 +164,8 @@ function summarizeInventory(
 }
 
 function serializeProduct(product: CatalogProduct) {
+  const price = legacyPricing(product);
+
   return {
     id: product.id,
     sku: product.sku,
@@ -147,6 +182,7 @@ function serializeProduct(product: CatalogProduct) {
       formatted: formatAed(product.priceCents),
       tradeAmountCents: product.tradePriceCents,
       tradeFormatted: formatAed(product.tradePriceCents),
+      ...price,
     },
     flags: {
       featured: product.isFeatured,
@@ -170,7 +206,6 @@ function serializeProduct(product: CatalogProduct) {
 
 function buildProductWhere(query: ProductListQuery): Prisma.ProductWhereInput {
   const search = query.q ?? query.search;
-  const categorySlug = query.categorySlug ?? query.category;
   const where: Prisma.ProductWhereInput = {
     status: query.status,
   };
@@ -187,12 +222,6 @@ function buildProductWhere(query: ProductListQuery): Prisma.ProductWhereInput {
     });
   }
 
-  if (categorySlug) {
-    and.push({
-      OR: [{ categoryId: categorySlug }, { category: { slug: categorySlug } }],
-    });
-  }
-
   if (query.supplier) {
     and.push({
       OR: [{ supplierId: query.supplier }, { supplier: { slug: query.supplier } }],
@@ -200,7 +229,7 @@ function buildProductWhere(query: ProductListQuery): Prisma.ProductWhereInput {
   }
 
   if (query.sku) {
-    and.push({ sku: query.sku });
+    and.push({ sku: { equals: query.sku, mode: 'insensitive' } });
   }
 
   if (query.featured !== undefined) {
@@ -261,26 +290,84 @@ function buildProductWhere(query: ProductListQuery): Prisma.ProductWhereInput {
   return where;
 }
 
+async function resolveCategoryFilter(
+  query: ProductListQuery
+): Promise<ResolvedCategoryFilter | null> {
+  const requested = query.categorySlug ?? query.category;
+
+  if (!requested) {
+    return null;
+  }
+
+  const prisma = getPrismaClient();
+  const category = await prisma.category.findFirst({
+    where: {
+      OR: [{ id: requested }, { slug: requested }],
+    },
+    select: {
+      id: true,
+      children: {
+        where: query.status === 'ACTIVE' ? { isActive: true } : undefined,
+        select: { id: true },
+      },
+    },
+  });
+
+  if (!category) {
+    return { requested, categoryIds: [] };
+  }
+
+  return {
+    requested,
+    categoryIds: [category.id, ...category.children.map((child) => child.id)],
+  };
+}
+
+function applyCategoryFilter(
+  where: Prisma.ProductWhereInput,
+  categoryFilter: ResolvedCategoryFilter | null
+): Prisma.ProductWhereInput {
+  if (!categoryFilter) {
+    return where;
+  }
+
+  const nextWhere: Prisma.ProductWhereInput = { ...where };
+  const and = Array.isArray(nextWhere.AND)
+    ? [...nextWhere.AND]
+    : nextWhere.AND
+      ? [nextWhere.AND]
+      : [];
+
+  and.push(
+    categoryFilter.categoryIds.length > 0
+      ? { categoryId: { in: categoryFilter.categoryIds } }
+      : { id: '__category_not_found__' }
+  );
+
+  nextWhere.AND = and;
+  return nextWhere;
+}
+
 function getProductOrderBy(
   sort: ProductListQuery['sort']
 ): Prisma.ProductOrderByWithRelationInput[] {
   if (sort === 'newest') {
-    return [{ createdAt: 'desc' }];
+    return [{ createdAt: 'desc' }, { id: 'desc' }];
   }
 
   if (sort === 'name') {
-    return [{ name: 'asc' }];
+    return [{ name: 'asc' }, { id: 'asc' }];
   }
 
   if (sort === 'price_asc') {
-    return [{ priceCents: 'asc' }, { name: 'asc' }];
+    return [{ priceCents: 'asc' }, { name: 'asc' }, { id: 'asc' }];
   }
 
   if (sort === 'price_desc') {
-    return [{ priceCents: 'desc' }, { name: 'asc' }];
+    return [{ priceCents: 'desc' }, { name: 'asc' }, { id: 'asc' }];
   }
 
-  return [{ isFeatured: 'desc' }, { name: 'asc' }];
+  return [{ isFeatured: 'desc' }, { name: 'asc' }, { id: 'asc' }];
 }
 
 function parseProductQuery(req: Request): ProductListQuery {
@@ -290,15 +377,27 @@ function parseProductQuery(req: Request): ProductListQuery {
 async function handleProductList(req: Request, searchMode: boolean) {
   const query = parseProductQuery(req);
   const prisma = getPrismaClient();
-  const products = await prisma.product.findMany({
-    where: buildProductWhere(query),
-    include: productInclude,
-    orderBy: getProductOrderBy(query.sort),
-    take: query.limit + 1,
-    ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
-  });
-  const hasMore = products.length > query.limit;
-  const pageProducts = hasMore ? products.slice(0, query.limit) : products;
+  const categoryFilter = await resolveCategoryFilter(query);
+  const where = applyCategoryFilter(buildProductWhere(query), categoryFilter);
+  const orderBy = getProductOrderBy(query.sort);
+  const offsetPage = query.page;
+  const [total, products] = await prisma.$transaction([
+    prisma.product.count({ where }),
+    prisma.product.findMany({
+      where,
+      include: productInclude,
+      orderBy,
+      take: query.limit + (offsetPage ? 0 : 1),
+      ...(offsetPage
+        ? { skip: (offsetPage - 1) * query.limit }
+        : query.cursor
+          ? { cursor: { id: query.cursor }, skip: 1 }
+          : {}),
+    }),
+  ]);
+  const totalPages = Math.max(Math.ceil(total / query.limit), 1);
+  const hasMore = offsetPage ? offsetPage < totalPages : products.length > query.limit;
+  const pageProducts = offsetPage || !hasMore ? products : products.slice(0, query.limit);
   const data = pageProducts.map(serializeProduct);
 
   await writeAuditLog(req, {
@@ -306,7 +405,9 @@ async function handleProductList(req: Request, searchMode: boolean) {
     entityType: 'Product',
     metadata: {
       query,
+      categoryFilter,
       resultCount: data.length,
+      total,
       hasMore,
     },
   });
@@ -315,8 +416,12 @@ async function handleProductList(req: Request, searchMode: boolean) {
     data,
     pagination: {
       limit: query.limit,
+      page: offsetPage ?? null,
+      pageSize: data.length,
+      total,
+      totalPages,
       hasMore,
-      nextCursor: hasMore ? pageProducts[pageProducts.length - 1]?.id : null,
+      nextCursor: !offsetPage && hasMore ? pageProducts[pageProducts.length - 1]?.id : null,
     },
   };
 }
@@ -326,10 +431,16 @@ async function findProductBySlugOrSku(
   mode: 'slug' | 'sku'
 ): Promise<CatalogProduct> {
   const prisma = getPrismaClient();
-  const product = await prisma.product.findUnique({
-    where: mode === 'slug' ? { slug: identifier } : { sku: identifier.toUpperCase() },
-    include: productInclude,
-  });
+  const product =
+    mode === 'slug'
+      ? await prisma.product.findUnique({
+          where: { slug: identifier },
+          include: productInclude,
+        })
+      : await prisma.product.findFirst({
+          where: { sku: { equals: identifier, mode: 'insensitive' } },
+          include: productInclude,
+        });
 
   if (!product) {
     throw notFound('Product not found.', { identifier, mode });

@@ -321,6 +321,10 @@ model Product {
   @@index([isB2BEligible])
   @@index([isTradeOnly])
   @@index([createdAt])
+  @@index([status, categoryId, name, id])
+  @@index([status, name, id])
+  @@index([status, priceCents, id])
+  @@index([status, isFeatured, name, id])
 }
 
 model ProductImage {

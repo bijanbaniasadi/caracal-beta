@@ -32,6 +32,10 @@ const queryLimit = z
   .preprocess(firstQueryValue, z.coerce.number().int().min(1).max(100))
   .default(24);
 
+const optionalPage = z
+  .preprocess(firstQueryValue, z.coerce.number().int().min(1).max(10000))
+  .optional();
+
 const optionalPriceCents = z
   .preprocess(firstQueryValue, z.coerce.number().int().nonnegative())
   .optional();
@@ -51,6 +55,7 @@ export const productListQuerySchema = z.object({
   minPriceCents: optionalPriceCents,
   maxPriceCents: optionalPriceCents,
   cursor: optionalQueryText(120),
+  page: optionalPage,
   limit: queryLimit,
   sort: z
     .preprocess(firstQueryValue, z.enum(['featured', 'newest', 'name', 'price_asc', 'price_desc']))

@@ -39,7 +39,33 @@ const categoryInclude = {
 
 type CatalogCategory = Prisma.CategoryGetPayload<{ include: typeof categoryInclude }>;
 
-function serializeCategory(category: CatalogCategory) {
+type ProductCountByCategoryId = Map<string, number>;
+
+async function getActiveProductCounts(): Promise<ProductCountByCategoryId> {
+  const prisma = getPrismaClient();
+  const rows = await prisma.product.groupBy({
+    by: ['categoryId'],
+    where: {
+      status: 'ACTIVE',
+      categoryId: { not: null },
+    },
+    _count: {
+      _all: true,
+    },
+  });
+
+  return new Map(
+    rows.flatMap((row) => (row.categoryId ? [[row.categoryId, row._count._all]] : []))
+  );
+}
+
+function serializeCategory(category: CatalogCategory, productCounts: ProductCountByCategoryId) {
+  const directProducts = productCounts.get(category.id) ?? 0;
+  const childProducts = category.children.reduce(
+    (total, child) => total + (productCounts.get(child.id) ?? 0),
+    0
+  );
+
   return {
     id: category.id,
     name: category.name,
@@ -52,7 +78,8 @@ function serializeCategory(category: CatalogCategory) {
     metadata: category.metadata,
     counts: {
       children: category._count.children,
-      products: category._count.products,
+      products: directProducts + childProducts,
+      directProducts,
     },
     createdAt: category.createdAt,
     updatedAt: category.updatedAt,
@@ -64,12 +91,15 @@ categoriesRouter.get(
   asyncHandler(async (req, res) => {
     const query = categoryListQuerySchema.parse(req.query);
     const prisma = getPrismaClient();
-    const categories = await prisma.category.findMany({
-      where: query.includeInactive ? undefined : { isActive: true },
-      include: categoryInclude,
-      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-    });
-    const data = categories.map(serializeCategory);
+    const [categories, productCounts] = await Promise.all([
+      prisma.category.findMany({
+        where: query.includeInactive ? undefined : { isActive: true },
+        include: categoryInclude,
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      }),
+      getActiveProductCounts(),
+    ]);
+    const data = categories.map((category) => serializeCategory(category, productCounts));
 
     await writeAuditLog(req, {
       action: 'catalog.categories.listed',
@@ -88,10 +118,13 @@ categoriesRouter.get(
   '/:slug',
   asyncHandler(async (req, res) => {
     const prisma = getPrismaClient();
-    const category = await prisma.category.findUnique({
-      where: { slug: req.params.slug },
-      include: categoryInclude,
-    });
+    const [category, productCounts] = await Promise.all([
+      prisma.category.findUnique({
+        where: { slug: req.params.slug },
+        include: categoryInclude,
+      }),
+      getActiveProductCounts(),
+    ]);
 
     if (!category) {
       throw notFound('Category not found.', { slug: req.params.slug });
@@ -106,6 +139,6 @@ categoriesRouter.get(
       },
     });
 
-    sendSuccess(res, serializeCategory(category));
+    sendSuccess(res, serializeCategory(category, productCounts));
   })
 );

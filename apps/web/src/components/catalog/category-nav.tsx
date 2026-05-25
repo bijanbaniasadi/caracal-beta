@@ -8,16 +8,12 @@ interface CategoryNavProps {
   onSelect: (slug: string | null) => void;
 }
 
-export function CategoryNav({
-  categories,
-  activeSlug,
-  onSelect,
-}: CategoryNavProps) {
+export function CategoryNav({ categories, activeSlug, onSelect }: CategoryNavProps) {
   const active = categories.filter((c) => c.isActive);
 
   return (
     <div
-      className="flex flex-wrap gap-2"
+      className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0"
       role="group"
       aria-label="Filter by category"
     >
@@ -44,9 +40,7 @@ export function CategoryNav({
             <span
               className={[
                 'ml-1.5 rounded-full px-1.5 py-0.5 text-xs font-medium',
-                activeSlug === cat.slug
-                  ? 'bg-white/25 text-white'
-                  : 'bg-slate-100 text-slate-500',
+                activeSlug === cat.slug ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500',
               ].join(' ')}
             >
               {cat.counts.products}
@@ -60,7 +54,7 @@ export function CategoryNav({
 
 function pill(active: boolean): string {
   return [
-    'inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium',
+    'inline-flex shrink-0 items-center justify-between rounded-full px-3 py-1.5 text-sm font-medium lg:w-full lg:rounded-md',
     'transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1',
     active
       ? 'bg-slate-900 text-white'

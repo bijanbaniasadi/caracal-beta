@@ -1,0 +1,208 @@
+{
+  "generatedAt": "2026-05-25T15:24:55.035Z",
+  "expectedLegacyProducts": 10452,
+  "expectedLegacyCategories": 14,
+  "database": {
+    "totalProducts": 10459,
+    "activeProducts": 10458,
+    "legacyProducts": 10452,
+    "totalActiveCategories": 18,
+    "legacyCategories": 14,
+    "legacyProductMatch": true,
+    "legacyCategoryMatch": true,
+    "activeCategoryCounts": [
+      {
+        "slug": "ecu-tcu-tuning-tools",
+        "name": "ECU and TCU Tuning Tools",
+        "activeProducts": 3
+      },
+      {
+        "slug": "tools",
+        "name": "Workshop Tools",
+        "activeProducts": 1
+      },
+      {
+        "slug": "calibration-software",
+        "name": "Calibration Software",
+        "activeProducts": 1
+      },
+      {
+        "slug": "tuning-tools",
+        "name": "Tuning Tools",
+        "activeProducts": 1387
+      },
+      {
+        "slug": "courses",
+        "name": "Courses",
+        "activeProducts": 1
+      },
+      {
+        "slug": "workshop-equipment",
+        "name": "Workshop Equipment",
+        "activeProducts": 1
+      },
+      {
+        "slug": "diagnostic-tools",
+        "name": "Diagnostic Tools",
+        "activeProducts": 521
+      },
+      {
+        "slug": "ecu-adapters",
+        "name": "ECU Adapters",
+        "activeProducts": 1
+      },
+      {
+        "slug": "services",
+        "name": "Services",
+        "activeProducts": 1531
+      },
+      {
+        "slug": "cables-adapters",
+        "name": "Cables & Adapters",
+        "activeProducts": 1025
+      },
+      {
+        "slug": "key-programming",
+        "name": "Key Programming",
+        "activeProducts": 5928
+      },
+      {
+        "slug": "adas-calibration",
+        "name": "ADAS Calibration",
+        "activeProducts": 5
+      },
+      {
+        "slug": "ecu-calibration-tuning",
+        "name": "ECU Calibration & Tuning",
+        "activeProducts": 7
+      },
+      {
+        "slug": "module-programming",
+        "name": "Module Programming",
+        "activeProducts": 13
+      },
+      {
+        "slug": "online-oem-tokens",
+        "name": "Online OEM Access Tokens",
+        "activeProducts": 11
+      },
+      {
+        "slug": "eeprom-data-services",
+        "name": "EEPROM & Data Services",
+        "activeProducts": 6
+      },
+      {
+        "slug": "performance-upgrades",
+        "name": "Performance Upgrades",
+        "activeProducts": 11
+      },
+      {
+        "slug": "feature-coding",
+        "name": "Feature Coding",
+        "activeProducts": 5
+      }
+    ]
+  },
+  "images": {
+    "legacyImageRows": 10444,
+    "remoteImageReferences": 0,
+    "brokenLocalImages": 0,
+    "sampleBrokenLocalImages": [],
+    "localImageIntegrityPass": true
+  },
+  "api": {
+    "baseUrl": "http://localhost:3001",
+    "pageOne": {
+      "ok": true,
+      "status": 200,
+      "items": 24,
+      "pagination": {
+        "limit": 24,
+        "page": 1,
+        "pageSize": 24,
+        "total": 10458,
+        "totalPages": 436,
+        "hasMore": true,
+        "nextCursor": null
+      },
+      "error": null
+    },
+    "pageTwo": {
+      "ok": true,
+      "status": 200,
+      "items": 24,
+      "pagination": {
+        "limit": 24,
+        "page": 2,
+        "pageSize": 24,
+        "total": 10458,
+        "totalPages": 436,
+        "hasMore": true,
+        "nextCursor": null
+      },
+      "error": null
+    },
+    "search": {
+      "ok": true,
+      "status": 200,
+      "items": 12,
+      "pagination": {
+        "limit": 12,
+        "page": 1,
+        "pageSize": 12,
+        "total": 304,
+        "totalPages": 26,
+        "hasMore": true,
+        "nextCursor": null
+      },
+      "error": null
+    },
+    "categoryFilter": {
+      "ok": true,
+      "status": 200,
+      "items": 12,
+      "pagination": {
+        "limit": 12,
+        "page": 1,
+        "pageSize": 12,
+        "total": 5928,
+        "totalPages": 494,
+        "hasMore": true,
+        "nextCursor": null
+      },
+      "error": null
+    },
+    "cursorPagination": {
+      "pageOne": {
+        "ok": true,
+        "status": 200,
+        "items": 24,
+        "pagination": {
+          "limit": 24,
+          "page": null,
+          "pageSize": 24,
+          "total": 10458,
+          "totalPages": 436,
+          "hasMore": true,
+          "nextCursor": "cmplcrej200i86syx314waz1c"
+        },
+        "error": null
+      },
+      "pageTwo": {
+        "ok": true,
+        "status": 200,
+        "items": 24,
+        "pagination": {
+          "limit": 24,
+          "page": null,
+          "pageSize": 24,
+          "total": 10458,
+          "totalPages": 436,
+          "hasMore": true,
+          "nextCursor": "cmplcrewy00qu6syx69gwqvus"
+        },
+        "error": null
+      }
+    }
+  }
+}

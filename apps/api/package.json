@@ -24,6 +24,8 @@
     "db:studio": "prisma studio --schema=prisma/schema.prisma",
     "db:reset": "prisma migrate reset --force --schema=prisma/schema.prisma",
     "db:health": "tsx scripts/health-diagnostics.ts",
+    "catalog:import:legacy": "tsx scripts/import-legacy-shop-catalog.ts",
+    "catalog:verify:legacy": "tsx scripts/verify-legacy-shop-runtime.ts",
     "ecu:scan": "tsx scripts/ecu-corpus-scan.ts",
     "ecu:runtime": "tsx scripts/ecu-corpus-runtime.ts",
     "ecu:enqueue": "tsx scripts/ecu-corpus-runtime.ts enqueue",
