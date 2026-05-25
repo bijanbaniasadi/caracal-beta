@@ -21,7 +21,7 @@ const legacyPhpRedirects: Record<string, string> = {
   '/device-image.php': '/shop',
   '/ecu-calculator.php': '/ecu-tools',
   '/ecu-lookup.php': '/ecu-tools',
-  '/ecu-patcher.php': '/ecu-tools',
+  '/ecu-patcher.php': '/ecu-patcher',
   '/ecu-remapping-dubai.php': '/ecu-remapping-dubai',
   '/ecu-tuning-dealers.php': '/contact',
   '/ecu-tuning-software.php': '/shop?category=calibration-software',

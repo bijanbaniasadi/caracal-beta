@@ -15,6 +15,7 @@ import { authRouter } from './routes/auth.js';
 import { binUploadsRouter } from './routes/bin-uploads.js';
 import { categoriesRouter } from './routes/categories.js';
 import { checkoutRouter, checkoutWebhookRouter } from './routes/checkout.js';
+import { ecuPatcherRouter } from './routes/ecu-patcher.js';
 import { healthRouter } from './routes/health.js';
 import { productInquiriesRouter } from './routes/product-inquiries.js';
 import { productsRouter } from './routes/products.js';
@@ -64,6 +65,7 @@ export function createApp(): express.Express {
   app.use('/api/bin-uploads', binUploadsRouter);
   app.use('/api/categories', categoriesRouter);
   app.use('/api/checkout', checkoutRouter);
+  app.use('/api/ecu-patcher', ecuPatcherRouter);
   app.use('/api/products', productsRouter);
   app.use('/api/quote-requests', quoteRequestsRouter);
   app.use('/api/product-inquiries', productInquiriesRouter);

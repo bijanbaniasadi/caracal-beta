@@ -23,6 +23,8 @@ model User {
   articles            Article[]            @relation("ArticleAuthor")
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
+  ecuPatcherAccess    EcuPatcherAccess?
+  ecuPatcherJobs      EcuPatcherJob[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -74,6 +76,27 @@ enum BinAnalysisResultKind {
   PIPELINE_SUMMARY
   FILE_METADATA
   MCU_DETECTION
+}
+
+enum EcuPatcherAccessStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum EcuPatcherModule {
+  DCM71B_DPF
+  DCM71B_EGR
+  SID208_DPF_EGR
+  DTC_REMOVER
+}
+
+enum EcuPatcherJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  REJECTED
 }
 
 enum StorageProvider {
@@ -511,6 +534,7 @@ model BinUpload {
   quoteRequest     QuoteRequest?       @relation(fields: [quoteRequestId], references: [id], onDelete: SetNull)
   analysisJobs     BinAnalysisJob[]
   analysisResults  BinAnalysisResult[]
+  ecuPatcherJobs   EcuPatcherJob[]
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 
@@ -573,6 +597,67 @@ model BinAnalysisResult {
   @@index([kind])
   @@index([fileSha256])
   @@index([mcuFamily])
+  @@index([createdAt])
+}
+
+model EcuPatcherAccess {
+  id          String                 @id @default(cuid())
+  userId      String                 @unique
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      EcuPatcherAccessStatus @default(PENDING)
+  amountCents Int                    @default(120000)
+  currency    String                 @default("AED")
+  notes       String?
+  adminId     String?
+  approvedAt  DateTime?
+  metadata    Json?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  @@index([status])
+  @@index([adminId])
+  @@index([createdAt])
+}
+
+model EcuPatcherJob {
+  id                    String              @id @default(cuid())
+  userId                String
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  uploadId              String?
+  upload                BinUpload?          @relation(fields: [uploadId], references: [id], onDelete: SetNull)
+  module                EcuPatcherModule
+  status                EcuPatcherJobStatus @default(QUEUED)
+  originalFileName      String
+  originalByteSize      Int
+  originalSha256        String
+  resultFileName        String?
+  resultObjectKey       String?
+  resultStorageProvider StorageProvider?
+  resultByteSize        Int?
+  resultSha256          String?
+  patchesTotal          Int                 @default(0)
+  patchesReady          Int                 @default(0)
+  patchesApplied        Int                 @default(0)
+  patchesAlreadyApplied Int                 @default(0)
+  patchesMismatched     Int                 @default(0)
+  checksumApplied       Boolean             @default(false)
+  checksumOffset        Int?
+  checksumValue         String?
+  failureCode           String?
+  failureMessage        String?
+  logs                  Json?
+  metadata              Json?
+  completedAt           DateTime?
+  failedAt              DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([userId])
+  @@index([uploadId])
+  @@index([module])
+  @@index([status])
+  @@index([originalSha256])
+  @@index([resultSha256])
   @@index([createdAt])
 }
 

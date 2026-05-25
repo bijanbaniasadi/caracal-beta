@@ -32,15 +32,12 @@ import {
   getEcuCorpusQueueStats,
 } from '../lib/ecu-corpus/queues.js';
 import { badRequest, notFound } from '../lib/errors.js';
-import {
-  orderInclude,
-  releaseOrderReservations,
-  serializeOrder,
-} from '../lib/payments/orders.js';
+import { orderInclude, releaseOrderReservations, serializeOrder } from '../lib/payments/orders.js';
 import { getStripeClient, paymentLogger } from '../lib/payments/stripe.js';
 import { toPrismaJson } from '../lib/prisma-json.js';
 import { authenticateAccessToken, requireRoles } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
+import { adminEcuPatcherRouter } from './admin-ecu-patcher.js';
 import { ecuCorpusRouter } from './ecu-corpus.js';
 import {
   adminListQuerySchema,
@@ -87,6 +84,7 @@ createBullBoard({
 
 adminRouter.use(authenticateAccessToken, requireRoles('admin', 'staff'));
 adminRouter.use('/queues/ui', queueBoardAdapter.getRouter());
+adminRouter.use('/ecu-patcher', adminEcuPatcherRouter);
 adminRouter.use('/ecu-corpus', ecuCorpusRouter);
 
 const productInclude = {
@@ -263,7 +261,8 @@ function orderWhere(query: AdminListQuery): Prisma.OrderWhereInput {
     where.paymentStatus = query.paymentStatus as Prisma.OrderWhereInput['paymentStatus'];
   }
   if (query.fulfillmentStatus) {
-    where.fulfillmentStatus = query.fulfillmentStatus as Prisma.OrderWhereInput['fulfillmentStatus'];
+    where.fulfillmentStatus =
+      query.fulfillmentStatus as Prisma.OrderWhereInput['fulfillmentStatus'];
   }
   if (query.refundStatus) {
     where.refundStatus = query.refundStatus as Prisma.OrderWhereInput['refundStatus'];
