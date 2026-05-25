@@ -4,24 +4,29 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { useCart } from '@/hooks/use-cart';
 
 const NAV_LINKS = [
   { href: '/shop', label: 'Shop' },
   { href: '/ecu-tools', label: 'ECU Tools' },
-  { href: '/articles', label: 'Knowledge Base' },
+  { href: '/knowledge', label: 'Knowledge Base' },
   { href: '/contact', label: 'Contact' },
 ];
 
 export function SiteNav() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { count } = useCart();
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-brand-bg/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-3 flex-shrink-0" aria-label="Caracal Tech Motors — Home">
+        <Link
+          href="/"
+          className="flex items-center gap-3 flex-shrink-0"
+          aria-label="Caracal Tech Motors — Home"
+        >
           <Image
             src="/brand/logo.png"
             alt="Caracal Tech Motors"
@@ -58,6 +63,12 @@ export function SiteNav() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
+          <Link
+            href="/shop/cart"
+            className="rounded-md border border-white/15 px-3 py-1.5 text-sm font-semibold text-brand-text transition-colors hover:bg-white/5"
+          >
+            Cart{count > 0 ? ` (${count})` : ''}
+          </Link>
           <a
             href="https://wa.me/971585796760?text=Hi%2C%20I%27d%20like%20a%20quote"
             target="_blank"
@@ -103,6 +114,13 @@ export function SiteNav() {
                 </Link>
               );
             })}
+            <Link
+              href="/shop/cart"
+              onClick={() => setMobileOpen(false)}
+              className="rounded-md px-3 py-2.5 text-sm font-medium text-brand-muted transition-colors hover:bg-white/5 hover:text-brand-text"
+            >
+              Cart{count > 0 ? ` (${count})` : ''}
+            </Link>
             <a
               href="https://wa.me/971585796760?text=Hi%2C%20I%27d%20like%20a%20quote"
               target="_blank"
@@ -124,7 +142,14 @@ export function SiteNav() {
 
 function MenuIcon() {
   return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+    <svg
+      className="h-5 w-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden="true"
+    >
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
     </svg>
   );
@@ -132,7 +157,14 @@ function MenuIcon() {
 
 function XIcon() {
   return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+    <svg
+      className="h-5 w-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden="true"
+    >
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
   );

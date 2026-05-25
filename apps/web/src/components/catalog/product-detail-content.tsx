@@ -17,6 +17,7 @@ import { AttributesTable } from './attributes-table';
 import { InquiryCta } from './inquiry-cta';
 import { StickyCta, WhatsAppCta } from './sticky-cta';
 import { RelatedProducts } from './related-products';
+import { AddToCartButton } from '@/components/cart/add-to-cart-button';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -29,7 +30,11 @@ export function ProductDetailContent({ slug, initialData }: ProductDetailContent
   const router = useRouter();
   const inlineCtaRef = useRef<HTMLDivElement>(null);
 
-  const { data: product, isLoading, isError } = useQuery({
+  const {
+    data: product,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: productKeys.detail(slug),
     queryFn: () => getProductBySlug(slug),
     initialData,
@@ -50,8 +55,7 @@ export function ProductDetailContent({ slug, initialData }: ProductDetailContent
   }
 
   const isAvailable =
-    product.inventory.status === 'IN_STOCK' ||
-    product.inventory.status === 'LOW_STOCK';
+    product.inventory.status === 'IN_STOCK' || product.inventory.status === 'LOW_STOCK';
 
   return (
     <>
@@ -60,8 +64,13 @@ export function ProductDetailContent({ slug, initialData }: ProductDetailContent
 
       <div className="mx-auto max-w-6xl">
         {/* ── Breadcrumb ──────────────────────────────────────────────────── */}
-        <nav className="mb-6 flex items-center gap-1.5 text-sm text-brand-muted" aria-label="Breadcrumb">
-          <Link href="/shop" className="hover:text-brand-text transition-colors">Shop</Link>
+        <nav
+          className="mb-6 flex items-center gap-1.5 text-sm text-brand-muted"
+          aria-label="Breadcrumb"
+        >
+          <Link href="/shop" className="hover:text-brand-text transition-colors">
+            Shop
+          </Link>
           {product.category && (
             <>
               <span aria-hidden="true">/</span>
@@ -80,7 +89,6 @@ export function ProductDetailContent({ slug, initialData }: ProductDetailContent
 
         {/* ── Main grid ───────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
-
           {/* Left — images */}
           <div className="lg:sticky lg:top-20 lg:self-start">
             <ProductImages images={product.images} productName={product.name} />
@@ -88,7 +96,6 @@ export function ProductDetailContent({ slug, initialData }: ProductDetailContent
 
           {/* Right — details */}
           <div className="flex flex-col gap-6">
-
             {/* Category + badges row */}
             <div className="flex flex-wrap items-center gap-2">
               {product.category && (
@@ -116,18 +123,13 @@ export function ProductDetailContent({ slug, initialData }: ProductDetailContent
             {/* SKU */}
             {product.sku && (
               <p className="text-xs text-brand-muted">
-                SKU:{' '}
-                <span className="font-mono font-medium text-brand-text">
-                  {product.sku}
-                </span>
+                SKU: <span className="font-mono font-medium text-brand-text">{product.sku}</span>
               </p>
             )}
 
             {/* Short description */}
             {product.shortDescription && (
-              <p className="text-sm leading-relaxed text-brand-muted">
-                {product.shortDescription}
-              </p>
+              <p className="text-sm leading-relaxed text-brand-muted">{product.shortDescription}</p>
             )}
 
             {/* Stock indicator */}
@@ -143,10 +145,10 @@ export function ProductDetailContent({ slug, initialData }: ProductDetailContent
               {/* WhatsApp — primary */}
               <WhatsAppCta product={product} />
 
+              <AddToCartButton product={product} />
+
               {/* Inline form — secondary */}
-              {isAvailable && (
-                <InquiryCta inquiry={product.inquiry} />
-              )}
+              {isAvailable && <InquiryCta inquiry={product.inquiry} />}
 
               {/* Out of stock: only WhatsApp */}
               {!isAvailable && (
@@ -180,9 +182,7 @@ export function ProductDetailContent({ slug, initialData }: ProductDetailContent
         {/* ── Product description ──────────────────────────────────────────── */}
         {product.description && (
           <section className="mt-14 border-t border-white/10 pt-10">
-            <h2 className="font-display text-xl font-bold text-brand-text mb-5">
-              Product Details
-            </h2>
+            <h2 className="font-display text-xl font-bold text-brand-text mb-5">Product Details</h2>
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
               <div className="lg:col-span-2 space-y-3">
                 {product.description.split('\n').map((para, i) =>
@@ -190,7 +190,7 @@ export function ProductDetailContent({ slug, initialData }: ProductDetailContent
                     <p key={i} className="text-sm leading-relaxed text-brand-muted">
                       {para}
                     </p>
-                  ) : null,
+                  ) : null
                 )}
               </div>
               {/* Attributes table in the sidebar column */}
