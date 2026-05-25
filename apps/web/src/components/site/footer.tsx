@@ -26,6 +26,9 @@ const COMPANY = [
   { label: 'Product Inquiry', href: '/contact' },
 ];
 
+const GOOGLE_MAPS_URL =
+  'https://www.google.com/maps/place/Caracaltech+Motors+LLC/@25.2645178,55.3325059,17.55z/data=!4m6!3m5!1s0x3e5f5db936da9f23:0x2f4212cc1172b758!8m2!3d25.26373!4d55.333424!16s%2Fg%2F11yt004nkq';
+
 export function SiteFooter() {
   return (
     <footer className="border-t border-white/10 bg-brand-deep">
@@ -120,9 +123,17 @@ export function SiteFooter() {
           <div>
             <p className="text-sm font-semibold text-brand-text">Google review trust</p>
             <p className="mt-2 text-xs leading-5 text-brand-muted">
-              Real customer reviews are used as a trust signal before launch. Link the live Google
-              Business Profile when the production domain is connected.
+              5.0 rating from 14 public Google reviews. Customers mention fast technical support
+              and workshop-ready help in Dubai.
             </p>
+            <a
+              href={GOOGLE_MAPS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex text-xs font-semibold text-brand-orange hover:underline"
+            >
+              View all reviews on Google
+            </a>
           </div>
           <div>
             <p className="text-sm font-semibold text-brand-text">UAE shipping</p>
