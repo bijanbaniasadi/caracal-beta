@@ -13,6 +13,7 @@ import { adminRouter } from './routes/admin.js';
 import { authRouter } from './routes/auth.js';
 import { binUploadsRouter } from './routes/bin-uploads.js';
 import { categoriesRouter } from './routes/categories.js';
+import { checkoutRouter } from './routes/checkout.js';
 import { healthRouter } from './routes/health.js';
 import { productInquiriesRouter } from './routes/product-inquiries.js';
 import { productsRouter } from './routes/products.js';
@@ -55,6 +56,7 @@ export function createApp(): express.Express {
   app.use('/api/admin', adminRouter);
   app.use('/api/bin-uploads', binUploadsRouter);
   app.use('/api/categories', categoriesRouter);
+  app.use('/api/checkout', checkoutRouter);
   app.use('/api/products', productsRouter);
   app.use('/api/quote-requests', quoteRequestsRouter);
   app.use('/api/product-inquiries', productInquiriesRouter);
