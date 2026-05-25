@@ -22,6 +22,9 @@ import type {
   AdminInventoryItem,
   AdminInventoryUpdate,
   LoginInput,
+  AdminOrder,
+  OrderRefundInput,
+  OrderUpdateInput,
   AdminProduct,
   ProductCreateInput,
   AdminSession,
@@ -242,6 +245,9 @@ async function fetchList<T>(
   const qs = new URLSearchParams();
   if (params?.search) qs.set('q', params.search);
   if (params?.status) qs.set('status', params.status);
+  if (params?.paymentStatus) qs.set('paymentStatus', params.paymentStatus);
+  if (params?.fulfillmentStatus) qs.set('fulfillmentStatus', params.fulfillmentStatus);
+  if (params?.refundStatus) qs.set('refundStatus', params.refundStatus);
   qs.set('limit', String(pageSize));
   if (cursor) qs.set('cursor', cursor);
 
@@ -310,6 +316,43 @@ export async function getAdminSession(): Promise<AdminSession | null> {
 /** GET /api/admin/dashboard/metrics */
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   const env = await adminFetch<DashboardMetrics>('GET', '/api/admin/dashboard/metrics');
+  return env.data;
+}
+
+// Orders
+
+export async function listAdminOrders(
+  params?: ListParams,
+): Promise<PaginatedList<AdminOrder>> {
+  return fetchList<AdminOrder>('/api/admin/orders', params);
+}
+
+export async function getAdminOrder(id: string): Promise<AdminOrder> {
+  const env = await adminFetch<AdminOrder>('GET', `/api/admin/orders/${id}`);
+  return env.data;
+}
+
+export async function updateAdminOrder(
+  id: string,
+  input: OrderUpdateInput,
+): Promise<AdminOrder> {
+  const env = await adminFetch<AdminOrder>('PATCH', `/api/admin/orders/${id}`, input);
+  return env.data;
+}
+
+export async function cancelAdminOrder(id: string): Promise<AdminOrder> {
+  const env = await adminFetch<AdminOrder>('POST', `/api/admin/orders/${id}/cancel`, {});
+  return env.data;
+}
+
+export async function refundAdminOrder(
+  id: string,
+  input: OrderRefundInput,
+): Promise<{ order: AdminOrder; refund: { id: string; status: string | null; amount: number } }> {
+  const env = await adminFetch<{
+    order: AdminOrder;
+    refund: { id: string; status: string | null; amount: number };
+  }>('POST', `/api/admin/orders/${id}/refund`, input);
   return env.data;
 }
 

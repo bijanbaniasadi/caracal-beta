@@ -14,6 +14,16 @@ export type IntakeStatus = 'NEW' | 'IN_REVIEW' | 'RESPONDED' | 'CLOSED' | 'SPAM'
 export type BinUploadStatus = 'RECEIVED' | 'VALIDATED' | 'REJECTED' | 'STORED';
 export type BinAnalysisJobStatus =
   | 'PENDING' | 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+export type OrderStatus =
+  | 'PENDING_PAYMENT' | 'PAID' | 'FULFILLING' | 'FULFILLED' | 'CANCELLED'
+  | 'PARTIALLY_REFUNDED' | 'REFUNDED';
+export type PaymentProvider = 'STRIPE' | 'MANUAL';
+export type PaymentStatus =
+  | 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED' | 'REFUND_PENDING'
+  | 'PARTIALLY_REFUNDED' | 'REFUNDED';
+export type FulfillmentStatus =
+  | 'UNFULFILLED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+export type RefundStatus = 'NONE' | 'REQUESTED' | 'PARTIALLY_REFUNDED' | 'REFUNDED' | 'FAILED';
 export type UserRole = 'ADMIN' | 'STAFF' | 'CUSTOMER';
 export type WorkerStatus = 'ONLINE' | 'OFFLINE' | 'STALE';
 export type StorageProvider = 'LOCAL' | 'R2';
@@ -76,6 +86,11 @@ export interface DashboardMetrics {
     quoteRequests: Partial<Record<IntakeStatus, number>>;
     productInquiries: Partial<Record<IntakeStatus, number>>;
     workshopConsultations: Partial<Record<IntakeStatus, number>>;
+  };
+  orders: {
+    byStatus: Partial<Record<OrderStatus, number>>;
+    byPaymentStatus: Partial<Record<PaymentStatus, number>>;
+    byFulfillmentStatus: Partial<Record<FulfillmentStatus, number>>;
   };
   uploads: Partial<Record<BinUploadStatus, number>>;
   inventory: Partial<Record<InventoryStatus, number>>;
@@ -253,6 +268,102 @@ export interface ArticleCreateInput {
 }
 
 export type ArticleUpdateInput = Partial<ArticleCreateInput>;
+
+// Orders
+
+export interface AdminOrderItem {
+  id: string;
+  productId: string | null;
+  sku: string | null;
+  slug: string | null;
+  name: string;
+  quantity: number;
+  unitPriceCents: number;
+  lineTotalCents: number;
+  currency: string;
+  product: {
+    id: string;
+    sku: string | null;
+    slug: string;
+    name: string;
+    status: ProductStatus;
+  } | null;
+}
+
+export interface AdminOrderPayment {
+  id: string;
+  provider: PaymentProvider;
+  status: PaymentStatus;
+  amountCents: number;
+  refundedCents: number;
+  currency: string;
+  stripeCheckoutSessionId: string | null;
+  stripePaymentIntentId: string | null;
+  stripeChargeId: string | null;
+  stripeRefundId: string | null;
+  failureCode: string | null;
+  failureMessage: string | null;
+  paidAt: string | null;
+  failedAt: string | null;
+  refundedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminOrder {
+  id: string;
+  orderNumber: string;
+  user: { id: string; email: string; name: string | null; role: UserRole } | null;
+  customer: {
+    email: string | null;
+    name: string | null;
+    phone: string | null;
+  };
+  amounts: {
+    currency: string;
+    subtotalCents: number;
+    shippingCents: number;
+    taxCents: number;
+    discountCents: number;
+    totalCents: number;
+  };
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
+  fulfillmentStatus: FulfillmentStatus;
+  refundStatus: RefundStatus;
+  stripe: {
+    checkoutSessionId: string | null;
+    paymentIntentId: string | null;
+    customerId: string | null;
+    paymentStatus: string | null;
+  };
+  checkoutExpiresAt: string | null;
+  paidAt: string | null;
+  cancelledAt: string | null;
+  refundedAt: string | null;
+  shippingTracking: string | null;
+  adminNotes: string | null;
+  metadata: unknown;
+  items: AdminOrderItem[];
+  payments: AdminOrderPayment[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrderUpdateInput {
+  status?: OrderStatus;
+  paymentStatus?: PaymentStatus;
+  fulfillmentStatus?: FulfillmentStatus;
+  refundStatus?: RefundStatus;
+  shippingTracking?: string | null;
+  adminNotes?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+export interface OrderRefundInput {
+  amountCents?: number;
+  reason?: 'duplicate' | 'fraudulent' | 'requested_by_customer';
+}
 
 // ─── BIN Uploads ──────────────────────────────────────────────────────────────
 
@@ -782,6 +893,9 @@ export interface ListParams {
   pageSize?: number;
   search?: string;
   status?: string;
+  paymentStatus?: string;
+  fulfillmentStatus?: string;
+  refundStatus?: string;
 }
 
 // ─── Frontend type aliases ────────────────────────────────────────────────────
@@ -795,6 +909,8 @@ export type AdminProductInput = ProductCreateInput;
 export type AdminArticleListItem = AdminArticle;
 export type AdminArticleDetail = AdminArticle;
 export type AdminArticleInput = ArticleCreateInput;
+export type AdminOrderListItem = AdminOrder;
+export type AdminOrderDetail = AdminOrder;
 export type BinUploadRecord = AdminBinUpload;
 export type QuoteRequestRecord = QuoteRequest;
 export type WorkshopLeadRecord = WorkshopConsultation;

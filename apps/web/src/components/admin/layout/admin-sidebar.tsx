@@ -17,6 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/admin/dashboard',       label: 'Dashboard',      icon: '▦', matchExact: true },
   { href: '/admin/products',        label: 'Products',       icon: '📦' },
   { href: '/admin/inventory',       label: 'Inventory',      icon: '🗃' },
+  { href: '/admin/orders',          label: 'Orders',         icon: '$' },
   { href: '/admin/articles',        label: 'Articles',       icon: '📝' },
   { href: '/admin/inquiries',       label: 'Inquiries',      icon: '💬' },
   { href: '/admin/uploads',         label: 'Uploads',        icon: '📂' },
