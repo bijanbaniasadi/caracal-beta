@@ -13,9 +13,30 @@ export const metadata: Metadata = {
 export default function EcuRemappingDubaiPage() {
   return (
     <ServiceTopicPage
-      eyebrow="Technical Guide"
+      eyebrow="Workshop Service"
       title="ECU Remapping Dubai"
-      description="A workshop-focused guide to stage tuning, dyno reading, petrol and diesel fundamentals, torque strategy, and realistic ECU remap planning in Dubai."
+      description="Professional ECU remapping for Dubai workshops — Stage 1 &amp; Stage 2 tunes, diesel and petrol calibration, torque model correction, and boost optimisation. Compatibility verified before any work is accepted."
+      waContext="Hi, I need an ECU remapping quote for my workshop"
+      relatedArticles={[
+        {
+          slug: 'what-is-ecu-remapping',
+          title: 'What is ECU Remapping?',
+          category: 'Petrol ECU Remapping',
+          summary: 'The difference between remapping and chip tuning, how modern flash-based ECUs work, and the correct process for a safe remap.',
+        },
+        {
+          slug: 'diesel-tuning-fundamental',
+          title: 'Diesel Tuning Fundamentals',
+          category: 'Petrol ECU Remapping',
+          summary: 'Core diesel ECU concepts — injection quantity, boost, rail pressure, and the maps that control them.',
+        },
+        {
+          slug: 'edc-15-16-17-tuning-guide',
+          title: 'EDC15 / EDC16 / EDC17 Tuning Guide',
+          category: 'Petrol ECU Remapping',
+          summary: 'Deep dive into the Bosch EDC family — injection and boost maps, torque limiters, and stage tuning parameter sets.',
+        },
+      ]}
       tags={[
         'ECU remapping Dubai',
         'Stage tuning',

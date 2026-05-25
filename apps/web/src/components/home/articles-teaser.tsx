@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
+// Slugs match exactly what is in docs/legacy-migration/articles.seed.json
 const FEATURED_ARTICLES = [
   {
     title: 'What is ECU Tuning?',
@@ -19,20 +20,20 @@ const FEATURED_ARTICLES = [
     slug: 'what-is-kess3',
   },
   {
-    title: 'DPF Off: The Complete Guide',
+    title: 'DPF Off Service — Complete Guide',
     category: 'Services',
     summary:
       'How DPF removal works at the software level, what ECU parameters are involved, pre-checks you must perform, and the diagnostic process before applying a delete.',
     cover: '/images/articles/dpf-off-service-dpf-off-solution.png',
-    slug: 'dpf-off-service',
+    slug: 'dpf-off-service-dpf-off-solution',
   },
   {
-    title: 'EDC15 / EDC16 / EDC17 Tuning',
+    title: 'EDC15 / EDC16 / EDC17 Tuning Guide',
     category: 'Technical',
     summary:
       'A deep dive into the Bosch EDC family — architecture differences, injection and boost maps, torque limiters, and the parameter sets most commonly modified during stage tuning.',
     cover: '/images/articles/edc-15-16-17-tuning-guide.png',
-    slug: 'edc-tuning-guide',
+    slug: 'edc-15-16-17-tuning-guide',
   },
 ];
 
@@ -55,7 +56,7 @@ export function ArticlesTeaser() {
             </p>
           </div>
           <Link
-            href="/articles"
+            href="/knowledge"
             className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-brand-orange hover:underline"
           >
             Browse all articles
@@ -70,7 +71,7 @@ export function ArticlesTeaser() {
           {FEATURED_ARTICLES.map(({ title, category, summary, cover, slug }) => (
             <Link
               key={slug}
-              href={`/articles#${slug}`}
+              href={`/knowledge/${slug}`}
               className="group flex flex-col overflow-hidden rounded-xl border border-white/10 bg-white/5 transition-colors hover:border-brand-orange/30"
             >
               {/* Cover image */}

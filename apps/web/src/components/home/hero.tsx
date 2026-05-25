@@ -10,7 +10,7 @@ const QUICK_LINKS = [
     ),
     title: 'ECU Remapping',
     text: 'Stage 1 & 2, DPF, EGR, AdBlue',
-    href: '/ecu-tools',
+    href: '/ecu-remapping-dubai',
   },
   {
     icon: (
@@ -30,15 +30,12 @@ const QUICK_LINKS = [
     ),
     title: 'Knowledge Base',
     text: '80+ technical articles',
-    href: '/articles',
+    href: '/knowledge',
   },
 ];
 
-const TRUST_STATS = [
-  { label: 'Google Reviews', value: '5.0 ★' },
-  { label: 'Support Base', value: 'Deira, Dubai' },
-  { label: 'Workflow', value: 'ECU · IMMO · Files' },
-];
+const GOOGLE_MAPS_URL =
+  'https://www.google.com/maps/place/Caracaltech+Motors+LLC/@25.2645178,55.3325059,17.55z/data=!4m6!3m5!1s0x3e5f5db936da9f23:0x2f4212cc1172b758!8m2!3d25.26373!4d55.333424!16s%2Fg%2F11yt004nkq';
 
 export function Hero() {
   return (
@@ -147,15 +144,33 @@ export function Hero() {
 
             {/* Trust strip below image */}
             <div className="mt-4 grid grid-cols-3 gap-2">
-              {TRUST_STATS.map(({ label, value }) => (
-                <div
-                  key={label}
-                  className="rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-center"
-                >
-                  <p className="font-technical text-sm font-bold text-brand-text">{value}</p>
-                  <p className="text-xs text-brand-muted">{label}</p>
-                </div>
-              ))}
+              {/* Google Rating — clickable */}
+              <a
+                href={GOOGLE_MAPS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-center transition-colors hover:border-brand-orange/30"
+              >
+                <p className="font-technical text-sm font-bold text-brand-orange group-hover:underline">
+                  ★★★★★ 5.0
+                </p>
+                <p className="text-xs text-brand-muted">14 Google Reviews</p>
+              </a>
+              {/* Location */}
+              <a
+                href="https://www.google.com/maps/dir/?api=1&destination=25.26373,55.333424&travelmode=driving"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-center transition-colors hover:border-brand-orange/30"
+              >
+                <p className="font-technical text-sm font-bold text-brand-text">Deira, Dubai</p>
+                <p className="text-xs text-brand-muted">Get Directions</p>
+              </a>
+              {/* Workflow */}
+              <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-center">
+                <p className="font-technical text-sm font-bold text-brand-text">ECU · IMMO</p>
+                <p className="text-xs text-brand-muted">Files · Flashing</p>
+              </div>
             </div>
           </div>
         </div>

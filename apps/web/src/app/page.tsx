@@ -2,13 +2,14 @@ import type { Metadata } from 'next';
 import { Hero } from '@/components/home/hero';
 import { ServicesSection } from '@/components/home/services';
 import { DevicesSection } from '@/components/home/devices-section';
+import { GoogleReviewsSection } from '@/components/home/google-reviews';
 import { ArticlesTeaser } from '@/components/home/articles-teaser';
 import { CtaStrip } from '@/components/home/cta-strip';
 
 export const metadata: Metadata = {
-  title: 'Caracal Tech Motors — ECU Tuning Tools & Workshop Support Dubai',
+  title: 'ECU Tuning Dubai | Workshop Technical Support | Caracal Tech Motors',
   description:
-    'Professional ECU tuning tools, file services, and workshop support in Dubai. KESS3, AutoTuner, BFlash, DPF off, EGR delete, IMMO off and more.',
+    'Professional ECU tuning, diagnostics, IMMO, DPF, EGR, AdBlue support, ECU lookup, and technical workshop assistance for Dubai and UAE trade customers.',
 };
 
 export default function HomePage() {
@@ -17,6 +18,7 @@ export default function HomePage() {
       <Hero />
       <ServicesSection />
       <DevicesSection />
+      <GoogleReviewsSection />
       <ArticlesTeaser />
       <CtaStrip />
     </>

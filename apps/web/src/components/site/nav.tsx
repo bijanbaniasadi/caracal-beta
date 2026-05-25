@@ -8,10 +8,13 @@ import { useCart } from '@/hooks/use-cart';
 
 const NAV_LINKS = [
   { href: '/shop', label: 'Shop' },
-  { href: '/ecu-tools', label: 'ECU Tools' },
-  { href: '/knowledge', label: 'Knowledge Base' },
+  { href: '/ecu-remapping-dubai', label: 'Services' },
+  { href: '/knowledge', label: 'Knowledge' },
   { href: '/contact', label: 'Contact' },
 ];
+
+const PHONE_DISPLAY = '058 579 6760';
+const PHONE_HREF = 'tel:+971585796760';
 
 export function SiteNav() {
   const pathname = usePathname();
@@ -63,6 +66,14 @@ export function SiteNav() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
+          {/* Phone number — trust signal, always visible */}
+          <a
+            href={PHONE_HREF}
+            className="text-sm font-medium text-brand-muted transition-colors hover:text-brand-text"
+            aria-label="Call us"
+          >
+            {PHONE_DISPLAY}
+          </a>
           <Link
             href="/shop/cart"
             className="rounded-md border border-white/15 px-3 py-1.5 text-sm font-semibold text-brand-text transition-colors hover:bg-white/5"
@@ -76,7 +87,7 @@ export function SiteNav() {
             className="flex items-center gap-2 rounded-md bg-brand-orange px-4 py-1.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             <WhatsAppIcon />
-            WhatsApp Quote
+            WhatsApp
           </a>
         </div>
 

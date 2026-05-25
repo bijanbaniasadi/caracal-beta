@@ -16,6 +16,27 @@ export default function EcuTuningPage() {
       eyebrow="Workshop Support"
       title="ECU Tuning Dubai"
       description="Commercial and technical support for workshops working with ECU tuning tools, tuning files, software licences, bench workflows, and calibration planning."
+      waContext="Hi, I need support with ECU tuning tools and file service"
+      relatedArticles={[
+        {
+          slug: 'top-10-ecu-tuning-tools',
+          title: 'Top 10 ECU Tuning Tools',
+          category: 'Petrol ECU Remapping',
+          summary: 'Best ECU chip-tuning tools: a connection device guide covering OBD, bench, and boot-mode options for professional workshops.',
+        },
+        {
+          slug: 'winols-tutorial-course',
+          title: 'WinOLS Tutorial Course',
+          category: 'Petrol ECU Remapping',
+          summary: 'A structured path through WinOLS: project setup, map search and identification, version management, and submitting files to a slave network.',
+        },
+        {
+          slug: 'checksum-file-hygiene-and-factory-ecu-recalibration-basics',
+          title: 'Checksum & File Hygiene Basics',
+          category: 'File Handling and Validation',
+          summary: 'How to verify, correct, and validate ECU files before writing — covering checksum tools, safety protocols, and factory recalibration discipline.',
+        },
+      ]}
       tags={['KESS3', 'AutoTuner', 'WinOLS', 'ECU programmers', 'TCU remap tools', 'File service']}
       points={[
         'Tool choice depends on the target ECU or TCU family, security access, read path, and checksum workflow.',
