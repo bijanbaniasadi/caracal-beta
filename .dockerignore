@@ -1,0 +1,15 @@
+.git
+node_modules
+.turbo
+tmp
+logs
+backups
+apps/web/.next
+apps/web/out
+apps/web/test-results
+apps/web/tsconfig.tsbuildinfo
+**/*.tsbuildinfo
+apps/api/dist
+packages/@caracal/*/dist
+hetzner setup.pdf
+*.log

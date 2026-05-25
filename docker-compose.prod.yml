@@ -17,15 +17,15 @@ services:
       - ./docker/nginx/certs:/etc/nginx/certs:ro
       - nginx-logs:/var/log/nginx
     healthcheck:
-      test: ['CMD-SHELL', 'wget -qO- http://localhost/health/live >/dev/null 2>&1']
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1/health/live >/dev/null 2>&1']
       interval: 30s
       timeout: 5s
       retries: 3
     logging:
       driver: json-file
       options:
-        max-size: 25m
-        max-file: '5'
+        max-size: 10m
+        max-file: '3'
 
   web:
     build:
@@ -47,8 +47,8 @@ services:
     logging:
       driver: json-file
       options:
-        max-size: 25m
-        max-file: '5'
+        max-size: 10m
+        max-file: '3'
 
   api:
     build:
@@ -68,7 +68,7 @@ services:
       REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:?Set REFRESH_TOKEN_SECRET}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:?Set STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:?Set STRIPE_WEBHOOK_SECRET}
-      AUTH_COOKIE_SECURE: 'true'
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOCAL_UPLOAD_DIR: /app/apps/api/uploads
       BIN_ANALYSIS_AUTO_QUEUE: ${BIN_ANALYSIS_AUTO_QUEUE:-true}
@@ -93,8 +93,8 @@ services:
     logging:
       driver: json-file
       options:
-        max-size: 50m
-        max-file: '10'
+        max-size: 10m
+        max-file: '3'
 
   api-worker:
     build:
@@ -125,8 +125,8 @@ services:
     logging:
       driver: json-file
       options:
-        max-size: 50m
-        max-file: '10'
+        max-size: 10m
+        max-file: '3'
 
   postgres:
     image: postgres:15-alpine
@@ -147,8 +147,8 @@ services:
     logging:
       driver: json-file
       options:
-        max-size: 25m
-        max-file: '5'
+        max-size: 10m
+        max-file: '3'
 
   redis:
     image: redis:7-alpine
@@ -166,8 +166,8 @@ services:
     logging:
       driver: json-file
       options:
-        max-size: 25m
-        max-file: '5'
+        max-size: 10m
+        max-file: '3'
 
 volumes:
   api-logs:
