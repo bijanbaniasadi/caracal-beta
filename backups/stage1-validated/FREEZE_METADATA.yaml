@@ -1,0 +1,7 @@
+﻿stage: stage1-validated
+git_commit: aa21e49ec4c96629d704eb1b0850968c5fe7248b
+git_tag: stage1-mk3-validated
+postgres_dump: backups/stage1-validated/stage1.dump
+typesense_snapshot: backups/stage1-validated/typesense-stage1
+validation_status: passed
+freeze_time_utc: 2026-05-26T23:55:56.5433469+04:00
