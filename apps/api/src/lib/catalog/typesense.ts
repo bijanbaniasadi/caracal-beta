@@ -7,12 +7,24 @@ export interface TypesenseConfig {
   collectionPrefix: string;
 }
 
+const nullableStringField = z
+  .string()
+  .nullable()
+  .optional()
+  .transform((value) => value ?? null);
+const nullableIntField = z
+  .number()
+  .int()
+  .nullable()
+  .optional()
+  .transform((value) => value ?? null);
+
 export const typesenseProductDocumentSchema = z.object({
   id: z.string().uuid(),
   public_id: z.string().uuid(),
   slug: z.string().min(1),
   name: z.string().min(1),
-  short_description: z.string().nullable(),
+  short_description: nullableStringField,
   manufacturer_slug: z.string().min(1),
   manufacturer_name: z.string().min(1),
   category_slug: z.string().min(1),
@@ -20,13 +32,13 @@ export const typesenseProductDocumentSchema = z.object({
   category_path: z.array(z.string()),
   tags: z.array(z.string()),
   compatibility: z.array(z.string()),
-  best_price_cents: z.number().int().nullable(),
+  best_price_cents: nullableIntField,
   currency: z.string().length(3),
   in_stock: z.boolean(),
   offer_count: z.number().int().nonnegative(),
   featured: z.boolean(),
   published_at: z.number().int().nonnegative(),
-  primary_image_key: z.string().nullable(),
+  primary_image_key: nullableStringField,
 });
 
 export type TypesenseProductDocument = z.infer<typeof typesenseProductDocumentSchema>;
@@ -249,8 +261,12 @@ function emptyTypesenseProductSearchResult(
 
 export async function searchTypesenseProducts(
   input: TypesenseProductSearchInput,
-  config = requireTypesenseConfig()
+  config = getTypesenseConfig()
 ): Promise<TypesenseProductSearchResult> {
+  if (!config.apiKey) {
+    return emptyTypesenseProductSearchResult(input);
+  }
+
   const params = new URLSearchParams({
     q: input.q.trim() || '*',
     query_by: 'name,short_description,manufacturer_name,category_name,category_slug',
