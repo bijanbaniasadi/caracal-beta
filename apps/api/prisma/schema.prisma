@@ -25,6 +25,7 @@ model User {
   passwordResetTokens PasswordResetToken[]
   ecuPatcherAccess    EcuPatcherAccess?
   ecuPatcherJobs      EcuPatcherJob[]
+  catalogApprovalLogs CatalogApprovalLog[] @relation("CatalogApprovalAdmin")
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -114,6 +115,26 @@ enum ProductStatus {
   DRAFT
   ACTIVE
   ARCHIVED
+}
+
+enum SupplierSyncMode {
+  DRY_RUN
+  STAGE
+  PUBLISH
+}
+
+enum SupplierSyncRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum StagingProductStatus {
+  PENDING
+  READY
+  APPROVED
+  REJECTED
+  PUBLISHED
 }
 
 enum InventoryStatus {
@@ -258,6 +279,7 @@ model Supplier {
   notes        String?
   metadata     Json?
   products     Product[]
+  syncSources  SupplierSource[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -301,6 +323,7 @@ model Product {
   supplier         Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   images           ProductImage[]
   inventoryItems   InventoryItem[]
+  stagingProducts StagingProduct[]
   cartItems        CartItem[]
   orderItems       OrderItem[]
   inquiries        ProductInquiry[]
@@ -325,6 +348,104 @@ model Product {
   @@index([status, name, id])
   @@index([status, priceCents, id])
   @@index([status, isFeatured, name, id])
+}
+
+model SupplierSource {
+  id             String                    @id @default(cuid())
+  supplierId     String?
+  supplier       Supplier?                 @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  slug           String                    @unique
+  name           String
+  baseUrl        String
+  currency       String                    @default("AED")
+  isActive       Boolean                   @default(true)
+  scrapeAllowed  Boolean?
+  robotsSummary  String?
+  metadata       Json?
+  syncRuns       SupplierSyncRun[]
+  stagingProducts StagingProduct[]
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  @@index([supplierId])
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+model SupplierSyncRun {
+  id                 String                @id @default(cuid())
+  sourceId           String?
+  source             SupplierSource?       @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  mode               SupplierSyncMode
+  status             SupplierSyncRunStatus @default(RUNNING)
+  startedAt          DateTime              @default(now())
+  finishedAt         DateTime?
+  discoveredCount    Int                   @default(0)
+  stagedCount        Int                   @default(0)
+  acceptedCount      Int                   @default(0)
+  reviewCount        Int                   @default(0)
+  rejectedCount      Int                   @default(0)
+  publishedCount     Int                   @default(0)
+  errorMessage       String?
+  metadata           Json?
+  stagingProducts    StagingProduct[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  @@index([sourceId])
+  @@index([mode])
+  @@index([status])
+  @@index([startedAt])
+}
+
+model StagingProduct {
+  id                  String               @id @default(cuid())
+  sourceId            String
+  source              SupplierSource       @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  runId               String?
+  run                 SupplierSyncRun?     @relation(fields: [runId], references: [id], onDelete: SetNull)
+  matchedProductId    String?
+  matchedProduct      Product?             @relation(fields: [matchedProductId], references: [id], onDelete: SetNull)
+  sourceProductKey    String
+  externalUrl         String
+  externalSku         String?
+  normalizedSku       String?
+  externalName        String
+  normalizedName      String
+  brand               String?
+  categoryName        String?
+  rawPriceCents       Int?
+  rawCurrency         String?
+  convertedPriceCents Int?
+  salePriceCents      Int?
+  oldPriceCents       Int?
+  discountPercent     Int                  @default(10)
+  marginPercent       Int                  @default(15)
+  stockStatus         InventoryStatus      @default(IN_STOCK)
+  imageUrl            String?
+  imageApproved       Boolean              @default(false)
+  status              StagingProductStatus @default(PENDING)
+  warnings            Json?
+  rejectReasons       Json?
+  readyChecklist      Json?
+  changedFields       Json?
+  rawData             Json?
+  normalizedData      Json?
+  firstSeenAt         DateTime             @default(now())
+  lastSeenAt          DateTime             @default(now())
+  approvedAt          DateTime?
+  publishedAt         DateTime?
+  approvalLogs        CatalogApprovalLog[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@unique([sourceId, sourceProductKey])
+  @@index([sourceId])
+  @@index([runId])
+  @@index([matchedProductId])
+  @@index([status])
+  @@index([normalizedSku])
+  @@index([lastSeenAt])
 }
 
 model ProductImage {
@@ -775,6 +896,25 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([action])
   @@index([requestId])
+  @@index([createdAt])
+}
+
+model CatalogApprovalLog {
+  id               String          @id @default(cuid())
+  adminUserId      String?
+  adminUser        User?           @relation("CatalogApprovalAdmin", fields: [adminUserId], references: [id], onDelete: SetNull)
+  stagingProductId String?
+  stagingProduct   StagingProduct? @relation(fields: [stagingProductId], references: [id], onDelete: SetNull)
+  stagingRowId     String
+  action           String
+  oldValue         Json?
+  newValue         Json?
+  createdAt        DateTime        @default(now())
+
+  @@index([adminUserId])
+  @@index([stagingProductId])
+  @@index([stagingRowId])
+  @@index([action])
   @@index([createdAt])
 }
 

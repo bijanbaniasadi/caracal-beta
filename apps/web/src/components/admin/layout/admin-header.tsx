@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 const TITLES: Record<string, string> = {
   '/admin/dashboard': 'Dashboard',
   '/admin/products':  'Products',
+  '/admin/catalog/sync': 'Catalog Sync',
   '/admin/inventory': 'Inventory',
   '/admin/articles':  'Articles',
   '/admin/inquiries': 'Inquiries',
@@ -26,8 +27,8 @@ export function AdminHeader({ action }: AdminHeaderProps) {
       .find(([key]) => pathname.startsWith(key))?.[1] ?? 'Admin';
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-[#0b1218]/80 px-6 backdrop-blur-sm">
-      <h1 className="font-display text-base font-bold text-brand-text">
+    <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#0b1218]/80 px-3 backdrop-blur-sm sm:px-6">
+      <h1 className="truncate font-display text-base font-bold text-brand-text">
         {title}
       </h1>
       <div className="flex items-center gap-3">

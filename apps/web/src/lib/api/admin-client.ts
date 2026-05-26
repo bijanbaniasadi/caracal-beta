@@ -15,7 +15,11 @@
 import type {
   AdminArticle,
   AdminBinUpload,
+  AdminCatalogSyncActionResult,
+  AdminCatalogSyncRow,
   AdminCategory,
+  ArticleCreateInput,
+  AuditLogRecord,
   BinUploadUpdateInput,
   CorpusMatchResult,
   DashboardMetrics,
@@ -26,7 +30,9 @@ import type {
   OrderRefundInput,
   OrderUpdateInput,
   AdminProduct,
+  InventoryStatus,
   ProductCreateInput,
+  ProductStatus,
   AdminSession,
   BinAnalysisJob,
   EcuAnalysisRun,
@@ -395,6 +401,65 @@ export async function deleteAdminProduct(id: string): Promise<void> {
 
 // ─── Categories ───────────────────────────────────────────────────────────────
 
+// Catalog sync
+
+/** GET /api/admin/catalog/sync */
+export async function listPendingCatalogSyncRows(): Promise<AdminCatalogSyncRow[]> {
+  const env = await adminFetch<AdminCatalogSyncRow[]>(
+    'GET',
+    '/api/admin/catalog/sync?status=PENDING&limit=250',
+  );
+  return env.data;
+}
+
+/** POST /api/admin/catalog/sync/:id/approve */
+export async function approveCatalogSyncRow(
+  id: string,
+): Promise<AdminCatalogSyncActionResult> {
+  const env = await adminFetch<AdminCatalogSyncActionResult>(
+    'POST',
+    `/api/admin/catalog/sync/${id}/approve`,
+    {},
+  );
+  return env.data;
+}
+
+/** POST /api/admin/catalog/sync/:id/reject */
+export async function rejectCatalogSyncRow(
+  id: string,
+): Promise<AdminCatalogSyncActionResult> {
+  const env = await adminFetch<AdminCatalogSyncActionResult>(
+    'POST',
+    `/api/admin/catalog/sync/${id}/reject`,
+    {},
+  );
+  return env.data;
+}
+
+/** POST /api/admin/catalog/sync/bulk/approve */
+export async function approveSelectedCatalogSyncRows(
+  ids: string[],
+): Promise<AdminCatalogSyncActionResult[]> {
+  const env = await adminFetch<AdminCatalogSyncActionResult[]>(
+    'POST',
+    '/api/admin/catalog/sync/bulk/approve',
+    { ids },
+  );
+  return env.data;
+}
+
+/** POST /api/admin/catalog/sync/bulk/reject */
+export async function rejectSelectedCatalogSyncRows(
+  ids: string[],
+): Promise<AdminCatalogSyncActionResult[]> {
+  const env = await adminFetch<AdminCatalogSyncActionResult[]>(
+    'POST',
+    '/api/admin/catalog/sync/bulk/reject',
+    { ids },
+  );
+  return env.data;
+}
+
 /** GET /api/admin/categories */
 export async function listAdminCategories(): Promise<AdminCategory[]> {
   const env = await adminFetch<AdminCategory[]>('GET', '/api/admin/categories');
@@ -418,7 +483,7 @@ export async function getAdminArticle(id: string): Promise<AdminArticle> {
 
 /** POST /api/admin/articles */
 export async function createAdminArticle(
-  input: import('./admin-types').ArticleCreateInput,
+  input: ArticleCreateInput,
 ): Promise<AdminArticle> {
   const env = await adminFetch<AdminArticle>('POST', '/api/admin/articles', input);
   return env.data;
@@ -427,7 +492,7 @@ export async function createAdminArticle(
 /** PATCH /api/admin/articles/:id */
 export async function updateAdminArticle(
   id: string,
-  input: Partial<import('./admin-types').ArticleCreateInput>,
+  input: Partial<ArticleCreateInput>,
 ): Promise<AdminArticle> {
   const env = await adminFetch<AdminArticle>('PATCH', `/api/admin/articles/${id}`, input);
   return env.data;
@@ -845,7 +910,7 @@ export async function resetFailedCorpusJobs(runId: string): Promise<unknown> {
 /** GET /api/admin/audit-logs — NOTE: endpoint may not exist; returns empty list gracefully */
 export async function listAuditLogs(
   _params?: ListParams,
-): Promise<PaginatedList<import('./admin-types').AuditLogRecord>> {
+): Promise<PaginatedList<AuditLogRecord>> {
   // Audit logs are embedded in the dashboard metrics; no dedicated list endpoint yet
   return { items: [], total: 0, page: 1, pageSize: 20, totalPages: 0 };
 }
@@ -921,7 +986,7 @@ interface AdminInventoryItemFull {
   quantityOnHand: number;
   quantityReserved: number;
   reorderPoint: number;
-  status: import('./admin-types').InventoryStatus;
+  status: InventoryStatus;
   createdAt: string;
   updatedAt: string;
   product: {
@@ -929,6 +994,6 @@ interface AdminInventoryItemFull {
     sku: string | null;
     slug: string;
     name: string;
-    status: import('./admin-types').ProductStatus;
+    status: ProductStatus;
   };
 }

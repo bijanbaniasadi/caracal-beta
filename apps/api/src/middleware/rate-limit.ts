@@ -43,3 +43,13 @@ export const uploadLimiter = rateLimit({
     next(tooManyRequests('Too many upload attempts. Please try again later.'));
   },
 });
+
+export const catalogSyncLimiter = rateLimit({
+  windowMs: fifteenMinutes,
+  limit: Number.parseInt(process.env.CATALOG_SYNC_RATE_LIMIT_MAX ?? '120', 10),
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, _res, next) => {
+    next(tooManyRequests('Too many catalog sync actions. Please try again later.'));
+  },
+});

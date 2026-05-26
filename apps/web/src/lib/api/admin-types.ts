@@ -9,6 +9,7 @@
 
 export type ProductStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
 export type InventoryStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'DISCONTINUED';
+export type StagingProductStatus = 'PENDING' | 'READY' | 'APPROVED' | 'REJECTED' | 'PUBLISHED';
 export type ArticleStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 export type IntakeStatus = 'NEW' | 'IN_REVIEW' | 'RESPONDED' | 'CLOSED' | 'SPAM';
 export type BinUploadStatus = 'RECEIVED' | 'VALIDATED' | 'REJECTED' | 'STORED';
@@ -208,6 +209,52 @@ export interface ProductCreateInput {
 }
 
 export type ProductUpdateInput = Partial<ProductCreateInput>;
+
+// Catalog sync
+
+export interface AdminCatalogSyncSource {
+  id: string;
+  name: string;
+  slug: string;
+  baseUrl: string;
+}
+
+export interface AdminCatalogSyncDiff {
+  productionProductId: string | null;
+  productionSku: string | null;
+  productionName: string | null;
+  productionPriceCents: number | null;
+  productionCurrency: string;
+  stagedPriceCents: number | null;
+  changePercent: number | null;
+  overThreshold: boolean;
+}
+
+export interface AdminCatalogSyncRow {
+  id: string;
+  name: string;
+  sku: string | null;
+  externalSku: string | null;
+  source: AdminCatalogSyncSource;
+  normalizedPriceCents: number | null;
+  oldPriceCents: number | null;
+  rawPriceCents: number | null;
+  rawCurrency: string | null;
+  stockStatus: InventoryStatus;
+  status: StagingProductStatus;
+  lastScrapedAt: string;
+  externalUrl: string;
+  warnings: unknown;
+  rejectReasons: unknown;
+  diff: AdminCatalogSyncDiff;
+}
+
+export interface AdminCatalogSyncActionResult {
+  id: string;
+  status: StagingProductStatus;
+  productId: string | null;
+  error?: string;
+}
 
 // ─── Categories ───────────────────────────────────────────────────────────────
 

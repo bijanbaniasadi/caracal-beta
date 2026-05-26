@@ -28,6 +28,11 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
   api-worker:
     build:
       context: .
@@ -50,6 +55,11 @@ services:
     volumes:
       - api-uploads:/app/apps/api/uploads
       - api-logs:/app/logs/api
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
   api-ecu-corpus-worker:
     build:
       context: .
@@ -87,6 +97,11 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
   postgres:
     image: postgres:15-alpine
     environment:
@@ -102,6 +117,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
   redis:
     image: redis:7-alpine
     ports:
@@ -112,6 +132,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
 
 volumes:
   api-logs:

@@ -37,6 +37,7 @@ import { getStripeClient, paymentLogger } from '../lib/payments/stripe.js';
 import { toPrismaJson } from '../lib/prisma-json.js';
 import { authenticateAccessToken, requireRoles } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
+import { adminCatalogSyncRouter } from './admin-catalog-sync.js';
 import { adminEcuPatcherRouter } from './admin-ecu-patcher.js';
 import { ecuCorpusRouter } from './ecu-corpus.js';
 import {
@@ -84,6 +85,7 @@ createBullBoard({
 
 adminRouter.use(authenticateAccessToken, requireRoles('admin', 'staff'));
 adminRouter.use('/queues/ui', queueBoardAdapter.getRouter());
+adminRouter.use('/catalog/sync', adminCatalogSyncRouter);
 adminRouter.use('/ecu-patcher', adminEcuPatcherRouter);
 adminRouter.use('/ecu-corpus', ecuCorpusRouter);
 

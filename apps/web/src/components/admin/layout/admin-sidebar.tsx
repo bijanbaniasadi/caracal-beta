@@ -16,6 +16,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: '/admin/dashboard',       label: 'Dashboard',      icon: '▦', matchExact: true },
   { href: '/admin/products',        label: 'Products',       icon: '📦' },
+  { href: '/admin/catalog/sync',    label: 'Catalog Sync',   icon: 'S' },
   { href: '/admin/inventory',       label: 'Inventory',      icon: '🗃' },
   { href: '/admin/orders',          label: 'Orders',         icon: '$' },
   { href: '/admin/articles',        label: 'Articles',       icon: '📝' },
@@ -33,13 +34,13 @@ export function AdminSidebar() {
   const { session, logout } = useAdminAuth();
 
   return (
-    <aside className="flex h-full w-56 flex-col border-r border-white/10 bg-[#0b1218]">
+    <aside className="flex h-full w-16 shrink-0 flex-col border-r border-white/10 bg-[#0b1218] sm:w-56">
       {/* Brand */}
-      <div className="flex items-center gap-2.5 border-b border-white/10 px-4 py-4">
+      <div className="flex items-center justify-center gap-2.5 border-b border-white/10 px-2 py-4 sm:justify-start sm:px-4">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-orange/20">
           <span className="text-sm font-bold text-brand-orange">C</span>
         </div>
-        <div>
+        <div className="hidden sm:block">
           <p className="font-display text-xs font-bold text-brand-text leading-none">Caracal</p>
           <p className="text-[10px] font-medium text-brand-muted">Admin Panel</p>
         </div>
@@ -57,17 +58,18 @@ export function AdminSidebar() {
                 <Link
                   href={href}
                   className={[
-                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    'flex items-center justify-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors sm:justify-start',
                     active
                       ? 'bg-brand-orange/15 text-brand-orange'
                       : 'text-brand-muted hover:bg-white/5 hover:text-brand-text',
                   ].join(' ')}
                   aria-current={active ? 'page' : undefined}
+                  title={label}
                 >
-                  <span className="text-base leading-none" aria-hidden="true">
+                  <span className="text-base leading-none sm:w-4" aria-hidden="true">
                     {icon}
                   </span>
-                  {label}
+                  <span className="hidden sm:inline">{label}</span>
                 </Link>
               </li>
             );
@@ -76,8 +78,8 @@ export function AdminSidebar() {
       </nav>
 
       {/* User footer */}
-      <div className="border-t border-white/10 px-3 py-3">
-        <div className="mb-2 rounded-lg bg-white/[0.04] px-3 py-2">
+      <div className="border-t border-white/10 px-2 py-3 sm:px-3">
+        <div className="mb-2 hidden rounded-lg bg-white/[0.04] px-3 py-2 sm:block">
           <p className="truncate text-xs font-medium text-brand-text">
             {session?.user.email ?? '—'}
           </p>
@@ -86,9 +88,11 @@ export function AdminSidebar() {
         <button
           type="button"
           onClick={() => void logout()}
-          className="w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-brand-muted transition-colors hover:bg-white/5 hover:text-red-400"
+          title="Sign out"
+          className="w-full rounded-lg px-2 py-2 text-center text-xs font-medium text-brand-muted transition-colors hover:bg-white/5 hover:text-red-400 sm:px-3 sm:text-left"
         >
-          ⏏ Sign out
+          <span aria-hidden="true">⏏</span>
+          <span className="hidden sm:inline"> Sign out</span>
         </button>
       </div>
     </aside>

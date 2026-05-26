@@ -26,6 +26,8 @@
     "db:health": "tsx scripts/health-diagnostics.ts",
     "catalog:import:legacy": "tsx scripts/import-legacy-shop-catalog.ts",
     "catalog:verify:legacy": "tsx scripts/verify-legacy-shop-runtime.ts",
+    "supplier:sync": "tsx scripts/supplier-catalog-sync.ts",
+    "supplier:upsert-staging": "tsx scripts/upsert-staging-products.ts",
     "ecu:scan": "tsx scripts/ecu-corpus-scan.ts",
     "ecu:runtime": "tsx scripts/ecu-corpus-runtime.ts",
     "ecu:enqueue": "tsx scripts/ecu-corpus-runtime.ts enqueue",
