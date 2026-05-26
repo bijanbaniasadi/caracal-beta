@@ -32,6 +32,7 @@ const requiredRelations = [
   'master_product_specs',
   'master_product_compatibility',
   'price_history',
+  'curated_product_prices',
   'review_queue',
   'admin_audit_log',
   'public_products',
@@ -42,6 +43,7 @@ const requiredIndexes = [
   'master_products_live_sku_unique',
   'product_images_one_primary_image',
   'price_history_offer_time_idx',
+  'curated_product_prices_offer_idx',
   'review_queue_open_idx',
   'public_products_public_id_idx',
   'public_products_slug_idx',
@@ -272,6 +274,7 @@ async function routeTypesenseBoundaryCheck(): Promise<RuntimeCheck> {
     'src/routes/admin-master-catalog.ts',
     'src/routes/admin-review-queue.ts',
     'src/routes/admin-mk3-ingestion.ts',
+    'src/routes/admin-catalog-curation.ts',
   ];
   const violations: string[] = [];
 

@@ -106,6 +106,27 @@ export const reviewQueueRejectSchema = z.object({
   reason: requiredText(2000),
 });
 
+export const reviewQueueApproveSchema = z.object({
+  masterProductId: bigIntId.optional(),
+  confidence: z.coerce.number().min(0).max(1).optional(),
+  notes: optionalText(2000),
+});
+
+export const reviewQueueMergeDuplicateSchema = z.object({
+  canonicalRawProductId: bigIntId,
+  reason: requiredText(2000),
+});
+
+export const reviewQueueArchiveSchema = z.object({
+  reason: requiredText(2000),
+});
+
+export const reviewQueueRefingerprintSchema = z
+  .object({
+    reason: optionalReason,
+  })
+  .default({});
+
 export type MasterProductListQuery = z.infer<typeof masterProductListQuerySchema>;
 export type MasterProductCreateInput = z.infer<typeof masterProductCreateSchema>;
 export type MasterProductUpdateInput = z.infer<typeof masterProductUpdateSchema>;
@@ -119,3 +140,7 @@ export type ReviewQueueListQuery = z.infer<typeof reviewQueueListQuerySchema>;
 export type ReviewQueueAttachInput = z.infer<typeof reviewQueueAttachSchema>;
 export type ReviewQueueCreateInput = z.infer<typeof reviewQueueCreateSchema>;
 export type ReviewQueueRejectInput = z.infer<typeof reviewQueueRejectSchema>;
+export type ReviewQueueApproveInput = z.infer<typeof reviewQueueApproveSchema>;
+export type ReviewQueueMergeDuplicateInput = z.infer<typeof reviewQueueMergeDuplicateSchema>;
+export type ReviewQueueArchiveInput = z.infer<typeof reviewQueueArchiveSchema>;
+export type ReviewQueueRefingerprintInput = z.infer<typeof reviewQueueRefingerprintSchema>;

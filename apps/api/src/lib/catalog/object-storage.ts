@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createHash } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const objectStorageConfigSchema = z.object({
@@ -20,6 +20,14 @@ export interface StoredCatalogRawAsset {
   storageKey: string;
   sha256: string;
   bytes: number;
+}
+
+export interface CatalogRawAssetVerification {
+  storageKey: string;
+  local: boolean;
+  exists: boolean;
+  path: string | null;
+  bytes: number | null;
 }
 
 export function loadCatalogObjectStorageConfig(
@@ -77,4 +85,41 @@ export async function writeCatalogRawAsset(
     sha256,
     bytes: bytes.length,
   };
+}
+
+export function localCatalogRawAssetPath(
+  storageKey: string,
+  source: NodeJS.ProcessEnv = process.env
+): string | null {
+  const prefix = 'local://catalog-raw/';
+  if (!storageKey.startsWith(prefix)) {
+    return null;
+  }
+
+  const relativePath = storageKey
+    .slice(prefix.length)
+    .split('/')
+    .filter((segment) => segment.length > 0 && segment !== '..')
+    .join('/');
+
+  return join(rawAssetDirectory(source), relativePath);
+}
+
+export async function verifyCatalogRawAsset(
+  storageKey: string,
+  source: NodeJS.ProcessEnv = process.env
+): Promise<CatalogRawAssetVerification> {
+  const path = localCatalogRawAssetPath(storageKey, source);
+
+  if (!path) {
+    return { storageKey, local: false, exists: false, path: null, bytes: null };
+  }
+
+  try {
+    await access(path);
+    const file = await stat(path);
+    return { storageKey, local: true, exists: file.isFile(), path, bytes: file.size };
+  } catch {
+    return { storageKey, local: true, exists: false, path, bytes: null };
+  }
 }

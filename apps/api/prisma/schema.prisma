@@ -31,6 +31,7 @@ model User {
   catalogAdminAuditLogs AdminAuditLog[]    @relation("CatalogAdminAuditUser")
   assignedReviewQueueItems ReviewQueue[]   @relation("ReviewQueueAssignedTo")
   resolvedReviewQueueItems ReviewQueue[]   @relation("ReviewQueueResolvedBy")
+  selectedCuratedPrices CuratedProductPrice[] @relation("CuratedProductPriceSelectedBy")
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -190,6 +191,7 @@ enum ReviewAction {
   ATTACH_TO_MASTER @map("attach_to_master")
   REJECT           @map("reject")
   DUPLICATE        @map("duplicate")
+  ARCHIVE          @map("archive")
 
   @@map("review_action")
 }
@@ -668,6 +670,7 @@ model MasterProduct {
   images            CatalogProductImage[]
   matchedRawProducts VendorRawProduct[]  @relation("VendorRawProductMatch")
   reviewSuggestions ReviewQueue[]        @relation("ReviewQueueSuggestion")
+  curatedPrice      CuratedProductPrice?
   tags              MasterProductTag[]
   specs             MasterProductSpec[]
   compatibility     MasterProductCompatibility[]
@@ -700,6 +703,7 @@ model VendorOffer {
   createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
   priceHistory    PriceHistory[]
+  curatedSelections CuratedProductPrice[]
 
   @@unique([vendorId, vendorUrl])
   @@index([productId])
@@ -719,6 +723,26 @@ model PriceHistory {
 
   @@index([offerId, observedAt(sort: Desc)], map: "price_history_offer_time_idx")
   @@map("price_history")
+}
+
+model CuratedProductPrice {
+  id              BigInt        @id @default(autoincrement())
+  productId       BigInt        @unique @map("product_id")
+  product         MasterProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  selectedOfferId BigInt?       @map("selected_offer_id")
+  selectedOffer   VendorOffer?  @relation(fields: [selectedOfferId], references: [id], onDelete: SetNull)
+  priceCents      BigInt        @map("price_cents")
+  currency        String        @default("USD") @db.Char(3)
+  reason          String?
+  selectedById    String        @map("selected_by")
+  selectedBy      User          @relation("CuratedProductPriceSelectedBy", fields: [selectedById], references: [id], onDelete: Restrict)
+  selectedAt      DateTime      @default(now()) @map("selected_at") @db.Timestamptz(6)
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([selectedOfferId], map: "curated_product_prices_offer_idx")
+  @@index([selectedById], map: "curated_product_prices_selected_by_idx")
+  @@index([selectedAt], map: "curated_product_prices_selected_at_idx")
+  @@map("curated_product_prices")
 }
 
 

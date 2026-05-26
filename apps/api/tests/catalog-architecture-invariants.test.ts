@@ -40,6 +40,7 @@ describe('catalog architecture invariants', () => {
       'src/routes/admin-master-catalog.ts',
       'src/routes/admin-review-queue.ts',
       'src/routes/admin-mk3-ingestion.ts',
+      'src/routes/admin-catalog-curation.ts',
     ];
 
     for (const routeFile of routeFiles) {
