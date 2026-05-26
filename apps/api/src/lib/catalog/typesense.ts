@@ -235,6 +235,18 @@ export interface TypesenseProductSearchResult {
   hits: TypesenseProductDocument[];
 }
 
+function emptyTypesenseProductSearchResult(
+  input: TypesenseProductSearchInput
+): TypesenseProductSearchResult {
+  return {
+    found: 0,
+    page: input.page ?? 1,
+    outOf: 0,
+    facetCounts: [],
+    hits: [],
+  };
+}
+
 export async function searchTypesenseProducts(
   input: TypesenseProductSearchInput,
   config = requireTypesenseConfig()
@@ -260,7 +272,12 @@ export async function searchTypesenseProducts(
   );
 
   if (!response.ok) {
-    throw new Error(`Typesense product search failed: ${response.status} ${await response.text()}`);
+    const body = await response.text();
+    if (response.status === 404) {
+      return emptyTypesenseProductSearchResult(input);
+    }
+
+    throw new Error(`Typesense product search failed: ${response.status} ${body}`);
   }
 
   const body = await parseTypesenseJson<{
