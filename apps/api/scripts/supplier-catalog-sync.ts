@@ -30,6 +30,7 @@ const MAX_SUPPLIER_SALE_PRICE_CENTS = readPositiveIntegerEnv(
   'SUPPLIER_SYNC_MAX_SALE_PRICE_CENTS',
   20000000
 );
+const MAX_RAW_PRICE_CENTS = 100000000;
 
 interface SourceConfig {
   slug: string;
@@ -625,7 +626,12 @@ async function parseProductPage(source: SourceConfig, url: string): Promise<RawP
       : (parsePriceFromMeta(html) ?? parsePriceFromText(pageText));
 
   const priceCents =
-    rawPrice && Number.isFinite(rawPrice.cents) && rawPrice.cents > 0 ? rawPrice.cents : null;
+    rawPrice &&
+    Number.isFinite(rawPrice.cents) &&
+    rawPrice.cents > 0 &&
+    rawPrice.cents <= MAX_RAW_PRICE_CENTS
+      ? rawPrice.cents
+      : null;
   const currency = rawPrice?.currency ?? source.currency;
   const schemaImage = productSchema ? firstString(productSchema.image) : null;
   const imageUrl = schemaImage ?? metaContent(html, 'og:image');
@@ -991,12 +997,22 @@ async function publishProduct(
 }
 
 async function stageSnapshot(sourceRowId: string, runId: string, product: NormalizedProduct) {
+  const productKey = {
+    sourceId: sourceRowId,
+    sourceProductKey: product.sourceProductKey,
+  };
+  const existing = await prisma.stagingProduct.findUnique({
+    where: { sourceId_sourceProductKey: productKey },
+    select: { status: true },
+  });
+  const status =
+    existing?.status === 'APPROVED' || existing?.status === 'PUBLISHED'
+      ? existing.status
+      : product.status;
+
   return prisma.stagingProduct.upsert({
     where: {
-      sourceId_sourceProductKey: {
-        sourceId: sourceRowId,
-        sourceProductKey: product.sourceProductKey,
-      },
+      sourceId_sourceProductKey: productKey,
     },
     update: {
       runId,
@@ -1015,7 +1031,7 @@ async function stageSnapshot(sourceRowId: string, runId: string, product: Normal
       stockStatus: product.stockStatus,
       imageUrl: product.imageUrl,
       imageApproved: product.imageApproved,
-      status: product.status,
+      status,
       warnings: toJson(product.warnings),
       rejectReasons: toJson(product.rejectReasons),
       rawData: product.rawData,
@@ -1045,7 +1061,7 @@ async function stageSnapshot(sourceRowId: string, runId: string, product: Normal
       stockStatus: product.stockStatus,
       imageUrl: product.imageUrl,
       imageApproved: product.imageApproved,
-      status: product.status,
+      status,
       warnings: toJson(product.warnings),
       rejectReasons: toJson(product.rejectReasons),
       rawData: product.rawData,
