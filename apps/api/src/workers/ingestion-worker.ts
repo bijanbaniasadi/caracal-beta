@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq';
 
 import { catalogQueueNames, type CatalogIngestionJobData } from '../lib/catalog/queues.js';
+import { runMk3Ingestion } from '../lib/catalog/mk3/ingestion.js';
 import { getRedisConnectionOptions } from '../lib/bin-analysis/queue.js';
 import { logger } from '../lib/logger.js';
 
@@ -11,11 +12,13 @@ const ingestionWorker = new Worker<CatalogIngestionJobData>(
   async (job) => {
     logger.info({ jobId: job.id, data: job.data }, 'catalog ingestion skeleton received job');
 
-    return {
-      action: 'ingestion-placeholder',
-      owns: ['ingestion_runs', 'vendor_raw_products', 'vendor_raw_images'],
-      scrapersImplemented: false,
-    };
+    return runMk3Ingestion({
+      vendorSourceId: job.data.vendorSourceId,
+      requestedBy: job.data.requestedBy,
+      trigger: job.data.trigger,
+      startUrls: job.data.startUrls,
+      maxPages: job.data.maxPages,
+    });
   },
   {
     connection: getRedisConnectionOptions(),

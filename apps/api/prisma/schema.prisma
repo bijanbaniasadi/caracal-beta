@@ -621,13 +621,18 @@ model VendorRawImage {
   rawProduct     VendorRawProduct @relation(fields: [rawProductId], references: [id], onDelete: Cascade)
   originalUrl    String           @map("original_url")
   storageKey     String?          @map("storage_key")
+  contentHash    String?          @map("content_hash")
+  mimeType       String?          @map("mime_type")
   bytes          Int?
   width          Int?
   height         Int?
   downloadedAt   DateTime?        @map("downloaded_at") @db.Timestamptz(6)
+  downloadError  String?          @map("download_error")
   createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([rawProductId])
+  @@index([rawProductId, originalUrl])
+  @@index([contentHash])
   @@map("vendor_raw_images")
 }
 

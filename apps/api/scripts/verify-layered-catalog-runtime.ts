@@ -239,6 +239,8 @@ async function workerBoundaryCheck(): Promise<RuntimeCheck> {
     'src/workers/image-pipeline-worker.ts',
     'src/workers/projection-worker.ts',
     'src/workers/reconciliation-worker.ts',
+    'src/lib/catalog/mk3/ingestion.ts',
+    'src/lib/catalog/mk3/matching.ts',
   ];
   const forbidden = [
     /prisma\.masterProduct\.create/,
@@ -269,6 +271,7 @@ async function routeTypesenseBoundaryCheck(): Promise<RuntimeCheck> {
   const routeFiles = [
     'src/routes/admin-master-catalog.ts',
     'src/routes/admin-review-queue.ts',
+    'src/routes/admin-mk3-ingestion.ts',
   ];
   const violations: string[] = [];
 

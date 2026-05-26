@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq';
 
 import { catalogQueueNames, type CatalogFingerprintJobData } from '../lib/catalog/queues.js';
+import { processMk3RawProductFingerprint } from '../lib/catalog/mk3/matching.js';
 import { getRedisConnectionOptions } from '../lib/bin-analysis/queue.js';
 import { logger } from '../lib/logger.js';
 
@@ -10,6 +11,10 @@ const fingerprintWorker = new Worker<CatalogFingerprintJobData>(
   catalogQueueNames.fingerprint,
   async (job) => {
     logger.info({ jobId: job.id, data: job.data }, 'catalog fingerprint skeleton received job');
+
+    if (job.data.rawProductId) {
+      return processMk3RawProductFingerprint(job.data.rawProductId);
+    }
 
     return {
       action: 'fingerprint-placeholder',

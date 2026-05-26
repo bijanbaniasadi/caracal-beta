@@ -15,6 +15,8 @@ export interface CatalogIngestionJobData {
   vendorSourceId: string;
   requestedBy?: string;
   trigger: 'schedule' | 'manual';
+  startUrls?: string[];
+  maxPages?: number;
 }
 
 export interface CatalogFingerprintJobData {
@@ -139,6 +141,22 @@ export async function enqueueCatalogProjectionJob(data: CatalogProjectionJobData
 
   return getCatalogProjectionQueue().add(jobName, data, {
     jobId: `${jobName}:${data.masterProductId ?? data.publicId ?? 'all'}:${Date.now()}`,
+  });
+}
+
+export async function enqueueCatalogIngestionJob(data: CatalogIngestionJobData) {
+  const vendorKey = data.vendorSourceId;
+
+  return getCatalogIngestionQueue().add('ingest-vendor', data, {
+    jobId: `ingest:${vendorKey}:${Date.now()}`,
+  });
+}
+
+export async function enqueueCatalogFingerprintJob(data: CatalogFingerprintJobData) {
+  const jobName = data.rawProductId ? 'fingerprint-raw-product' : 'fingerprint-ingestion-run';
+
+  return getCatalogFingerprintQueue().add(jobName, data, {
+    jobId: `${jobName}:${data.rawProductId ?? data.ingestionRunId ?? 'all'}:${Date.now()}`,
   });
 }
 
