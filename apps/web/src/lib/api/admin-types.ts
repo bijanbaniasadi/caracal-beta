@@ -146,6 +146,28 @@ export interface SupplierRef {
   slug: string;
 }
 
+export type ProductPriceProvenanceMode =
+  | 'CURATED'
+  | 'PRICE_HISTORY'
+  | 'VENDOR_PRODUCT'
+  | 'SUPPLIER'
+  | 'MANUAL';
+
+export interface ProductPriceProvenance {
+  mode: ProductPriceProvenanceMode;
+  sourceName: string | null;
+  sourceSlug: string | null;
+  vendorSku: string | null;
+  vendorTitle: string | null;
+  vendorUrl: string | null;
+  sourceProductKey: string | null;
+  rawPriceCents: number | null;
+  normalizedPriceCents: number | null;
+  currency: string;
+  scrapedAt: string | null;
+  selectedAt: string | null;
+}
+
 export interface AdminProduct {
   id: string;
   sku: string | null;
@@ -159,6 +181,7 @@ export interface AdminProduct {
   tradePriceCents: number | null;
   category: CategoryRef | null;
   supplier: SupplierRef | null;
+  priceProvenance: ProductPriceProvenance;
   isFeatured: boolean;
   isB2BEligible: boolean;
   isTradeOnly: boolean;
@@ -173,6 +196,44 @@ export interface AdminProduct {
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export type ProductSourceCandidateKind = 'VENDOR_PRODUCT' | 'STAGING_PRODUCT';
+
+export interface ProductSourceCandidate {
+  id: string;
+  kind: ProductSourceCandidateKind;
+  source: AdminCatalogSyncSource & { currency?: string };
+  title: string;
+  sku: string | null;
+  url: string;
+  status: string;
+  rawPriceCents: number | null;
+  rawCurrency: string;
+  normalizedPriceCents: number | null;
+  normalizedCurrency: string;
+  stockStatus: InventoryStatus | null;
+  scrapedAt: string | null;
+  score: number;
+  reasons: string[];
+  priceDeltaPercent: number | null;
+}
+
+export interface AdminProductSourceLookup {
+  product: Pick<
+    AdminProduct,
+    'id' | 'sku' | 'name' | 'priceCents' | 'currency' | 'supplier'
+  > & {
+    priceProvenance: ProductPriceProvenance;
+  };
+  candidates: ProductSourceCandidate[];
+  summary: {
+    candidateCount: number;
+    highConfidenceCount: number;
+    priceWarningCount: number;
+    needsReview: boolean;
+    recommendations: string[];
+  };
 }
 
 export interface ProductCreateInput {

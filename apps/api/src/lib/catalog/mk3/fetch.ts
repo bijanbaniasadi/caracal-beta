@@ -58,12 +58,42 @@ function pageExtension(contentType: string | null): string {
   return 'html';
 }
 
+function parseDataImageUrl(originalUrl: string): {
+  bytes: Buffer;
+  mimeType: string;
+  extension: string;
+} | null {
+  const match = originalUrl.match(/^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=]+)$/i);
+  if (!match) return null;
+
+  const mimeType = match[1].toLowerCase();
+  const extension = mimeType.split('/')[1]?.split('+')[0] ?? 'img';
+
+  return {
+    bytes: Buffer.from(match[2], 'base64'),
+    mimeType,
+    extension,
+  };
+}
+
 export async function downloadMk3Image(originalUrl: string): Promise<{
   storageKey: string;
   contentHash: string;
   bytes: number;
   mimeType: string | null;
 }> {
+  const dataImage = parseDataImageUrl(originalUrl);
+  if (dataImage) {
+    const stored = await writeCatalogRawAsset('mk3-images', dataImage.bytes, dataImage.extension);
+
+    return {
+      storageKey: stored.storageKey,
+      contentHash: stored.sha256,
+      bytes: stored.bytes,
+      mimeType: dataImage.mimeType,
+    };
+  }
+
   const response = await fetch(originalUrl, {
     headers: {
       accept: 'image/avif,image/webp,image/png,image/jpeg,image/*',

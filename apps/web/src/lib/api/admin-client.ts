@@ -30,6 +30,7 @@ import type {
   OrderRefundInput,
   OrderUpdateInput,
   AdminProduct,
+  AdminProductSourceLookup,
   InventoryStatus,
   ProductCreateInput,
   ProductStatus,
@@ -374,6 +375,17 @@ export async function listAdminProducts(
 /** GET /api/admin/products/:id */
 export async function getAdminProduct(id: string): Promise<AdminProduct> {
   const env = await adminFetch<AdminProduct>('GET', `/api/admin/products/${id}`);
+  return env.data;
+}
+
+/** GET /api/admin/products/:id/source-candidates */
+export async function lookupAdminProductSources(
+  id: string,
+): Promise<AdminProductSourceLookup> {
+  const env = await adminFetch<AdminProductSourceLookup>(
+    'GET',
+    `/api/admin/products/${id}/source-candidates`,
+  );
   return env.data;
 }
 

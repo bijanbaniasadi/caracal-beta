@@ -1,8 +1,12 @@
+import { mkdtemp, rm } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
+import { verifyCatalogRawAsset } from '../src/lib/catalog/object-storage.js';
+import { downloadMk3Image } from '../src/lib/catalog/mk3/fetch.js';
 import {
   decideMk3Match,
   type Mk3MasterCandidate,
@@ -93,5 +97,30 @@ describe('MK3 staged ingestion invariants', () => {
     });
     expect(matching).toMatch(/reviewQueue\.create/);
     expect(matching).not.toMatch(/masterProduct\.(create|update|delete)/);
+  });
+
+  it('stores fixture data-url images through the raw asset abstraction', async () => {
+    const previousRawAssetDir = process.env.CATALOG_RAW_ASSET_DIR;
+    const rawAssetDir = await mkdtemp(resolve(tmpdir(), 'mk3-fixture-image-'));
+    process.env.CATALOG_RAW_ASSET_DIR = rawAssetDir;
+
+    try {
+      const image = await downloadMk3Image(
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='
+      );
+      const verification = await verifyCatalogRawAsset(image.storageKey);
+
+      expect(image.mimeType).toBe('image/png');
+      expect(image.bytes).toBeGreaterThan(0);
+      expect(image.storageKey).toMatch(/^local:\/\/catalog-raw\/mk3-images\//);
+      expect(verification.exists).toBe(true);
+    } finally {
+      if (previousRawAssetDir === undefined) {
+        delete process.env.CATALOG_RAW_ASSET_DIR;
+      } else {
+        process.env.CATALOG_RAW_ASSET_DIR = previousRawAssetDir;
+      }
+      await rm(rawAssetDir, { recursive: true, force: true });
+    }
   });
 });

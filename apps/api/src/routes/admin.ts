@@ -120,6 +120,79 @@ const productInclude = {
   inventoryItems: {
     orderBy: [{ locationKey: 'asc' }],
   },
+  curatedPricing: {
+    include: {
+      selectedSource: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          baseUrl: true,
+          currency: true,
+        },
+      },
+      selectedVendorProduct: {
+        include: {
+          source: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              baseUrl: true,
+              currency: true,
+            },
+          },
+          priceHistory: {
+            orderBy: [{ scrapedAt: 'desc' }],
+            take: 1,
+          },
+        },
+      },
+    },
+  },
+  vendorProducts: {
+    orderBy: [{ lastSeenAt: 'desc' }],
+    take: 3,
+    include: {
+      source: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          baseUrl: true,
+          currency: true,
+        },
+      },
+      priceHistory: {
+        orderBy: [{ scrapedAt: 'desc' }],
+        take: 1,
+      },
+    },
+  },
+  rawPriceHistory: {
+    orderBy: [{ scrapedAt: 'desc' }],
+    take: 1,
+    include: {
+      source: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          baseUrl: true,
+          currency: true,
+        },
+      },
+      vendorProduct: {
+        select: {
+          id: true,
+          sourceProductKey: true,
+          vendorSku: true,
+          vendorTitle: true,
+          vendorUrl: true,
+        },
+      },
+    },
+  },
   _count: {
     select: {
       cartItems: true,
@@ -155,6 +228,106 @@ const categoryInclude = {
 } satisfies Prisma.CategoryInclude;
 
 type AdminProduct = Prisma.ProductGetPayload<{ include: typeof productInclude }>;
+
+function priceProvenance(product: AdminProduct) {
+  const curated = product.curatedPricing;
+  const curatedVendor = curated?.selectedVendorProduct;
+  const curatedHistory = curatedVendor?.priceHistory[0];
+
+  if (curated) {
+    return {
+      mode: 'CURATED',
+      sourceName:
+        curated.selectedSource?.name ??
+        curatedVendor?.source.name ??
+        product.supplier?.name ??
+        null,
+      sourceSlug: curated.selectedSource?.slug ?? curatedVendor?.source.slug ?? null,
+      vendorSku: curatedVendor?.vendorSku ?? null,
+      vendorTitle: curatedVendor?.vendorTitle ?? null,
+      vendorUrl: curatedVendor?.vendorUrl ?? null,
+      sourceProductKey: curatedVendor?.sourceProductKey ?? null,
+      rawPriceCents: curatedHistory?.rawPriceCents ?? null,
+      normalizedPriceCents: curatedHistory?.normalizedPriceCents ?? curated.costBasisCents ?? null,
+      currency: curatedHistory?.normalizedCurrency ?? curated.currency ?? product.currency,
+      scrapedAt: curatedHistory?.scrapedAt ?? null,
+      selectedAt: curated.updatedAt,
+    };
+  }
+
+  const latestProductHistory = product.rawPriceHistory[0];
+
+  if (latestProductHistory) {
+    return {
+      mode: 'PRICE_HISTORY',
+      sourceName: latestProductHistory.source.name,
+      sourceSlug: latestProductHistory.source.slug,
+      vendorSku: latestProductHistory.vendorProduct.vendorSku,
+      vendorTitle: latestProductHistory.vendorProduct.vendorTitle,
+      vendorUrl: latestProductHistory.sourceUrl ?? latestProductHistory.vendorProduct.vendorUrl,
+      sourceProductKey: latestProductHistory.vendorProduct.sourceProductKey,
+      rawPriceCents: latestProductHistory.rawPriceCents,
+      normalizedPriceCents: latestProductHistory.normalizedPriceCents,
+      currency: latestProductHistory.normalizedCurrency,
+      scrapedAt: latestProductHistory.scrapedAt,
+      selectedAt: null,
+    };
+  }
+
+  const latestVendorProduct =
+    product.vendorProducts.find((vendorProduct) => vendorProduct.priceHistory[0]) ??
+    product.vendorProducts[0];
+  const latestVendorHistory = latestVendorProduct?.priceHistory[0];
+
+  if (latestVendorProduct) {
+    return {
+      mode: 'VENDOR_PRODUCT',
+      sourceName: latestVendorProduct.source.name,
+      sourceSlug: latestVendorProduct.source.slug,
+      vendorSku: latestVendorProduct.vendorSku,
+      vendorTitle: latestVendorProduct.vendorTitle,
+      vendorUrl: latestVendorProduct.vendorUrl,
+      sourceProductKey: latestVendorProduct.sourceProductKey,
+      rawPriceCents: latestVendorHistory?.rawPriceCents ?? null,
+      normalizedPriceCents: latestVendorHistory?.normalizedPriceCents ?? null,
+      currency: latestVendorHistory?.normalizedCurrency ?? latestVendorProduct.source.currency,
+      scrapedAt: latestVendorHistory?.scrapedAt ?? null,
+      selectedAt: null,
+    };
+  }
+
+  if (product.supplier) {
+    return {
+      mode: 'SUPPLIER',
+      sourceName: product.supplier.name,
+      sourceSlug: product.supplier.slug,
+      vendorSku: null,
+      vendorTitle: null,
+      vendorUrl: null,
+      sourceProductKey: null,
+      rawPriceCents: null,
+      normalizedPriceCents: null,
+      currency: product.currency,
+      scrapedAt: null,
+      selectedAt: null,
+    };
+  }
+
+  return {
+    mode: 'MANUAL',
+    sourceName: null,
+    sourceSlug: null,
+    vendorSku: null,
+    vendorTitle: null,
+    vendorUrl: null,
+    sourceProductKey: null,
+    rawPriceCents: null,
+    normalizedPriceCents: null,
+    currency: product.currency,
+    scrapedAt: null,
+    selectedAt: null,
+  };
+}
 
 function parseListQuery(req: Request): AdminListQuery {
   return adminListQuerySchema.parse(req.query);
@@ -203,6 +376,115 @@ function inventorySummary(items: InventoryItem[]) {
   };
 }
 
+const PRODUCT_LOOKUP_STOP_WORDS = new Set([
+  'and',
+  'for',
+  'the',
+  'with',
+  'tool',
+  'tools',
+  'master',
+  'full',
+  'new',
+  'ecu',
+  'tcu',
+  'car',
+]);
+
+function compactSku(value: string | null | undefined): string | null {
+  const compact = value
+    ?.trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+  return compact ? compact : null;
+}
+
+function productLookupTokens(value: string): string[] {
+  const tokens = value
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 3);
+  const significant = tokens.filter((token) => !PRODUCT_LOOKUP_STOP_WORDS.has(token));
+
+  return Array.from(new Set(significant.length > 0 ? significant : tokens)).slice(0, 8);
+}
+
+function productSearchTokens(value: string): string[] {
+  const tokens = value
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 2);
+
+  return Array.from(new Set(tokens)).slice(0, 10);
+}
+
+function sourceCandidateReasons(input: {
+  productSku: string;
+  productName: string;
+  supplierName: string | null;
+  candidateSku: string | null;
+  candidateTitle: string;
+  sourceName: string;
+  productId?: string | null;
+  currentProductId: string;
+}) {
+  const reasons: string[] = [];
+  let score = 0;
+  const productSku = input.productSku.toUpperCase();
+  const productSkuCompact = compactSku(productSku);
+  const candidateSkuCompact = compactSku(input.candidateSku);
+  const titleTokens = productLookupTokens(input.productName);
+  const candidateTitle = input.candidateTitle.toLowerCase();
+
+  if (input.productId === input.currentProductId) {
+    score += 100;
+    reasons.push('Already linked to this product');
+  }
+
+  if (productSkuCompact && candidateSkuCompact && productSkuCompact === candidateSkuCompact) {
+    score += 80;
+    reasons.push('SKU match');
+  } else if (
+    productSkuCompact &&
+    candidateSkuCompact &&
+    (candidateSkuCompact.includes(productSkuCompact) ||
+      productSkuCompact.includes(candidateSkuCompact))
+  ) {
+    score += 45;
+    reasons.push('SKU partial match');
+  }
+
+  const matchedTokens = titleTokens.filter((token) => candidateTitle.includes(token));
+  if (titleTokens.length > 0 && matchedTokens.length === titleTokens.length) {
+    score += 55;
+    reasons.push('Title token match');
+  } else if (matchedTokens.length > 0) {
+    score += matchedTokens.length * 12;
+    reasons.push(`Title token match: ${matchedTokens.join(', ')}`);
+  }
+
+  if (
+    input.supplierName &&
+    input.sourceName.toLowerCase().includes(input.supplierName.toLowerCase())
+  ) {
+    score += 15;
+    reasons.push('Supplier match');
+  }
+
+  return {
+    score,
+    reasons: reasons.length > 0 ? reasons : ['Weak text match'],
+  };
+}
+
+function priceDeltaPercent(currentPriceCents: number | null, candidatePriceCents: number | null) {
+  if (!currentPriceCents || !candidatePriceCents) return null;
+
+  return ((candidatePriceCents - currentPriceCents) / currentPriceCents) * 100;
+}
+
 function serializeProduct(product: AdminProduct) {
   return {
     id: product.id,
@@ -216,6 +498,7 @@ function serializeProduct(product: AdminProduct) {
     currency: product.currency,
     category: product.category,
     supplier: product.supplier,
+    priceProvenance: priceProvenance(product),
     isFeatured: product.isFeatured,
     isB2BEligible: product.isB2BEligible,
     isTradeOnly: product.isTradeOnly,
@@ -246,13 +529,45 @@ function productWhere(query: AdminListQuery): Prisma.ProductWhereInput {
   }
 
   if (query.q) {
-    and.push({
-      OR: [
-        { name: { contains: query.q, mode: 'insensitive' } },
-        { sku: { contains: query.q, mode: 'insensitive' } },
-        { slug: { contains: query.q, mode: 'insensitive' } },
-      ],
-    });
+    const tokens = productSearchTokens(query.q);
+    const terms = tokens.length > 0 ? tokens : [query.q.trim()];
+
+    and.push(
+      ...terms.map((term) => ({
+        OR: [
+          { name: { contains: term, mode: 'insensitive' as const } },
+          { sku: { contains: term, mode: 'insensitive' as const } },
+          { slug: { contains: term, mode: 'insensitive' as const } },
+          { shortDescription: { contains: term, mode: 'insensitive' as const } },
+          {
+            category: {
+              is: { name: { contains: term, mode: 'insensitive' as const } },
+            },
+          },
+          {
+            supplier: {
+              is: { name: { contains: term, mode: 'insensitive' as const } },
+            },
+          },
+          {
+            vendorProducts: {
+              some: {
+                OR: [
+                  { vendorSku: { contains: term, mode: 'insensitive' as const } },
+                  { normalizedSku: { contains: term, mode: 'insensitive' as const } },
+                  { vendorTitle: { contains: term, mode: 'insensitive' as const } },
+                  {
+                    source: {
+                      is: { name: { contains: term, mode: 'insensitive' as const } },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      }))
+    );
   }
 
   if (and.length > 0) {
@@ -943,6 +1258,244 @@ adminRouter.get(
     const { pageItems, pagination } = paginationMeta(rows, query.limit);
 
     sendSuccess(res, pageItems.map(serializeProduct), 200, { pagination });
+  })
+);
+
+adminRouter.get(
+  '/products/:id/source-candidates',
+  asyncHandler(async (req, res) => {
+    const prisma = getPrismaClient();
+    const product = await prisma.product.findUnique({
+      where: { id: req.params.id },
+      include: productInclude,
+    });
+
+    if (!product) {
+      throw notFound('Product not found.', { id: req.params.id });
+    }
+
+    const productSku = product.sku;
+    const productSkuCompact = compactSku(product.sku);
+    const titleTokens = productLookupTokens(product.name);
+    const skuFilters: Prisma.VendorProductWhereInput[] = [
+      { productId: product.id },
+      { stagingProduct: { is: { matchedProductId: product.id } } },
+    ];
+    const stagingSkuFilters: Prisma.StagingProductWhereInput[] = [{ matchedProductId: product.id }];
+
+    if (productSku) {
+      skuFilters.push(
+        { vendorSku: { contains: productSku, mode: 'insensitive' } },
+        { normalizedSku: { contains: productSku, mode: 'insensitive' } }
+      );
+      stagingSkuFilters.push(
+        { externalSku: { contains: productSku, mode: 'insensitive' } },
+        { normalizedSku: { contains: productSku, mode: 'insensitive' } }
+      );
+    }
+
+    if (productSkuCompact && productSkuCompact !== productSku) {
+      skuFilters.push(
+        { vendorSku: { contains: productSkuCompact, mode: 'insensitive' } },
+        { normalizedSku: { contains: productSkuCompact, mode: 'insensitive' } }
+      );
+      stagingSkuFilters.push(
+        { externalSku: { contains: productSkuCompact, mode: 'insensitive' } },
+        { normalizedSku: { contains: productSkuCompact, mode: 'insensitive' } }
+      );
+    }
+
+    const titleFilter =
+      titleTokens.length > 0
+        ? {
+            AND: titleTokens.map((token) => ({
+              vendorTitle: { contains: token, mode: 'insensitive' as const },
+            })),
+          }
+        : null;
+    const stagingTitleFilter =
+      titleTokens.length > 0
+        ? {
+            AND: titleTokens.map((token) => ({
+              normalizedName: { contains: token, mode: 'insensitive' as const },
+            })),
+          }
+        : null;
+
+    const vendorProducts = await prisma.vendorProduct.findMany({
+      where: {
+        OR: [...skuFilters, ...(titleFilter ? [titleFilter] : [])],
+      },
+      include: {
+        source: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            baseUrl: true,
+            currency: true,
+          },
+        },
+        priceHistory: {
+          orderBy: [{ scrapedAt: 'desc' }],
+          take: 1,
+        },
+      },
+      orderBy: [{ lastSeenAt: 'desc' }],
+      take: 25,
+    });
+
+    const stagingProducts = await prisma.stagingProduct.findMany({
+      where: {
+        OR: [...stagingSkuFilters, ...(stagingTitleFilter ? [stagingTitleFilter] : [])],
+      },
+      include: {
+        source: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            baseUrl: true,
+            currency: true,
+          },
+        },
+      },
+      orderBy: [{ lastSeenAt: 'desc' }],
+      take: 25,
+    });
+
+    const vendorCandidates = vendorProducts.map((candidate) => {
+      const latestPrice = candidate.priceHistory[0];
+      const match = sourceCandidateReasons({
+        productSku,
+        productName: product.name,
+        supplierName: product.supplier?.name ?? null,
+        candidateSku: candidate.vendorSku ?? candidate.normalizedSku,
+        candidateTitle: candidate.vendorTitle,
+        sourceName: candidate.source.name,
+        productId: candidate.productId,
+        currentProductId: product.id,
+      });
+      const normalizedPriceCents = latestPrice?.normalizedPriceCents ?? null;
+
+      return {
+        id: candidate.id,
+        kind: 'VENDOR_PRODUCT',
+        source: candidate.source,
+        title: candidate.vendorTitle,
+        sku: candidate.vendorSku ?? candidate.normalizedSku,
+        url: candidate.vendorUrl,
+        status: candidate.matchStatus,
+        rawPriceCents: latestPrice?.rawPriceCents ?? null,
+        rawCurrency: latestPrice?.rawCurrency ?? candidate.source.currency,
+        normalizedPriceCents,
+        normalizedCurrency: latestPrice?.normalizedCurrency ?? candidate.source.currency,
+        stockStatus: latestPrice?.availability ?? null,
+        scrapedAt: latestPrice?.scrapedAt ?? null,
+        score: match.score,
+        reasons: match.reasons,
+        priceDeltaPercent: priceDeltaPercent(product.priceCents, normalizedPriceCents),
+      };
+    });
+
+    const stagingCandidates = stagingProducts.map((candidate) => {
+      const match = sourceCandidateReasons({
+        productSku,
+        productName: product.name,
+        supplierName: product.supplier?.name ?? null,
+        candidateSku: candidate.externalSku ?? candidate.normalizedSku,
+        candidateTitle: candidate.externalName,
+        sourceName: candidate.source.name,
+        productId: candidate.matchedProductId,
+        currentProductId: product.id,
+      });
+      const normalizedPriceCents = candidate.salePriceCents ?? candidate.convertedPriceCents;
+
+      return {
+        id: candidate.id,
+        kind: 'STAGING_PRODUCT',
+        source: candidate.source,
+        title: candidate.externalName,
+        sku: candidate.externalSku ?? candidate.normalizedSku,
+        url: candidate.externalUrl,
+        status: candidate.status,
+        rawPriceCents: candidate.rawPriceCents,
+        rawCurrency: candidate.rawCurrency ?? candidate.source.currency,
+        normalizedPriceCents,
+        normalizedCurrency: 'AED',
+        stockStatus: candidate.stockStatus,
+        scrapedAt: candidate.lastSeenAt,
+        score: match.score,
+        reasons: match.reasons,
+        priceDeltaPercent: priceDeltaPercent(product.priceCents, normalizedPriceCents),
+      };
+    });
+
+    const candidateMap = new Map<
+      string,
+      (typeof vendorCandidates | typeof stagingCandidates)[number]
+    >();
+
+    for (const candidate of [...vendorCandidates, ...stagingCandidates]) {
+      const key = `${candidate.source.slug}:${candidate.url}`;
+      const existing = candidateMap.get(key);
+
+      if (!existing || candidate.score > existing.score) {
+        candidateMap.set(key, candidate);
+      }
+    }
+
+    const candidates = Array.from(candidateMap.values())
+      .sort((left, right) => right.score - left.score)
+      .slice(0, 12);
+    const highConfidenceCandidates = candidates.filter((candidate) => candidate.score >= 60);
+    const priceWarnings = candidates.filter(
+      (candidate) =>
+        candidate.priceDeltaPercent !== null && Math.abs(candidate.priceDeltaPercent) >= 20
+    );
+    const provenance = priceProvenance(product);
+    const recommendations: string[] = [];
+
+    if (highConfidenceCandidates.length === 0) {
+      recommendations.push('No high-confidence vendor evidence was found for this SKU/title.');
+    }
+
+    if (provenance.mode === 'SUPPLIER' || provenance.mode === 'MANUAL') {
+      recommendations.push('Current price is not backed by a scraped vendor price.');
+    }
+
+    if (priceWarnings.length > 0) {
+      recommendations.push('One or more candidate prices differ by 20% or more.');
+    }
+
+    if (product.priceCents === null) {
+      recommendations.push('Product has no public price.');
+    }
+
+    sendSuccess(res, {
+      product: {
+        id: product.id,
+        sku: product.sku,
+        name: product.name,
+        priceCents: product.priceCents,
+        currency: product.currency,
+        supplier: product.supplier,
+        priceProvenance: provenance,
+      },
+      candidates,
+      summary: {
+        candidateCount: candidates.length,
+        highConfidenceCount: highConfidenceCandidates.length,
+        priceWarningCount: priceWarnings.length,
+        needsReview:
+          highConfidenceCandidates.length === 0 ||
+          priceWarnings.length > 0 ||
+          product.priceCents === null ||
+          provenance.mode === 'SUPPLIER' ||
+          provenance.mode === 'MANUAL',
+        recommendations,
+      },
+    });
   })
 );
 
