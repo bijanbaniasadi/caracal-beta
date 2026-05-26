@@ -1,7 +1,7 @@
 import 'dotenv/config';
 
 import bcrypt from 'bcryptjs';
-import { PrismaClient, type InventoryStatus } from '@prisma/client';
+import { PrismaClient, type InventoryStatus, type ProductStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -11,6 +11,7 @@ interface SeedProduct {
   name: string;
   shortDescription: string;
   description: string;
+  status?: ProductStatus;
   categorySlug: string;
   supplierSlug: string;
   priceCents: number;
@@ -159,21 +160,26 @@ const products: SeedProduct[] = [
     name: 'AutoTuner ECU Programming Tool',
     shortDescription: 'AutoTuner flashing hardware for professional ECU tuning support.',
     description:
-      'Compact ECU programming hardware for diagnostic, bench, and service workflows across supported vehicles.',
+      'Archived duplicate kept for migration history. Use the specific AutoTuner Master or Slave catalog products instead.',
+    status: 'ARCHIVED',
     categorySlug: 'ecu-tcu-tuning-tools',
     supplierSlug: 'autotuner',
-    priceCents: 720000,
-    tradePriceCents: 670000,
-    isFeatured: true,
-    isB2BEligible: true,
-    quantityOnHand: 3,
+    priceCents: 2300149,
+    tradePriceCents: 2200000,
+    isFeatured: false,
+    isB2BEligible: false,
+    quantityOnHand: 0,
     reorderPoint: 1,
-    inventoryStatus: 'IN_STOCK',
+    inventoryStatus: 'DISCONTINUED',
     imageUrl: productImageUrls.autotuner,
     attributes: {
       brand: 'AutoTuner',
       channels: ['OBD', 'Bench'],
       inquiryReady: true,
+      supersededBySlugs: [
+        'autotuner-tool-device-master-version',
+        'autotuner-tool-device-slave-version',
+      ],
     },
   },
   {
@@ -926,7 +932,7 @@ async function seedCatalog(): Promise<SeedProduct[]> {
         name: product.name,
         shortDescription: product.shortDescription,
         description: product.description,
-        status: 'ACTIVE',
+        status: product.status ?? 'ACTIVE',
         priceCents: product.priceCents,
         currency: 'AED',
         tradePriceCents: product.tradePriceCents,
@@ -937,7 +943,7 @@ async function seedCatalog(): Promise<SeedProduct[]> {
         supplierId,
         attributes: product.attributes,
         metadata: { seeded: true },
-        publishedAt: new Date(),
+        publishedAt: product.status === 'ARCHIVED' ? null : new Date(),
       },
       create: {
         sku: product.sku,
@@ -945,7 +951,7 @@ async function seedCatalog(): Promise<SeedProduct[]> {
         name: product.name,
         shortDescription: product.shortDescription,
         description: product.description,
-        status: 'ACTIVE',
+        status: product.status ?? 'ACTIVE',
         priceCents: product.priceCents,
         currency: 'AED',
         tradePriceCents: product.tradePriceCents,
@@ -956,7 +962,7 @@ async function seedCatalog(): Promise<SeedProduct[]> {
         supplierId,
         attributes: product.attributes,
         metadata: { seeded: true },
-        publishedAt: new Date(),
+        publishedAt: product.status === 'ARCHIVED' ? null : new Date(),
       },
       select: { id: true },
     });

@@ -30,6 +30,14 @@ const SOURCE_BRAND_TOKENS = [
   'obdii365',
   'uobdii',
 ];
+const MIN_APPROVAL_PRICE_CENTS = readPositiveIntegerEnv(
+  'SUPPLIER_SYNC_MIN_SALE_PRICE_CENTS',
+  10000
+);
+const MAX_APPROVAL_PRICE_CENTS = readPositiveIntegerEnv(
+  'SUPPLIER_SYNC_MAX_SALE_PRICE_CENTS',
+  20000000
+);
 
 const listQuerySchema = z.object({
   status: z.enum(STAGING_STATUSES).default('PENDING'),
@@ -49,6 +57,11 @@ const idParamSchema = z.object({
 });
 
 adminCatalogSyncRouter.use(catalogSyncLimiter);
+
+function readPositiveIntegerEnv(name: string, fallback: number): number {
+  const value = Number.parseInt(process.env[name] ?? '', 10);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
 
 const productMatchSelect = {
   id: true,
@@ -179,10 +192,7 @@ function scrubSupplierBrand(value: string, staging: StagingForPublish): string {
 
   let scrubbed = value;
   for (const token of tokens) {
-    scrubbed = scrubbed.replace(
-      new RegExp(escapeRegExp(token), 'gi'),
-      'Caracal Tech Motors'
-    );
+    scrubbed = scrubbed.replace(new RegExp(escapeRegExp(token), 'gi'), 'Caracal Tech Motors');
   }
 
   return scrubbed.replace(/\s+/g, ' ').trim();
@@ -198,6 +208,12 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 function readString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function readStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : [];
 }
 
 function normalizeTitle(value: string): string {
@@ -466,14 +482,38 @@ async function publishStagingProduct(
     throw badRequest('Staging product is missing a normalized price.', { id });
   }
 
+  const rejectReasons = readStringArray(staging.rejectReasons);
+  if (rejectReasons.length > 0) {
+    throw badRequest('Staging product has blocking validation issues.', {
+      id,
+      rejectReasons,
+    });
+  }
+
+  if (priceCents < MIN_APPROVAL_PRICE_CENTS) {
+    throw badRequest('Staging product price is below the approval threshold.', {
+      id,
+      priceCents,
+      minimumPriceCents: MIN_APPROVAL_PRICE_CENTS,
+    });
+  }
+
+  if (priceCents > MAX_APPROVAL_PRICE_CENTS) {
+    throw badRequest('Staging product price is above the approval threshold.', {
+      id,
+      priceCents,
+      maximumPriceCents: MAX_APPROVAL_PRICE_CENTS,
+    });
+  }
+
   const sku = normalizeSku(staging.normalizedSku ?? staging.externalSku) ?? fallbackSku(staging);
   const cleanName = scrubSupplierBrand(staging.normalizedName || staging.externalName, staging);
   const supplier = await ensureCaracalSupplier(tx);
   const category = await ensureCategory(tx, staging, cleanName);
   const existing = await findProductionProduct(tx, staging, sku, cleanName);
   const normalizedData = asRecord(staging.normalizedData);
-  const stagedDescription = readString(normalizedData.description)
-    ?? readString(normalizedData.shortDescription);
+  const stagedDescription =
+    readString(normalizedData.description) ?? readString(normalizedData.shortDescription);
   const fallbackDescription = 'Catalog item available through Caracal Tech Motors.';
   const shortDescription = scrubSupplierBrand(
     existing?.shortDescription ?? stagedDescription ?? fallbackDescription,
@@ -504,8 +544,9 @@ async function publishStagingProduct(
       approvedAt: new Date().toISOString(),
     },
   };
-  const productSlug = existing?.slug
-    ?? await ensureUniqueProductSlug(tx, `${slugify(cleanName)}-${shortHash(sku).toLowerCase()}`);
+  const productSlug =
+    existing?.slug ??
+    (await ensureUniqueProductSlug(tx, `${slugify(cleanName)}-${shortHash(sku).toLowerCase()}`));
   const now = new Date();
   const productData = {
     name: cleanName,
@@ -535,10 +576,8 @@ async function publishStagingProduct(
         },
         select: { id: true },
       });
-  const quantityOnHand = staging.stockStatus === 'OUT_OF_STOCK'
-    || staging.stockStatus === 'DISCONTINUED'
-    ? 0
-    : 1;
+  const quantityOnHand =
+    staging.stockStatus === 'OUT_OF_STOCK' || staging.stockStatus === 'DISCONTINUED' ? 0 : 1;
 
   await tx.inventoryItem.upsert({
     where: {
@@ -637,9 +676,7 @@ async function publishStagingProduct(
 
 async function approveOne(req: Request, id: string): Promise<CatalogSyncActionResult> {
   const prisma = getPrismaClient();
-  const result = await prisma.$transaction((tx) =>
-    publishStagingProduct(tx, id, req.auth?.userId)
-  );
+  const result = await prisma.$transaction((tx) => publishStagingProduct(tx, id, req.auth?.userId));
 
   await writeAuditLog(req, {
     action: 'admin.catalog_sync.approved',
@@ -676,9 +713,7 @@ async function rejectOne(req: Request, id: string): Promise<CatalogSyncActionRes
         where: { id },
         data: {
           status: 'REJECTED',
-          rejectReasons: toPrismaJson([
-            'Rejected from admin catalog sync dashboard.',
-          ]),
+          rejectReasons: toPrismaJson(['Rejected from admin catalog sync dashboard.']),
         },
         select: {
           id: true,
@@ -709,10 +744,7 @@ async function rejectOne(req: Request, id: string): Promise<CatalogSyncActionRes
       return row;
     })
     .catch((error: unknown) => {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError
-        && error.code === 'P2025'
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
         throw notFound('Staging product not found.', { id });
       }
 
@@ -777,16 +809,17 @@ adminCatalogSyncRouter.get(
           .filter((sku): sku is string => Boolean(sku))
       )
     );
-    const products = skus.length > 0
-      ? await prisma.product.findMany({
-          where: { sku: { in: skus } },
-          select: productMatchSelect,
-        })
-      : [];
+    const products =
+      skus.length > 0
+        ? await prisma.product.findMany({
+            where: { sku: { in: skus } },
+            select: productMatchSelect,
+          })
+        : [];
     const productsBySku = new Map(products.map((product) => [product.sku.toUpperCase(), product]));
     const data = rows.map((row) => {
       const sku = normalizeSku(row.normalizedSku ?? row.externalSku);
-      const productionMatch = row.matchedProduct ?? (sku ? productsBySku.get(sku) ?? null : null);
+      const productionMatch = row.matchedProduct ?? (sku ? (productsBySku.get(sku) ?? null) : null);
 
       return serializeStagingRow(row, productionMatch);
     });

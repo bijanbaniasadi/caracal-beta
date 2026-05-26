@@ -36,6 +36,9 @@ Pricing rule:
 - Convert supplier price to AED.
 - Set staged sale price to AED price plus 15%.
 - Set old price so the sale price displays as a 10% discount.
+- Block admin approval when the staged sale price is below
+  `SUPPLIER_SYNC_MIN_SALE_PRICE_CENTS` or above `SUPPLIER_SYNC_MAX_SALE_PRICE_CENTS`.
+  Defaults are AED 100 and AED 200,000.
 
 Brand safety:
 

@@ -22,6 +22,14 @@ const TARGET_CURRENCY = 'AED';
 const USD_AED = Number.parseFloat(process.env.SUPPLIER_SYNC_USD_AED ?? '3.67');
 const EUR_AED = Number.parseFloat(process.env.SUPPLIER_SYNC_EUR_AED ?? '4.00');
 const GBP_AED = Number.parseFloat(process.env.SUPPLIER_SYNC_GBP_AED ?? '4.70');
+const MIN_SUPPLIER_SALE_PRICE_CENTS = readPositiveIntegerEnv(
+  'SUPPLIER_SYNC_MIN_SALE_PRICE_CENTS',
+  10000
+);
+const MAX_SUPPLIER_SALE_PRICE_CENTS = readPositiveIntegerEnv(
+  'SUPPLIER_SYNC_MAX_SALE_PRICE_CENTS',
+  20000000
+);
 
 interface SourceConfig {
   slug: string;
@@ -33,6 +41,11 @@ interface SourceConfig {
   discoveryPaths: string[];
   productPathHints: string[];
   weakSkuTerms: string[];
+}
+
+function readPositiveIntegerEnv(name: string, fallback: number): number {
+  const value = Number.parseInt(process.env[name] ?? '', 10);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
 interface CliOptions {
@@ -148,8 +161,7 @@ function parseOptions(): CliOptions {
   };
 
   const modeInput = (argValue('mode') ?? 'dry-run').toLowerCase();
-  const mode =
-    modeInput === 'publish' ? 'PUBLISH' : modeInput === 'stage' ? 'STAGE' : 'DRY_RUN';
+  const mode = modeInput === 'publish' ? 'PUBLISH' : modeInput === 'stage' ? 'STAGE' : 'DRY_RUN';
   const sources = (argValue('sources') ?? SOURCE_CONNECTORS.map((source) => source.slug).join(','))
     .split(',')
     .map((source) => source.trim())
@@ -161,8 +173,7 @@ function parseOptions(): CliOptions {
     mode,
     sources,
     limit: Number.isFinite(limit) && limit > 0 ? limit : DEFAULT_LIMIT_PER_SOURCE,
-    delayMs:
-      Number.isFinite(delayMs) && delayMs >= 0 ? delayMs : DEFAULT_REQUEST_DELAY_MS,
+    delayMs: Number.isFinite(delayMs) && delayMs >= 0 ? delayMs : DEFAULT_REQUEST_DELAY_MS,
     skipRobots: args.includes('--skip-robots'),
   };
 }
@@ -218,7 +229,8 @@ function sourceHeaders(source?: SourceConfig): Record<string, string> {
   };
 
   if (source?.connectorType === 'legacy-iis') {
-    headers.Accept = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8';
+    headers.Accept =
+      'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8';
   }
 
   return headers;
@@ -306,11 +318,11 @@ function isLikelyProductUrl(source: SourceConfig, url: string): boolean {
 
     if (source.connectorType === 'legacy-iis') {
       return (
-        path.startsWith('/wholesale/')
-        && path.endsWith('.html')
-        && !path.includes('/brand-')
-        && !path.includes('/producttags/')
-        && !path.includes('/vendors/')
+        path.startsWith('/wholesale/') &&
+        path.endsWith('.html') &&
+        !path.includes('/brand-') &&
+        !path.includes('/producttags/') &&
+        !path.includes('/vendors/')
       );
     }
 
@@ -366,10 +378,7 @@ function parseJsonLd(html: string): unknown[] {
   );
 
   for (const script of scripts) {
-    const raw = script[1]
-      .replace(/<!--/g, '')
-      .replace(/-->/g, '')
-      .trim();
+    const raw = script[1].replace(/<!--/g, '').replace(/-->/g, '').trim();
     if (!raw) continue;
 
     try {
@@ -424,10 +433,7 @@ function firstString(value: unknown): string | null {
   if (value && typeof value === 'object') {
     const record = value as Record<string, unknown>;
     return (
-      stringValue(record.url) ??
-      stringValue(record.contentUrl) ??
-      stringValue(record.image) ??
-      null
+      stringValue(record.url) ?? stringValue(record.contentUrl) ?? stringValue(record.image) ?? null
     );
   }
   return stringValue(value);
@@ -452,7 +458,7 @@ function parsePriceFromText(value: string): { cents: number; currency: string | 
           ? 'GBP'
           : symbol === 'د.إ' || symbol === 'DH' || symbol === 'DHS'
             ? 'AED'
-            : symbol ?? null;
+            : (symbol ?? null);
 
   return { cents: Math.round(amount * 100), currency };
 }
@@ -460,13 +466,18 @@ function parsePriceFromText(value: string): { cents: number; currency: string | 
 function offerRecord(productSchema: Record<string, unknown>): Record<string, unknown> | null {
   const offers = productSchema.offers;
   if (Array.isArray(offers)) {
-    return (offers.find((offer) => offer && typeof offer === 'object') ??
-      null) as Record<string, unknown> | null;
+    return (offers.find((offer) => offer && typeof offer === 'object') ?? null) as Record<
+      string,
+      unknown
+    > | null;
   }
   return offers && typeof offers === 'object' ? (offers as Record<string, unknown>) : null;
 }
 
-function parseStockStatus(productSchema: Record<string, unknown> | null, pageText: string): InventoryStatus {
+function parseStockStatus(
+  productSchema: Record<string, unknown> | null,
+  pageText: string
+): InventoryStatus {
   const availability = productSchema ? String(offerRecord(productSchema)?.availability ?? '') : '';
   const text = `${availability} ${pageText}`.toLowerCase();
 
@@ -510,14 +521,23 @@ function isWeakSku(value: string | null, source: SourceConfig): boolean {
   return source.weakSkuTerms.some((term) => sku === term || sku === `${term}-`);
 }
 
-function normalizeExternalSku(value: string | null | undefined, source: SourceConfig): string | null {
-  const sku = value?.toUpperCase().replace(/[^\w.-]+/g, '').slice(0, 80) ?? null;
+function normalizeExternalSku(
+  value: string | null | undefined,
+  source: SourceConfig
+): string | null {
+  const sku =
+    value
+      ?.toUpperCase()
+      .replace(/[^\w.-]+/g, '')
+      .slice(0, 80) ?? null;
   return isWeakSku(sku, source) ? null : sku;
 }
 
 function skuFromHtml(html: string, source: SourceConfig): string | null {
   const text = textFromHtml(html);
-  const match = text.match(/\b(?:SKU|Model|Item\s*No\.?|Product\s*Code)\s*[:#-]?\s*([A-Z0-9][A-Z0-9._/-]{2,})/i);
+  const match = text.match(
+    /\b(?:SKU|Model|Item\s*No\.?|Product\s*Code)\s*[:#-]?\s*([A-Z0-9][A-Z0-9._/-]{2,})/i
+  );
   return normalizeExternalSku(match?.[1], source);
 }
 
@@ -602,11 +622,16 @@ function convertToAedCents(cents: number | null, currency: string | null): numbe
   return null;
 }
 
-function buildCaracalDescription(name: string, categoryName: string | null): {
+function buildCaracalDescription(
+  name: string,
+  categoryName: string | null
+): {
   shortDescription: string;
   description: string;
 } {
-  const subject = categoryName ? `${categoryName.toLowerCase()} product` : 'automotive workshop product';
+  const subject = categoryName
+    ? `${categoryName.toLowerCase()} product`
+    : 'automotive workshop product';
   const shortDescription = `${name} supplied through Caracal Tech Motors with compatibility confirmation before dispatch.`;
   const description = `${name} is available through Caracal Tech Motors for professional automotive workshops in the UAE and GCC. This ${subject} is listed from a monitored supplier feed and should be confirmed for vehicle, ECU, key, diagnostic, or workshop compatibility before ordering. Contact Caracal Tech Motors for stock confirmation, delivery timing, and technical fitment support.`;
 
@@ -635,6 +660,12 @@ function normalizeProduct(source: SourceConfig, raw: RawProduct): NormalizedProd
   }
   if (convertedPriceCents === null || salePriceCents === null || oldPriceCents === null) {
     rejectReasons.push('missing_or_unsupported_price');
+  }
+  if (salePriceCents !== null && salePriceCents < MIN_SUPPLIER_SALE_PRICE_CENTS) {
+    rejectReasons.push('sale_price_below_review_threshold');
+  }
+  if (salePriceCents !== null && salePriceCents > MAX_SUPPLIER_SALE_PRICE_CENTS) {
+    rejectReasons.push('sale_price_above_review_threshold');
   }
   if (!normalizedSku) {
     warnings.push('missing_external_sku');
@@ -724,7 +755,8 @@ async function upsertSource(source: SourceConfig, robots: { allowed: boolean; su
 }
 
 function categorySlugFor(product: NormalizedProduct): { slug: string; name: string } {
-  const text = `${product.normalizedName} ${product.brand ?? ''} ${product.categoryName ?? ''}`.toLowerCase();
+  const text =
+    `${product.normalizedName} ${product.brand ?? ''} ${product.categoryName ?? ''}`.toLowerCase();
 
   if (/cable|adapter|connector|harness|bench\s*lead/.test(text)) {
     return { slug: 'cables-adapters', name: 'Cables & Adapters' };
@@ -787,7 +819,8 @@ async function publishProduct(
   const sku = existingSnapshot?.matchedProductId
     ? undefined
     : `CTM-${hash(product.sourceProductKey, 10).toUpperCase()}`;
-  const slugBase = slugify(product.normalizedName) || `supplier-product-${hash(product.sourceProductKey, 8)}`;
+  const slugBase =
+    slugify(product.normalizedName) || `supplier-product-${hash(product.sourceProductKey, 8)}`;
   const slug = `${slugBase}-${hash(product.sourceProductKey, 6)}`;
   const attributes = {
     inquiryReady: true,
@@ -860,7 +893,8 @@ async function publishProduct(
     },
     update: {
       locationLabel: 'Supplier monitored availability',
-      quantityOnHand: product.stockStatus === 'OUT_OF_STOCK' || product.stockStatus === 'DISCONTINUED' ? 0 : 1,
+      quantityOnHand:
+        product.stockStatus === 'OUT_OF_STOCK' || product.stockStatus === 'DISCONTINUED' ? 0 : 1,
       quantityReserved: 0,
       reorderPoint: 0,
       status: product.stockStatus,
@@ -870,7 +904,8 @@ async function publishProduct(
       productId: published.id,
       locationKey: 'supplier-sync',
       locationLabel: 'Supplier monitored availability',
-      quantityOnHand: product.stockStatus === 'OUT_OF_STOCK' || product.stockStatus === 'DISCONTINUED' ? 0 : 1,
+      quantityOnHand:
+        product.stockStatus === 'OUT_OF_STOCK' || product.stockStatus === 'DISCONTINUED' ? 0 : 1,
       quantityReserved: 0,
       reorderPoint: 0,
       status: product.stockStatus,
@@ -891,11 +926,7 @@ async function publishProduct(
   return published.id;
 }
 
-async function stageSnapshot(
-  sourceRowId: string,
-  runId: string,
-  product: NormalizedProduct
-) {
+async function stageSnapshot(sourceRowId: string, runId: string, product: NormalizedProduct) {
   return prisma.stagingProduct.upsert({
     where: {
       sourceId_sourceProductKey: {
@@ -968,8 +999,7 @@ async function syncSource(source: SourceConfig, options: CliOptions) {
     ? { allowed: true, summary: 'robots.txt skipped by operator' }
     : await getRobotsSummary(source);
   const runStartedAt = new Date();
-  const sourceRow =
-    options.mode === 'DRY_RUN' ? null : await upsertSource(source, robots);
+  const sourceRow = options.mode === 'DRY_RUN' ? null : await upsertSource(source, robots);
   const run =
     sourceRow && options.mode !== 'DRY_RUN'
       ? await prisma.supplierSyncRun.create({
@@ -1072,9 +1102,13 @@ async function syncSource(source: SourceConfig, options: CliOptions) {
 
 async function main() {
   const options = parseOptions();
-  const selectedSources = SOURCE_CONNECTORS.filter((source) => options.sources.includes(source.slug));
+  const selectedSources = SOURCE_CONNECTORS.filter((source) =>
+    options.sources.includes(source.slug)
+  );
   if (selectedSources.length === 0) {
-    throw new Error(`No matching sources. Available: ${SOURCE_CONNECTORS.map((source) => source.slug).join(', ')}`);
+    throw new Error(
+      `No matching sources. Available: ${SOURCE_CONNECTORS.map((source) => source.slug).join(', ')}`
+    );
   }
 
   const reports = [];
