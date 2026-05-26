@@ -13,6 +13,7 @@ import { accountRouter } from './routes/account.js';
 import { adminRouter } from './routes/admin.js';
 import { authRouter } from './routes/auth.js';
 import { binUploadsRouter } from './routes/bin-uploads.js';
+import { catalogProjectionRouter } from './routes/catalog-projection.js';
 import { categoriesRouter } from './routes/categories.js';
 import { checkoutRouter, checkoutWebhookRouter } from './routes/checkout.js';
 import { ecuPatcherRouter } from './routes/ecu-patcher.js';
@@ -63,6 +64,7 @@ export function createApp(): express.Express {
   app.use('/api/auth', authRouter);
   app.use('/api/admin', adminRouter);
   app.use('/api/bin-uploads', binUploadsRouter);
+  app.use('/api/catalog', catalogProjectionRouter);
   app.use('/api/categories', categoriesRouter);
   app.use('/api/checkout', checkoutRouter);
   app.use('/api/ecu-patcher', ecuPatcherRouter);

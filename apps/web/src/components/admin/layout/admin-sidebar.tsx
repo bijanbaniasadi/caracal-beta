@@ -16,6 +16,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: '/admin/dashboard',       label: 'Dashboard',      icon: '▦', matchExact: true },
   { href: '/admin/products',        label: 'Products',       icon: '📦' },
+  { href: '/admin/catalog/review',  label: 'Catalog Ops',    icon: 'C' },
   { href: '/admin/catalog/sync',    label: 'Catalog Sync',   icon: 'S' },
   { href: '/admin/inventory',       label: 'Inventory',      icon: '🗃' },
   { href: '/admin/orders',          label: 'Orders',         icon: '$' },

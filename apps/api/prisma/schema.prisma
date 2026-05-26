@@ -859,13 +859,19 @@ model PublicProduct {
   categorySlug      String    @map("category_slug") @db.Citext
   categoryName      String    @map("category_name")
   primaryImage      Json?     @map("primary_image")
+  galleryImages     Json?     @map("gallery_images")
   bestPriceCents    BigInt?   @map("best_price_cents")
+  curatedPrice      Json?     @map("curated_price")
   inStock           Boolean   @map("in_stock")
   offerCount        Int       @map("offer_count")
+  vendorOffers      Json?     @map("vendor_offers")
+  specs             Json?
+  compatibility     Json?
   featured          Boolean
   publishedAt       DateTime? @map("published_at") @db.Timestamptz(6)
 
   @@index([categorySlug])
+  @@index([manufacturerSlug])
   @@ignore
   @@map("public_products")
 }

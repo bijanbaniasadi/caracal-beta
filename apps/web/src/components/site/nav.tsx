@@ -1,14 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCart } from '@/hooks/use-cart';
 import { useCustomerAuth } from '@/contexts/customer-auth';
 
-const NAV_LINKS = [
-  { href: '/shop', label: 'Shop' },
+const BASE_NAV_LINKS = [
   { href: '/ecu-remapping-dubai', label: 'Services' },
   { href: '/knowledge', label: 'Knowledge' },
   { href: '/contact', label: 'Contact' },
@@ -23,6 +22,16 @@ export function SiteNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { count } = useCart();
   const { session, isLoading, logout } = useCustomerAuth();
+  const navLinks = useMemo(
+    () => [
+      {
+        href: process.env.NEXT_PUBLIC_NEW_CATALOG_FRONTEND === 'true' ? '/catalog' : '/shop',
+        label: 'Shop',
+      },
+      ...BASE_NAV_LINKS,
+    ],
+    []
+  );
 
   const handleLogout = async () => {
     await logout();
@@ -54,7 +63,7 @@ export function SiteNav() {
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1" aria-label="Main navigation">
-          {NAV_LINKS.map(({ href, label }) => {
+          {navLinks.map(({ href, label }) => {
             const active = pathname === href || pathname.startsWith(href + '/');
             return (
               <Link
@@ -144,7 +153,7 @@ export function SiteNav() {
       {mobileOpen && (
         <div className="md:hidden border-t border-white/10 bg-brand-deep">
           <nav className="flex flex-col gap-1 px-4 py-3" aria-label="Mobile navigation">
-            {NAV_LINKS.map(({ href, label }) => {
+            {navLinks.map(({ href, label }) => {
               const active = pathname === href || pathname.startsWith(href + '/');
               return (
                 <Link

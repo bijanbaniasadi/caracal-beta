@@ -215,6 +215,70 @@ export async function getTypesenseAliasTarget(
   return body.collection_name ?? null;
 }
 
+export interface TypesenseProductSearchInput {
+  q: string;
+  page?: number;
+  perPage?: number;
+  filterBy?: string;
+  sortBy?: string;
+}
+
+export interface TypesenseProductSearchResult {
+  found: number;
+  page: number;
+  outOf: number;
+  facetCounts: unknown[];
+  hits: TypesenseProductDocument[];
+}
+
+export async function searchTypesenseProducts(
+  input: TypesenseProductSearchInput,
+  config = requireTypesenseConfig()
+): Promise<TypesenseProductSearchResult> {
+  const params = new URLSearchParams({
+    q: input.q.trim() || '*',
+    query_by: 'name,short_description,manufacturer_name,category_slug',
+    query_by_weights: '4,2,2,1',
+    typo_tokens_threshold: '1',
+    num_typos: '2',
+    page: String(input.page ?? 1),
+    per_page: String(input.perPage ?? 24),
+    facet_by: 'category_slug,manufacturer_slug,in_stock',
+  });
+
+  if (input.filterBy) params.set('filter_by', input.filterBy);
+  if (input.sortBy) params.set('sort_by', input.sortBy);
+
+  const response = await typesenseFetch(
+    `/collections/${encodeURIComponent(config.collectionAlias)}/documents/search?${params.toString()}`,
+    { method: 'GET' },
+    config
+  );
+
+  if (!response.ok) {
+    throw new Error(`Typesense product search failed: ${response.status} ${await response.text()}`);
+  }
+
+  const body = await parseTypesenseJson<{
+    found?: number;
+    page?: number;
+    out_of?: number;
+    facet_counts?: unknown[];
+    hits?: Array<{ document?: unknown }>;
+  }>(response);
+
+  return {
+    found: body.found ?? 0,
+    page: body.page ?? input.page ?? 1,
+    outOf: body.out_of ?? 0,
+    facetCounts: body.facet_counts ?? [],
+    hits: (body.hits ?? [])
+      .map((hit) => hit.document)
+      .filter((document): document is TypesenseProductDocument => Boolean(document))
+      .map((document) => typesenseProductDocumentSchema.parse(document)),
+  };
+}
+
 export async function upsertTypesenseAlias(
   aliasName: string,
   collectionName: string,
