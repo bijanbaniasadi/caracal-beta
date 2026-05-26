@@ -526,6 +526,9 @@ async function publishStagingProduct(
   const attributes = {
     ...asRecord(existing?.attributes),
     inquiryReady: true,
+    oldPriceCents: staging.oldPriceCents,
+    salePriceCents: priceCents,
+    saleDiscountPercent: staging.discountPercent,
     pricing: {
       oldPriceCents: staging.oldPriceCents,
       salePriceCents: priceCents,
