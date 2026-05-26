@@ -433,12 +433,12 @@ async function findProductBySlugOrSku(
   const prisma = getPrismaClient();
   const product =
     mode === 'slug'
-      ? await prisma.product.findUnique({
-          where: { slug: identifier },
+      ? await prisma.product.findFirst({
+          where: { slug: identifier, status: 'ACTIVE' },
           include: productInclude,
         })
       : await prisma.product.findFirst({
-          where: { sku: { equals: identifier, mode: 'insensitive' } },
+          where: { sku: { equals: identifier, mode: 'insensitive' }, status: 'ACTIVE' },
           include: productInclude,
         });
 
