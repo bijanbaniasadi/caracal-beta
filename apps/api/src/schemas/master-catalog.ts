@@ -97,10 +97,12 @@ export const reviewQueueAttachSchema = z.object({
   notes: optionalText(2000),
 });
 
-export const reviewQueueCreateSchema = masterProductCreateSchema.extend({
-  createOffer: z.coerce.boolean().default(true),
-  notes: optionalText(2000),
-});
+export const reviewQueueCreateSchema = masterProductCreateSchema
+  .omit({ fingerprint: true })
+  .extend({
+    createOffer: z.coerce.boolean().default(true),
+    notes: optionalText(2000),
+  });
 
 export const reviewQueueRejectSchema = z.object({
   reason: requiredText(2000),

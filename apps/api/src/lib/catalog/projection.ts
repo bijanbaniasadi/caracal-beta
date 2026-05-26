@@ -25,6 +25,7 @@ interface PublicProductProjectionRow {
   category_name: string;
   primary_image: unknown;
   best_price_cents: bigint | number | null;
+  price_currency: string;
   in_stock: boolean;
   offer_count: number;
   featured: boolean;
@@ -66,10 +67,12 @@ export function buildTypesenseDocument(row: PublicProductProjectionRow) {
     manufacturer_slug: row.manufacturer_slug,
     manufacturer_name: row.manufacturer_name,
     category_slug: row.category_slug,
+    category_name: row.category_name,
     category_path: [row.category_slug],
     tags: [],
     compatibility: [],
     best_price_cents: toNumber(row.best_price_cents),
+    currency: row.price_currency,
     in_stock: row.in_stock,
     offer_count: row.offer_count,
     featured: row.featured,
@@ -95,7 +98,10 @@ export async function refreshPublicProductsMaterializedView(): Promise<void> {
   try {
     await prisma.$executeRawUnsafe('REFRESH MATERIALIZED VIEW CONCURRENTLY public_products');
   } catch (error) {
-    logger.warn({ err: error }, 'concurrent public_products refresh failed; retrying non-concurrently');
+    logger.warn(
+      { err: error },
+      'concurrent public_products refresh failed; retrying non-concurrently'
+    );
     await prisma.$executeRawUnsafe('REFRESH MATERIALIZED VIEW public_products');
   }
 }
@@ -144,6 +150,7 @@ async function findPublicProjection(publicId: string): Promise<PublicProductProj
       category_name,
       primary_image,
       best_price_cents,
+      price_currency,
       in_stock,
       offer_count,
       featured,
@@ -171,6 +178,7 @@ async function findAllPublicProjections(): Promise<PublicProductProjectionRow[]>
       category_name,
       primary_image,
       best_price_cents,
+      price_currency,
       in_stock,
       offer_count,
       featured,
@@ -214,6 +222,10 @@ export async function projectMasterProductToSearch(masterProductId: string) {
   }
 
   await upsertTypesenseProduct(buildTypesenseDocument(projection));
+  logger.info(
+    { publicId: master.publicId, masterProductId },
+    'catalog projection product indexed via Typesense alias'
+  );
   return { action: 'upsert' as const, publicId: master.publicId };
 }
 
@@ -221,10 +233,15 @@ export async function reindexAllPublicProductsWithAliasSwap() {
   await refreshPublicProductsMaterializedViewDebounced();
 
   const config = getTypesenseConfig();
-  const previousCollection = await getTypesenseAliasTarget(config.collectionAlias, config).catch((error) => {
-    logger.warn({ err: error, alias: config.collectionAlias }, 'Typesense alias lookup failed before reindex');
-    return null;
-  });
+  const previousCollection = await getTypesenseAliasTarget(config.collectionAlias, config).catch(
+    (error) => {
+      logger.warn(
+        { err: error, alias: config.collectionAlias },
+        'Typesense alias lookup failed before reindex'
+      );
+      return null;
+    }
+  );
   const nextCollection = timestampedProductsCollectionName(config);
   const projections = await findAllPublicProjections();
   const documents = projections.map(buildTypesenseDocument);
@@ -240,6 +257,16 @@ export async function reindexAllPublicProductsWithAliasSwap() {
   }
 
   await upsertTypesenseAlias(config.collectionAlias, nextCollection, config);
+  logger.info(
+    {
+      alias: config.collectionAlias,
+      nextCollection,
+      previousCollection,
+      postgresCount: documents.length,
+      indexedCount,
+    },
+    'catalog projection alias-swap reindex completed'
+  );
 
   if (previousCollection && previousCollection !== nextCollection) {
     await deleteTypesenseCollection(previousCollection, config);

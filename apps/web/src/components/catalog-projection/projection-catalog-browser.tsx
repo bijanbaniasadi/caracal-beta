@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState, useTransition } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   listProjectedProducts,
   searchProjectedProducts,
 } from '@/lib/api/projection-catalog-client';
+import { projectionParamsFromUrlSearchParams } from '@/lib/api/projection-catalog-params';
 import type {
   ProjectionCatalogParams,
   ProjectionProduct,
@@ -24,23 +26,9 @@ interface ProjectionCatalogBrowserProps {
   fixedManufacturer?: string;
   title: string;
   subtitle: string;
-}
-
-function pageParamsFromSearch(
-  searchParams: URLSearchParams,
-  fixed: { category?: string; manufacturer?: string }
-): ProjectionCatalogParams {
-  const page = Number.parseInt(searchParams.get('page') ?? '1', 10);
-  const sort = (searchParams.get('sort') ?? 'featured') as ProjectionSortOption;
-  return {
-    q: searchParams.get('q') ?? undefined,
-    category: fixed.category ?? searchParams.get('category') ?? undefined,
-    manufacturer: fixed.manufacturer ?? searchParams.get('manufacturer') ?? undefined,
-    inStock: searchParams.get('stock') === 'in',
-    page: Number.isFinite(page) ? page : 1,
-    limit: 24,
-    sort,
-  };
+  initialParams?: ProjectionCatalogParams;
+  initialPage?: ProjectionProductPage<ProjectionProduct | ProjectionSearchProduct> | null;
+  initialError?: string | null;
 }
 
 function updateUrl(
@@ -66,6 +54,9 @@ export function ProjectionCatalogBrowser({
   fixedManufacturer,
   title,
   subtitle,
+  initialParams,
+  initialPage,
+  initialError,
 }: ProjectionCatalogBrowserProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -74,63 +65,55 @@ export function ProjectionCatalogBrowser({
     () => ({ category: fixedCategory, manufacturer: fixedManufacturer }),
     [fixedCategory, fixedManufacturer]
   );
-  const initialParams = useMemo(
-    () => pageParamsFromSearch(searchParams, fixed),
+  const initialParamsFromUrl = useMemo(
+    () => projectionParamsFromUrlSearchParams(searchParams, fixed),
     [fixed, searchParams]
   );
-  const [params, setParams] = useState<ProjectionCatalogParams>(initialParams);
-  const [page, setPage] = useState<ProjectionProductPage<
-    ProjectionProduct | ProjectionSearchProduct
-  > | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [params, setParams] = useState<ProjectionCatalogParams>(
+    initialParams ?? initialParamsFromUrl
+  );
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    setParams(initialParams);
-  }, [initialParams]);
+    setParams(initialParamsFromUrl);
+  }, [initialParamsFromUrl]);
 
-  useEffect(() => {
-    let active = true;
-    const requestParams = { ...params };
-    const load = async () => {
-      setError(null);
-      try {
-        const result =
-          mode === 'search' || requestParams.q
-            ? await searchProjectedProducts(requestParams)
-            : await listProjectedProducts(requestParams);
-        if (active) setPage(result);
-      } catch (err) {
-        if (active) {
-          setError(err instanceof Error ? err.message : 'Catalog projection is unavailable.');
-          setPage(null);
-        }
-      }
-    };
-
-    const timer = window.setTimeout(
-      () => {
-        startTransition(() => {
-          void load();
-        });
-      },
-      mode === 'search' ? 180 : 0
-    );
-
-    return () => {
-      active = false;
-      window.clearTimeout(timer);
-    };
-  }, [mode, params]);
+  const deferredParams = useDeferredValue(params);
+  const queryKey = useMemo(
+    () => ['projection-catalog', mode, deferredParams] as const,
+    [deferredParams, mode]
+  );
+  const query = useQuery({
+    queryKey,
+    queryFn: async () =>
+      mode === 'search' || deferredParams.q
+        ? searchProjectedProducts(deferredParams)
+        : listProjectedProducts(deferredParams),
+    initialData: initialPage ?? undefined,
+    staleTime: 30_000,
+    placeholderData: (previous) => previous,
+  });
 
   const setFilter = (patch: Partial<ProjectionCatalogParams>) => {
     const next = { ...params, ...patch, page: patch.page ?? 1 };
     setParams(next);
-    updateUrl(router, pathname, next, fixed);
+    startTransition(() => {
+      updateUrl(router, pathname, next, fixed);
+    });
   };
 
+  const page = query.data ?? null;
   const items = page?.items ?? [];
   const pagination = page?.pagination;
+  const error = query.error
+    ? query.error instanceof Error
+      ? query.error.message
+      : 'Catalog projection is unavailable.'
+    : page
+      ? null
+      : initialError;
+  const isBusy = query.isFetching || isPending;
+  const loading = (query.isLoading || isBusy) && items.length === 0;
 
   return (
     <div className="space-y-8">
@@ -186,9 +169,9 @@ export function ProjectionCatalogBrowser({
         </div>
       )}
 
-      {isPending && !page ? <ProjectionGridSkeleton /> : null}
+      {loading ? <ProjectionGridSkeleton /> : null}
 
-      {!isPending && !error && items.length === 0 ? (
+      {!loading && !error && items.length === 0 ? (
         <div className="rounded-lg border border-white/10 bg-white/[0.04] px-6 py-14 text-center">
           <p className="text-sm font-semibold text-brand-text">No projected products found</p>
           <p className="mt-2 text-sm text-brand-muted">
@@ -212,7 +195,7 @@ export function ProjectionCatalogBrowser({
             <div className="flex gap-2">
               <button
                 type="button"
-                disabled={(params.page ?? 1) <= 1 || isPending}
+                disabled={(params.page ?? 1) <= 1 || isBusy}
                 onClick={() => setFilter({ page: Math.max((params.page ?? 1) - 1, 1) })}
                 className="rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-brand-text disabled:opacity-40"
               >
@@ -220,7 +203,7 @@ export function ProjectionCatalogBrowser({
               </button>
               <button
                 type="button"
-                disabled={!pagination?.hasMore || isPending}
+                disabled={!pagination?.hasMore || isBusy}
                 onClick={() => setFilter({ page: (params.page ?? 1) + 1 })}
                 className="rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-brand-text disabled:opacity-40"
               >

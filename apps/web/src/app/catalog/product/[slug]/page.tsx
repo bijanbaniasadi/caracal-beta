@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { ProjectionProductDetail } from '@/components/catalog-projection/projection-product-detail';
 import { getProjectedProduct } from '@/lib/api/projection-catalog-client';
+import { CaracalApiError } from '@/lib/api/client';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -36,12 +38,16 @@ export default async function CatalogProductPage({ params }: PageProps) {
   try {
     const product = await getProjectedProduct(slug);
     return <ProjectionProductDetail product={product} />;
-  } catch {
+  } catch (error) {
+    if (error instanceof CaracalApiError && error.status === 404) {
+      notFound();
+    }
+
     return (
       <div className="mx-auto max-w-2xl py-20 text-center">
-        <p className="text-sm font-semibold text-brand-text">Projected product not found</p>
+        <p className="text-sm font-semibold text-brand-text">Catalog projection unavailable</p>
         <p className="mt-2 text-sm text-brand-muted">
-          The product may be unpublished, not projected yet, or temporarily unavailable.
+          The product exists behind the projection API, but the backend returned a temporary error.
         </p>
         <Link
           href="/catalog"

@@ -69,6 +69,22 @@ const legacyPhpRedirects: Record<string, string> = {
   '/tmp_diag/upd1.php': '/',
 };
 
+function isProjectionCatalogEnabled(): boolean {
+  return (
+    process.env.NEXT_PUBLIC_NEW_CATALOG_FRONTEND === 'true' ||
+    process.env.NEW_CATALOG_FRONTEND === 'true'
+  );
+}
+
+function rollbackCatalogUrl(request: NextRequest): URL {
+  const target = new URL('/shop', request.url);
+  const q = request.nextUrl.searchParams.get('q');
+  const category = request.nextUrl.searchParams.get('category');
+  if (q) target.searchParams.set('q', q);
+  if (category) target.searchParams.set('category', category);
+  return target;
+}
+
 function redirectTarget(request: NextRequest): string | null {
   const { pathname, searchParams } = request.nextUrl;
 
@@ -97,11 +113,24 @@ function redirectTarget(request: NextRequest): string | null {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAccountRoute = pathname === '/account' || pathname.startsWith('/account/');
+  const isCatalogRoute = pathname === '/catalog' || pathname.startsWith('/catalog/');
 
   if (isAccountRoute && !request.cookies.get(customerSessionCookie)?.value) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('returnTo', `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (isCatalogRoute) {
+    if (!isProjectionCatalogEnabled()) {
+      const response = NextResponse.redirect(rollbackCatalogUrl(request), 307);
+      response.headers.set('x-caracal-catalog-frontend', 'legacy-rollback');
+      return response;
+    }
+
+    const response = NextResponse.next();
+    response.headers.set('x-caracal-catalog-frontend', 'projection');
+    return response;
   }
 
   const target = redirectTarget(request);

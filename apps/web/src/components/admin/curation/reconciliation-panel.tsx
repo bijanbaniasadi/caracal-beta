@@ -1,8 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { enqueueReconciliation, getReconciliationReport } from '@/lib/api/admin-curation-client';
-import { validateProjectionCatalogRuntime } from '@/lib/api/projection-catalog-client';
+import {
+  enqueueReconciliation,
+  getProjectionRuntimeHealth,
+  getReconciliationReport,
+} from '@/lib/api/admin-curation-client';
 import type { ReconciliationReport } from '@/lib/api/admin-curation-types';
 import type { ProjectionRuntimeHealth } from '@/lib/api/projection-catalog-types';
 import { AdminCurationFrame, EmptyPanel, ErrorPanel, LoadingRows, StatTile } from './curation-ui';
@@ -20,7 +23,7 @@ export function ReconciliationPanel() {
     try {
       const [nextReport, nextHealth] = await Promise.all([
         getReconciliationReport(),
-        validateProjectionCatalogRuntime().catch(() => null),
+        getProjectionRuntimeHealth().catch(() => null),
       ]);
       setReport(nextReport);
       setHealth(nextHealth);

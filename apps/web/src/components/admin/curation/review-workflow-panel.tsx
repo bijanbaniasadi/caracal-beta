@@ -7,12 +7,15 @@ import {
   createMasterFromReview,
   getAdminAuditVisibility,
   getCurationDashboard,
+  lookupCatalogCategories,
+  lookupCatalogManufacturers,
   listReviewQueue,
   mergeReviewDuplicate,
   refingerprintReviewItem,
   rejectReviewItem,
 } from '@/lib/api/admin-curation-client';
 import type {
+  AdminCatalogLookupItem,
   AdminAuditRecord,
   AdminReviewDashboard,
   AdminReviewQueueItem,
@@ -341,10 +344,40 @@ function CreateMasterForm({
   const [slug, setSlug] = useState(defaultSlug);
   const [name, setName] = useState(item.rawProduct.rawName);
   const [categoryId, setCategoryId] = useState('');
+  const [categoryQuery, setCategoryQuery] = useState('');
+  const [categoryOptions, setCategoryOptions] = useState<AdminCatalogLookupItem[]>([]);
   const [manufacturerSlug, setManufacturerSlug] = useState('');
   const [manufacturerName, setManufacturerName] = useState('');
-  const [fingerprint, setFingerprint] = useState(item.rawProduct.fingerprint ?? '');
+  const [manufacturerOptions, setManufacturerOptions] = useState<AdminCatalogLookupItem[]>([]);
   const [description, setDescription] = useState(item.rawProduct.rawDescription ?? '');
+
+  useEffect(() => {
+    let active = true;
+    const timer = window.setTimeout(() => {
+      void lookupCatalogCategories(categoryQuery).then((rows) => {
+        if (active) setCategoryOptions(rows);
+      });
+    }, 180);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [categoryQuery]);
+
+  useEffect(() => {
+    let active = true;
+    const timer = window.setTimeout(() => {
+      void lookupCatalogManufacturers(manufacturerName).then((rows) => {
+        if (active) setManufacturerOptions(rows);
+      });
+    }, 180);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [manufacturerName]);
 
   return (
     <form
@@ -357,7 +390,6 @@ function CreateMasterForm({
           categoryId,
           manufacturerSlug,
           manufacturerName,
-          fingerprint,
           shortDescription: description || null,
           status: 'PENDING_REVIEW',
           createOffer: true,
@@ -381,11 +413,22 @@ function CreateMasterForm({
       />
       <input
         value={manufacturerName}
-        onChange={(event) => setManufacturerName(event.target.value)}
+        onChange={(event) => {
+          const value = event.target.value;
+          const selected = manufacturerOptions.find((option) => option.name === value);
+          setManufacturerName(value);
+          setManufacturerSlug(selected?.slug ?? slugify(value));
+        }}
+        list={`manufacturer-options-${item.id}`}
         placeholder="Manufacturer name"
         className="h-10 rounded-md border border-white/10 bg-[#0b1218] px-3 text-sm text-brand-text outline-none"
         required
       />
+      <datalist id={`manufacturer-options-${item.id}`}>
+        {manufacturerOptions.map((option) => (
+          <option key={option.id} value={option.name} label={option.slug} />
+        ))}
+      </datalist>
       <input
         value={manufacturerSlug}
         onChange={(event) => setManufacturerSlug(slugify(event.target.value))}
@@ -398,14 +441,35 @@ function CreateMasterForm({
         onChange={(event) => setCategoryId(event.target.value.replace(/\D/g, ''))}
         placeholder="Category id"
         className="h-10 rounded-md border border-white/10 bg-[#0b1218] px-3 text-sm text-brand-text outline-none"
+        list={`category-options-${item.id}`}
         required
       />
       <input
-        value={fingerprint}
-        onChange={(event) => setFingerprint(event.target.value)}
-        placeholder="Canonical fingerprint"
+        value={categoryQuery}
+        onChange={(event) => {
+          const value = event.target.value;
+          const selected = categoryOptions.find((option) => option.name === value);
+          setCategoryQuery(value);
+          if (selected) setCategoryId(selected.id);
+        }}
+        placeholder="Search category"
         className="h-10 rounded-md border border-white/10 bg-[#0b1218] px-3 text-sm text-brand-text outline-none"
-        required
+        list={`category-name-options-${item.id}`}
+      />
+      <datalist id={`category-options-${item.id}`}>
+        {categoryOptions.map((option) => (
+          <option key={option.id} value={option.id} label={`${option.name} / ${option.slug}`} />
+        ))}
+      </datalist>
+      <datalist id={`category-name-options-${item.id}`}>
+        {categoryOptions.map((option) => (
+          <option key={option.id} value={option.name} label={`${option.id} / ${option.slug}`} />
+        ))}
+      </datalist>
+      <input
+        value={item.rawProduct.fingerprint ?? 'Server will generate fingerprint'}
+        readOnly
+        className="h-10 rounded-md border border-white/10 bg-[#0b1218] px-3 text-sm text-brand-muted outline-none"
       />
       <textarea
         value={description}

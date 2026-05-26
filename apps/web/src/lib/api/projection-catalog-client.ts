@@ -4,7 +4,6 @@ import type {
   ProjectionPagination,
   ProjectionProduct,
   ProjectionProductPage,
-  ProjectionRuntimeHealth,
   ProjectionSearchProduct,
 } from './projection-catalog-types';
 import type { ApiErrorCode } from './types';
@@ -29,15 +28,21 @@ function getApiBase(): string {
   return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 }
 
-function paramsToQuery(params?: ProjectionCatalogParams): QueryParams {
+function paramsToListQuery(params?: ProjectionCatalogParams): QueryParams {
   return {
-    q: params?.q,
     category: params?.category,
     manufacturer: params?.manufacturer,
     inStock: params?.inStock,
     page: params?.page,
     limit: params?.limit,
     sort: params?.sort,
+  };
+}
+
+function paramsToSearchQuery(params?: ProjectionCatalogParams): QueryParams {
+  return {
+    ...paramsToListQuery(params),
+    q: params?.q,
   };
 }
 
@@ -53,10 +58,19 @@ async function projectionGet<T>(
 
   let response: Response;
   try {
-    response = await fetch(url.toString(), {
+    const init: RequestInit & { next?: { revalidate: number } } = {
       method: 'GET',
       headers: { Accept: 'application/json' },
-      cache: 'no-store',
+      cache: 'force-cache',
+    };
+    if (typeof window === 'undefined') {
+      init.next = {
+        revalidate: Number.parseInt(process.env.CATALOG_FRONTEND_REVALIDATE_SECONDS ?? '30', 10),
+      };
+    }
+
+    response = await fetch(url.toString(), {
+      ...init,
     });
   } catch (error) {
     throw new CaracalApiError({
@@ -105,7 +119,7 @@ export async function listProjectedProducts(
 ): Promise<ProjectionProductPage> {
   const { data, meta } = await projectionGet<ProjectionProduct[]>(
     '/api/catalog/products',
-    paramsToQuery(params)
+    paramsToListQuery(params)
   );
   return pageFrom(data, meta, params?.limit ?? 24);
 }
@@ -115,7 +129,7 @@ export async function searchProjectedProducts(
 ): Promise<ProjectionProductPage<ProjectionSearchProduct>> {
   const { data, meta } = await projectionGet<ProjectionSearchProduct[]>(
     '/api/catalog/search',
-    paramsToQuery(params)
+    paramsToSearchQuery(params)
   );
   return pageFrom(data, meta, params.limit ?? 24);
 }
@@ -154,10 +168,5 @@ export async function getProjectedManufacturer(slug: string): Promise<{
     product_count: number;
     min_price_cents: number | null;
   }>(`/api/catalog/manufacturers/${encodeURIComponent(slug)}`);
-  return data;
-}
-
-export async function validateProjectionCatalogRuntime(): Promise<ProjectionRuntimeHealth> {
-  const { data } = await projectionGet<ProjectionRuntimeHealth>('/api/catalog/health');
   return data;
 }

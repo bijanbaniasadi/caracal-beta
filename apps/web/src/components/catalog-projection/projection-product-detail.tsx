@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import type { ProjectionImage, ProjectionProduct } from '@/lib/api/projection-catalog-types';
 import { imageLabel, priceLabel } from './projection-utils';
 
@@ -28,14 +29,13 @@ export function ProjectionProductDetail({ product }: { product: ProjectionProduc
   const images = useMemo(() => {
     const unique = new Map<string, ProjectionImage>();
     for (const image of [product.primaryImage, ...product.galleryImages]) {
-      if (!image?.storageKey) continue;
-      unique.set(image.storageKey, image);
+      if (!image?.url) continue;
+      unique.set(image.url, image);
     }
     return Array.from(unique.values());
   }, [product.galleryImages, product.primaryImage]);
-  const [selectedKey, setSelectedKey] = useState(images[0]?.storageKey ?? null);
-  const selectedImage =
-    images.find((image) => image.storageKey === selectedKey) ?? images[0] ?? null;
+  const [selectedUrlKey, setSelectedUrlKey] = useState(images[0]?.url ?? null);
+  const selectedImage = images.find((image) => image.url === selectedUrlKey) ?? images[0] ?? null;
   const selectedUrl = imageUrl(selectedImage);
 
   return (
@@ -59,12 +59,17 @@ export function ProjectionProductDetail({ product }: { product: ProjectionProduc
         <div className="space-y-3">
           <div className="aspect-[4/3] overflow-hidden rounded-lg border border-white/10 bg-[#101a22]">
             {selectedUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={selectedUrl}
-                alt={selectedImage?.altText ?? imageLabel(product)}
-                className="h-full w-full object-contain p-6"
-              />
+              <div className="relative h-full w-full">
+                <Image
+                  src={selectedUrl}
+                  alt={selectedImage?.altText ?? imageLabel(product)}
+                  fill
+                  sizes="(min-width: 1024px) 58vw, 100vw"
+                  className="object-contain p-6"
+                  priority
+                  unoptimized
+                />
+              </div>
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-brand-muted">
                 Projection image pending
@@ -75,24 +80,28 @@ export function ProjectionProductDetail({ product }: { product: ProjectionProduc
             <div className="grid grid-cols-5 gap-2 sm:grid-cols-6">
               {images.map((image) => (
                 <button
-                  key={image.storageKey}
+                  key={image.url}
                   type="button"
-                  onClick={() => setSelectedKey(image.storageKey)}
+                  onClick={() => setSelectedUrlKey(image.url)}
                   className={[
                     'aspect-square overflow-hidden rounded-md border bg-[#101a22]',
-                    image.storageKey === selectedImage?.storageKey
+                    image.url === selectedImage?.url
                       ? 'border-brand-orange'
                       : 'border-white/10 hover:border-white/30',
                   ].join(' ')}
                   aria-label={`Show image ${image.sortOrder + 1}`}
                 >
                   {image.url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={image.url}
-                      alt={image.altText ?? imageLabel(product)}
-                      className="h-full w-full object-contain p-2"
-                    />
+                    <span className="relative block h-full w-full">
+                      <Image
+                        src={image.url}
+                        alt={image.altText ?? imageLabel(product)}
+                        fill
+                        sizes="96px"
+                        className="object-contain p-2"
+                        unoptimized
+                      />
+                    </span>
                   ) : (
                     <span className="block h-full w-full bg-white/5" />
                   )}
@@ -140,11 +149,6 @@ export function ProjectionProductDetail({ product }: { product: ProjectionProduc
                 {product.inStock ? 'In stock' : 'Confirm stock'}
               </span>
             </div>
-            {product.curatedPrice?.selectedAt && (
-              <p className="mt-2 text-xs text-brand-muted">
-                Curated on {new Date(product.curatedPrice.selectedAt).toLocaleDateString('en-AE')}
-              </p>
-            )}
           </div>
 
           <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">

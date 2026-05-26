@@ -250,6 +250,12 @@ export interface AdminAuditRecord {
   occurredAt: string;
 }
 
+export interface AdminCatalogLookupItem {
+  id: string;
+  slug: string;
+  name: string;
+}
+
 export interface ReviewCreateMasterInput {
   slug: string;
   sku?: string | null;
@@ -262,7 +268,6 @@ export interface ReviewCreateMasterInput {
   manufacturerName: string;
   categoryId: string;
   status: 'DRAFT' | 'PENDING_REVIEW' | 'ARCHIVED';
-  fingerprint: string;
   featured?: boolean;
   seoTitle?: string | null;
   seoDescription?: string | null;

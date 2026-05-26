@@ -1,6 +1,7 @@
 import { adminFetch } from './admin-client';
 import type {
   AdminAuditRecord,
+  AdminCatalogLookupItem,
   AdminReviewDashboard,
   AdminReviewQueueItem,
   ImageIntegrityReport,
@@ -10,6 +11,7 @@ import type {
   ReviewCreateMasterInput,
   ReviewStatusFilter,
 } from './admin-curation-types';
+import type { ProjectionRuntimeHealth } from './projection-catalog-types';
 
 function query(params: Record<string, string | number | undefined>): string {
   const search = new URLSearchParams();
@@ -24,6 +26,30 @@ export async function getCurationDashboard(): Promise<AdminReviewDashboard> {
   const result = await adminFetch<AdminReviewDashboard>(
     'GET',
     '/api/admin/catalog/curation/dashboard'
+  );
+  return result.data;
+}
+
+export async function getProjectionRuntimeHealth(): Promise<ProjectionRuntimeHealth> {
+  const result = await adminFetch<ProjectionRuntimeHealth>(
+    'GET',
+    '/api/admin/catalog/curation/projection-health'
+  );
+  return result.data;
+}
+
+export async function lookupCatalogCategories(q: string): Promise<AdminCatalogLookupItem[]> {
+  const result = await adminFetch<AdminCatalogLookupItem[]>(
+    'GET',
+    `/api/admin/catalog/curation/lookups/categories${query({ q, limit: 12 })}`
+  );
+  return result.data;
+}
+
+export async function lookupCatalogManufacturers(q: string): Promise<AdminCatalogLookupItem[]> {
+  const result = await adminFetch<AdminCatalogLookupItem[]>(
+    'GET',
+    `/api/admin/catalog/curation/lookups/manufacturers${query({ q, limit: 12 })}`
   );
   return result.data;
 }

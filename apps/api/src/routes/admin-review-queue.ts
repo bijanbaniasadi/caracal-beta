@@ -8,6 +8,12 @@ import {
   enqueueCatalogFingerprintJob,
   enqueueCatalogProjectionJob,
 } from '../lib/catalog/queues.js';
+import {
+  buildMk3Fingerprint,
+  inferMk3Manufacturer,
+  inferMk3MpnOrSku,
+  inferMk3VariantKey,
+} from '../lib/catalog/mk3/fingerprint.js';
 import { badRequest, notFound } from '../lib/errors.js';
 import { logger } from '../lib/logger.js';
 import { toPrismaJson } from '../lib/prisma-json.js';
@@ -208,6 +214,21 @@ function offerDataFromRawProduct(
   };
 }
 
+function fingerprintFromRawProduct(rawProduct: ReviewQueueDetail['rawProduct']): string {
+  if (rawProduct.fingerprint?.trim()) {
+    return rawProduct.fingerprint;
+  }
+
+  const rawName = rawProduct.rawName ?? rawProduct.vendorSku ?? rawProduct.vendorUrl;
+  const manufacturer = inferMk3Manufacturer(rawName);
+  return buildMk3Fingerprint({
+    manufacturerSlug: manufacturer.slug,
+    manufacturerName: manufacturer.name,
+    mpnOrSku: inferMk3MpnOrSku(rawName, rawProduct.vendorSku),
+    variantKey: inferMk3VariantKey(rawName),
+  });
+}
+
 adminReviewQueueRouter.get(
   '/',
   asyncHandler(async (req, res) => {
@@ -378,7 +399,7 @@ adminReviewQueueRouter.post(
           manufacturerName: input.manufacturerName,
           category: { connect: { id: parseBigIntId(input.categoryId, 'categoryId') } },
           status: input.status,
-          fingerprint: input.fingerprint,
+          fingerprint: fingerprintFromRawProduct(existing.rawProduct),
           featured: input.featured,
           seoTitle: input.seoTitle,
           seoDescription: input.seoDescription,
@@ -492,7 +513,10 @@ adminReviewQueueRouter.post(
       }
 
       const confidence =
-        input.confidence ?? existing.suggestedConfidence?.toNumber() ?? existing.rawProduct.matchConfidence?.toNumber() ?? 1;
+        input.confidence ??
+        existing.suggestedConfidence?.toNumber() ??
+        existing.rawProduct.matchConfidence?.toNumber() ??
+        1;
       const offer = await tx.vendorOffer.upsert({
         where: {
           vendorId_vendorUrl: {
@@ -577,7 +601,10 @@ adminReviewQueueRouter.post(
   asyncHandler(async (req, res) => {
     const input = req.body as ReviewQueueMergeDuplicateInput;
     const id = parseBigIntId(req.params.id);
-    const canonicalRawProductId = parseBigIntId(input.canonicalRawProductId, 'canonicalRawProductId');
+    const canonicalRawProductId = parseBigIntId(
+      input.canonicalRawProductId,
+      'canonicalRawProductId'
+    );
     const userId = actorId(req);
     const prisma = getPrismaClient();
     const item = await prisma.$transaction(async (tx) => {

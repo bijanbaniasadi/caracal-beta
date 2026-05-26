@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { validateProjectionCatalogRuntime } from '@/lib/api/projection-catalog-client';
+import { getProjectionRuntimeHealth } from '@/lib/api/admin-curation-client';
 import type { ProjectionRuntimeHealth } from '@/lib/api/projection-catalog-types';
 
 export function ProjectionRuntimePanel() {
@@ -13,7 +13,7 @@ export function ProjectionRuntimePanel() {
     setLoading(true);
     setError(null);
     try {
-      setHealth(await validateProjectionCatalogRuntime());
+      setHealth(await getProjectionRuntimeHealth());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Projection runtime validation failed.');
       setHealth(null);

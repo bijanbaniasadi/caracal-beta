@@ -1,17 +1,13 @@
 import { getPrismaClient } from '@caracal/db';
 import { Prisma } from '@prisma/client';
-import { Router, type Router as ExpressRouter } from 'express';
+import { Router, type Response, type Router as ExpressRouter } from 'express';
 import { z } from 'zod';
 
 import { sendSuccess } from '../lib/api-response.js';
 import { asyncHandler } from '../lib/async-handler.js';
-import { notFound } from '../lib/errors.js';
-import {
-  getTypesenseAliasTarget,
-  getTypesenseCollectionDocumentCount,
-  getTypesenseConfig,
-  searchTypesenseProducts,
-} from '../lib/catalog/typesense.js';
+import { badRequest, notFound } from '../lib/errors.js';
+import { logger } from '../lib/logger.js';
+import { searchTypesenseProducts } from '../lib/catalog/typesense.js';
 
 export const catalogProjectionRouter: ExpressRouter = Router();
 
@@ -22,14 +18,22 @@ const slug = z
   .max(180)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 const sort = z.enum(['featured', 'newest', 'name', 'price_asc', 'price_desc']).default('featured');
+const queryBoolean = z.preprocess((value) => {
+  if (value === undefined) return undefined;
+  if (value === true || value === 'true' || value === '1' || value === 'in') return true;
+  if (value === false || value === 'false' || value === '0' || value === 'out') return false;
+  return value;
+}, z.boolean().optional());
 const listQuerySchema = z.object({
-  q: z.string().trim().min(1).max(200).optional(),
   category: slug.optional(),
   manufacturer: slug.optional(),
-  inStock: z.coerce.boolean().optional(),
+  inStock: queryBoolean,
   page: z.coerce.number().int().min(1).max(500).default(1),
   limit: z.coerce.number().int().min(1).max(48).default(24),
   sort,
+});
+const searchQuerySchema = listQuerySchema.extend({
+  q: z.string().trim().max(200).default('*'),
 });
 
 interface PublicProjectionRow {
@@ -45,6 +49,7 @@ interface PublicProjectionRow {
   primary_image: unknown;
   gallery_images: unknown;
   best_price_cents: bigint | number | null;
+  price_currency: string;
   curated_price: unknown;
   in_stock: boolean;
   offer_count: number;
@@ -55,17 +60,19 @@ interface PublicProjectionRow {
   published_at: Date | string | null;
 }
 
+const countCache = new Map<string, { expiresAt: number; total: number }>();
+
 function toNumber(value: bigint | number | null): number | null {
   if (value === null) return null;
   return typeof value === 'bigint' ? Number(value) : value;
 }
 
-function imageUrlFromStorageKey(storageKey: unknown): string | null {
-  if (typeof storageKey !== 'string' || !storageKey.trim()) return null;
-  if (storageKey.startsWith('http://') || storageKey.startsWith('https://')) return storageKey;
+function imageUrlFromProjectionKey(assetKey: unknown): string | null {
+  if (typeof assetKey !== 'string' || !assetKey.trim()) return null;
+  if (assetKey.startsWith('http://') || assetKey.startsWith('https://')) return assetKey;
   const publicBase = process.env.CATALOG_IMAGE_PUBLIC_BASE_URL?.replace(/\/+$/, '');
-  if (publicBase && !storageKey.startsWith('local://')) {
-    return `${publicBase}/${storageKey.replace(/^\/+/, '')}`;
+  if (publicBase && !assetKey.startsWith('local://')) {
+    return `${publicBase}/${assetKey.replace(/^\/+/, '')}`;
   }
   return null;
 }
@@ -73,11 +80,10 @@ function imageUrlFromStorageKey(storageKey: unknown): string | null {
 function normalizeImage(value: unknown) {
   if (!value || typeof value !== 'object') return null;
   const item = value as Record<string, unknown>;
-  const storageKey = typeof item.storage_key === 'string' ? item.storage_key : null;
+  const assetKey = typeof item.storage_key === 'string' ? item.storage_key : null;
 
   return {
-    storageKey,
-    url: imageUrlFromStorageKey(storageKey),
+    url: imageUrlFromProjectionKey(assetKey),
     altText: typeof item.alt_text === 'string' ? item.alt_text : null,
     width: typeof item.width === 'number' ? item.width : null,
     height: typeof item.height === 'number' ? item.height : null,
@@ -112,14 +118,13 @@ function normalizeCuratedPrice(value: unknown) {
     priceCents: cents,
     currency,
     formatted: formatPrice(cents, currency),
-    selectedOfferId: typeof item.selected_offer_id === 'string' ? item.selected_offer_id : null,
-    selectedAt: item.selected_at ?? null,
   };
 }
 
 function serializeProjection(row: PublicProjectionRow) {
   const bestPriceCents = toNumber(row.best_price_cents);
   const curatedPrice = normalizeCuratedPrice(row.curated_price);
+  const currency = curatedPrice?.currency ?? row.price_currency;
 
   return {
     publicId: row.public_id,
@@ -139,8 +144,8 @@ function serializeProjection(row: PublicProjectionRow) {
     galleryImages: asArray(row.gallery_images).map(normalizeImage).filter(Boolean),
     bestPrice: {
       priceCents: bestPriceCents,
-      currency: curatedPrice?.currency ?? 'USD',
-      formatted: formatPrice(bestPriceCents, curatedPrice?.currency ?? 'USD'),
+      currency,
+      formatted: formatPrice(bestPriceCents, currency),
     },
     curatedPrice,
     inStock: row.in_stock,
@@ -161,8 +166,6 @@ function serializeProjection(row: PublicProjectionRow) {
         currency,
         formatted: formatPrice(priceCents, currency),
         inStock: item.in_stock === true,
-        lastSeenAt: item.last_seen_at ?? null,
-        confidence: typeof item.confidence === 'number' ? item.confidence : null,
       };
     }),
     specs: asArray(row.specs),
@@ -195,19 +198,11 @@ function buildWhere(query: z.infer<typeof listQuerySchema>) {
   if (query.manufacturer)
     clauses.push(Prisma.sql`manufacturer_slug = ${query.manufacturer}::citext`);
   if (query.inStock !== undefined) clauses.push(Prisma.sql`in_stock = ${query.inStock}`);
-  if (query.q) {
-    clauses.push(Prisma.sql`(
-      name ILIKE ${`%${query.q}%`}
-      OR short_description ILIKE ${`%${query.q}%`}
-      OR manufacturer_name ILIKE ${`%${query.q}%`}
-    )`);
-  }
-
   if (clauses.length === 0) return Prisma.empty;
   return Prisma.sql`WHERE ${Prisma.join(clauses, ' AND ')}`;
 }
 
-function searchFilter(query: z.infer<typeof listQuerySchema>): string | undefined {
+function searchFilter(query: z.infer<typeof searchQuerySchema>): string | undefined {
   const clauses: string[] = [];
   if (query.category) clauses.push(`category_slug:=${query.category}`);
   if (query.manufacturer) clauses.push(`manufacturer_slug:=${query.manufacturer}`);
@@ -215,25 +210,80 @@ function searchFilter(query: z.infer<typeof listQuerySchema>): string | undefine
   return clauses.length > 0 ? clauses.join(' && ') : undefined;
 }
 
-async function countPublicProducts(where: Prisma.Sql): Promise<number> {
+function countCacheTtlMs(): number {
+  return Number.parseInt(process.env.CATALOG_PUBLIC_COUNT_CACHE_MS ?? '30000', 10);
+}
+
+function countCacheKey(query: z.infer<typeof listQuerySchema>): string {
+  return JSON.stringify({
+    category: query.category ?? null,
+    manufacturer: query.manufacturer ?? null,
+    inStock: query.inStock ?? null,
+  });
+}
+
+async function countPublicProducts(where: Prisma.Sql, cacheKey: string): Promise<number> {
+  const cached = countCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.total;
+  }
+
   const prisma = getPrismaClient();
   const rows = await prisma.$queryRaw<Array<{ count: bigint }>>`
     SELECT COUNT(*)::bigint AS count
     FROM public_products
     ${where}
   `;
-  return Number(rows[0]?.count ?? 0n);
+  const total = Number(rows[0]?.count ?? 0n);
+  countCache.set(cacheKey, { total, expiresAt: Date.now() + countCacheTtlMs() });
+  return total;
+}
+
+function setCatalogCacheHeaders(res: Response): void {
+  const maxAge = Number.parseInt(process.env.CATALOG_PUBLIC_CACHE_MAX_AGE_SECONDS ?? '30', 10);
+  const staleWhileRevalidate = Number.parseInt(
+    process.env.CATALOG_PUBLIC_CACHE_STALE_SECONDS ?? '120',
+    10
+  );
+  res.set(
+    'Cache-Control',
+    `public, max-age=${maxAge}, stale-while-revalidate=${staleWhileRevalidate}`
+  );
+}
+
+function logProjectionRead(input: {
+  route: string;
+  startedAt: number;
+  total?: number;
+  returned?: number;
+  filters?: unknown;
+}): void {
+  logger.info(
+    {
+      route: input.route,
+      durationMs: Date.now() - input.startedAt,
+      total: input.total,
+      returned: input.returned,
+      filters: input.filters,
+    },
+    'catalog projection read'
+  );
 }
 
 catalogProjectionRouter.get(
   '/products',
   asyncHandler(async (req, res) => {
+    if (req.query.q !== undefined) {
+      throw badRequest('Use /api/catalog/search for q searches.', { rejectedParam: 'q' });
+    }
+
+    const startedAt = Date.now();
     const query = listQuerySchema.parse(req.query);
     const prisma = getPrismaClient();
     const where = buildWhere(query);
     const offset = (query.page - 1) * query.limit;
     const [total, rows] = await Promise.all([
-      countPublicProducts(where),
+      countPublicProducts(where, countCacheKey(query)),
       prisma.$queryRaw<PublicProjectionRow[]>`
         SELECT
           public_id::text,
@@ -248,6 +298,7 @@ catalogProjectionRouter.get(
           primary_image,
           gallery_images,
           best_price_cents,
+          price_currency,
           curated_price,
           in_stock,
           offer_count,
@@ -265,6 +316,19 @@ catalogProjectionRouter.get(
     ]);
     const totalPages = Math.max(Math.ceil(total / query.limit), 1);
 
+    setCatalogCacheHeaders(res);
+    logProjectionRead({
+      route: '/api/catalog/products',
+      startedAt,
+      total,
+      returned: rows.length,
+      filters: {
+        category: query.category,
+        manufacturer: query.manufacturer,
+        inStock: query.inStock,
+        page: query.page,
+      },
+    });
     sendSuccess(res, rows.map(serializeProjection), 200, {
       pagination: {
         limit: query.limit,
@@ -282,9 +346,8 @@ catalogProjectionRouter.get(
 catalogProjectionRouter.get(
   '/search',
   asyncHandler(async (req, res) => {
-    const query = listQuerySchema
-      .extend({ q: z.string().trim().max(200).default('*') })
-      .parse(req.query);
+    const startedAt = Date.now();
+    const query = searchQuerySchema.parse(req.query);
     const result = await searchTypesenseProducts({
       q: query.q,
       page: query.page,
@@ -294,6 +357,20 @@ catalogProjectionRouter.get(
     });
     const totalPages = Math.max(Math.ceil(result.found / query.limit), 1);
 
+    setCatalogCacheHeaders(res);
+    logProjectionRead({
+      route: '/api/catalog/search',
+      startedAt,
+      total: result.found,
+      returned: result.hits.length,
+      filters: {
+        q: query.q ? 'present' : 'empty',
+        category: query.category,
+        manufacturer: query.manufacturer,
+        inStock: query.inStock,
+        page: query.page,
+      },
+    });
     sendSuccess(
       res,
       result.hits.map((document) => ({
@@ -307,13 +384,13 @@ catalogProjectionRouter.get(
         },
         category: {
           slug: document.category_slug,
-          name: document.category_slug,
+          name: document.category_name,
         },
         primaryImage: normalizeImage({ storage_key: document.primary_image_key }),
         bestPrice: {
           priceCents: document.best_price_cents,
-          currency: 'USD',
-          formatted: formatPrice(document.best_price_cents, 'USD'),
+          currency: document.currency,
+          formatted: formatPrice(document.best_price_cents, document.currency),
         },
         inStock: document.in_stock,
         offerCount: document.offer_count,
@@ -340,6 +417,7 @@ catalogProjectionRouter.get(
 catalogProjectionRouter.get(
   '/products/:slug',
   asyncHandler(async (req, res) => {
+    const startedAt = Date.now();
     const parsedSlug = slug.parse(req.params.slug);
     const prisma = getPrismaClient();
     const rows = await prisma.$queryRaw<PublicProjectionRow[]>`
@@ -356,6 +434,7 @@ catalogProjectionRouter.get(
         primary_image,
         gallery_images,
         best_price_cents,
+        price_currency,
         curated_price,
         in_stock,
         offer_count,
@@ -370,6 +449,13 @@ catalogProjectionRouter.get(
     `;
 
     if (!rows[0]) throw notFound('Catalog product not found.', { slug: parsedSlug });
+    setCatalogCacheHeaders(res);
+    logProjectionRead({
+      route: '/api/catalog/products/:slug',
+      startedAt,
+      returned: 1,
+      filters: { slug: parsedSlug },
+    });
     sendSuccess(res, serializeProjection(rows[0]));
   })
 );
@@ -377,6 +463,7 @@ catalogProjectionRouter.get(
 catalogProjectionRouter.get(
   '/categories/:slug',
   asyncHandler(async (req, res) => {
+    const startedAt = Date.now();
     const parsedSlug = slug.parse(req.params.slug);
     const prisma = getPrismaClient();
     const rows = await prisma.$queryRaw`
@@ -393,6 +480,13 @@ catalogProjectionRouter.get(
     const row = Array.isArray(rows) ? rows[0] : null;
 
     if (!row) throw notFound('Catalog category not found.', { slug: parsedSlug });
+    setCatalogCacheHeaders(res);
+    logProjectionRead({
+      route: '/api/catalog/categories/:slug',
+      startedAt,
+      returned: 1,
+      filters: { slug: parsedSlug },
+    });
     sendSuccess(res, row);
   })
 );
@@ -400,6 +494,7 @@ catalogProjectionRouter.get(
 catalogProjectionRouter.get(
   '/manufacturers/:slug',
   asyncHandler(async (req, res) => {
+    const startedAt = Date.now();
     const parsedSlug = slug.parse(req.params.slug);
     const prisma = getPrismaClient();
     const rows = await prisma.$queryRaw`
@@ -416,72 +511,13 @@ catalogProjectionRouter.get(
     const row = Array.isArray(rows) ? rows[0] : null;
 
     if (!row) throw notFound('Catalog manufacturer not found.', { slug: parsedSlug });
+    setCatalogCacheHeaders(res);
+    logProjectionRead({
+      route: '/api/catalog/manufacturers/:slug',
+      startedAt,
+      returned: 1,
+      filters: { slug: parsedSlug },
+    });
     sendSuccess(res, row);
-  })
-);
-
-catalogProjectionRouter.get(
-  '/health',
-  asyncHandler(async (_req, res) => {
-    const prisma = getPrismaClient();
-    const config = getTypesenseConfig();
-    const checks: Array<{ name: string; ok: boolean; details?: unknown }> = [];
-
-    const projectionRows = await prisma.$queryRaw<
-      Array<{ count: bigint; sample_slug: string | null }>
-    >`
-      SELECT COUNT(*)::bigint AS count, MIN(slug::text) AS sample_slug
-      FROM public_products
-    `;
-    const projectionCount = Number(projectionRows[0]?.count ?? 0n);
-    const sampleSlug = projectionRows[0]?.sample_slug ?? null;
-    checks.push({
-      name: 'public projection accessible',
-      ok: true,
-      details: { count: projectionCount },
-    });
-    checks.push({
-      name: 'product slug valid',
-      ok: sampleSlug === null || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(sampleSlug),
-      details: { sampleSlug },
-    });
-
-    const imageRows = await prisma.$queryRaw<Array<{ primary_image: unknown }>>`
-      SELECT primary_image
-      FROM public_products
-      WHERE primary_image IS NOT NULL
-      LIMIT 10
-    `;
-    const invalidImages = imageRows
-      .map((row) => normalizeImage(row.primary_image))
-      .filter((image) => image?.storageKey && image.url === null);
-    checks.push({
-      name: 'image URLs valid',
-      ok: invalidImages.length === 0,
-      details: { checked: imageRows.length, invalid: invalidImages.length },
-    });
-
-    if (!config.apiKey) {
-      checks.push({
-        name: 'Typesense alias healthy',
-        ok: false,
-        details: { reason: 'TYPESENSE_API_KEY is not configured' },
-      });
-    } else {
-      const [aliasTarget, indexedCount] = await Promise.all([
-        getTypesenseAliasTarget(config.collectionAlias, config),
-        getTypesenseCollectionDocumentCount(config.collectionAlias, config),
-      ]);
-      checks.push({
-        name: 'Typesense alias healthy',
-        ok: Boolean(aliasTarget),
-        details: { alias: config.collectionAlias, aliasTarget, indexedCount },
-      });
-    }
-
-    sendSuccess(res, {
-      ok: checks.every((check) => check.ok),
-      checks,
-    });
   })
 );

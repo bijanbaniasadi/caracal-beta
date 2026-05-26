@@ -2,9 +2,15 @@ import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { ProjectionCatalogBrowser } from '@/components/catalog-projection/projection-catalog-browser';
 import { getProjectedCategory } from '@/lib/api/projection-catalog-client';
+import {
+  projectionParamsFromRecord,
+  type ProjectionSearchParamRecord,
+} from '@/lib/api/projection-catalog-params';
+import { getInitialProjectedCatalogPage } from '@/lib/api/projection-catalog-ssr';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<ProjectionSearchParamRecord>;
 }
 
 export const dynamic = 'force-dynamic';
@@ -22,8 +28,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function CatalogCategoryPage({ params }: PageProps) {
+export default async function CatalogCategoryPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const initialParams = projectionParamsFromRecord(await searchParams, { category: slug });
+  const initial = await getInitialProjectedCatalogPage(initialParams);
   let title = slug.replace(/-/g, ' ');
   let subtitle = 'Projected products in this category.';
 
@@ -42,6 +50,9 @@ export default async function CatalogCategoryPage({ params }: PageProps) {
         fixedCategory={slug}
         title={title}
         subtitle={subtitle}
+        initialParams={initialParams}
+        initialPage={initial.page}
+        initialError={initial.error}
       />
     </Suspense>
   );

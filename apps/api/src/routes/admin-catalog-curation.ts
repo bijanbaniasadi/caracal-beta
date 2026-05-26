@@ -15,6 +15,7 @@ import {
   getReconciliationReport,
   serializeCuratedProductPrice,
 } from '../lib/catalog/operator-tooling.js';
+import { getProjectionRuntimeHealth } from '../lib/catalog/projection-health.js';
 import { badRequest, notFound } from '../lib/errors.js';
 import { toPrismaJson } from '../lib/prisma-json.js';
 import { validateBody } from '../middleware/validate.js';
@@ -30,10 +31,16 @@ const curatedPriceSchema = z.object({
 
 const reconciliationEnqueueSchema = z
   .object({
-    type: z.enum(['projection-consistency', 'search-count', 'full-reconcile']).default('full-reconcile'),
+    type: z
+      .enum(['projection-consistency', 'search-count', 'full-reconcile'])
+      .default('full-reconcile'),
     reason: z.string().trim().min(1).max(1000).optional(),
   })
   .default({});
+const lookupQuerySchema = z.object({
+  q: z.string().trim().max(120).optional(),
+  limit: z.coerce.number().int().min(1).max(25).default(10),
+});
 
 function parseBigIntId(value: string, label = 'id'): bigint {
   try {
@@ -87,6 +94,76 @@ adminCatalogCurationRouter.get(
   '/dashboard',
   asyncHandler(async (_req, res) => {
     sendSuccess(res, await getAdminReviewDashboard());
+  })
+);
+
+adminCatalogCurationRouter.get(
+  '/projection-health',
+  asyncHandler(async (_req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    sendSuccess(res, await getProjectionRuntimeHealth());
+  })
+);
+
+adminCatalogCurationRouter.get(
+  '/lookups/categories',
+  asyncHandler(async (req, res) => {
+    const query = lookupQuerySchema.parse(req.query);
+    const prisma = getPrismaClient();
+    const rows = await prisma.category.findMany({
+      where: query.q
+        ? {
+            OR: [
+              { name: { contains: query.q, mode: 'insensitive' } },
+              { slug: { contains: query.q, mode: 'insensitive' } },
+            ],
+          }
+        : {},
+      orderBy: [{ name: 'asc' }],
+      take: query.limit,
+      select: { id: true, slug: true, name: true },
+    });
+
+    res.set('Cache-Control', 'private, max-age=30');
+    sendSuccess(
+      res,
+      rows.map((row) => ({
+        id: row.id.toString(),
+        slug: row.slug,
+        name: row.name,
+      }))
+    );
+  })
+);
+
+adminCatalogCurationRouter.get(
+  '/lookups/manufacturers',
+  asyncHandler(async (req, res) => {
+    const query = lookupQuerySchema.parse(req.query);
+    const prisma = getPrismaClient();
+    const rows = await prisma.manufacturer.findMany({
+      where: query.q
+        ? {
+            OR: [
+              { name: { contains: query.q, mode: 'insensitive' } },
+              { slug: { contains: query.q, mode: 'insensitive' } },
+            ],
+          }
+        : {},
+      orderBy: [{ name: 'asc' }],
+      take: query.limit,
+      select: { id: true, slug: true, name: true },
+    });
+
+    res.set('Cache-Control', 'private, max-age=30');
+    sendSuccess(
+      res,
+      rows.map((row) => ({
+        id: row.id.toString(),
+        slug: row.slug,
+        name: row.name,
+      }))
+    );
   })
 );
 

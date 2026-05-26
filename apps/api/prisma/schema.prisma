@@ -861,6 +861,7 @@ model PublicProduct {
   primaryImage      Json?     @map("primary_image")
   galleryImages     Json?     @map("gallery_images")
   bestPriceCents    BigInt?   @map("best_price_cents")
+  priceCurrency     String    @map("price_currency")
   curatedPrice      Json?     @map("curated_price")
   inStock           Boolean   @map("in_stock")
   offerCount        Int       @map("offer_count")
@@ -869,9 +870,11 @@ model PublicProduct {
   compatibility     Json?
   featured          Boolean
   publishedAt       DateTime? @map("published_at") @db.Timestamptz(6)
+  projectedAt       DateTime? @map("projected_at") @db.Timestamptz(6)
 
   @@index([categorySlug])
   @@index([manufacturerSlug])
+  @@index([projectedAt])
   @@ignore
   @@map("public_products")
 }

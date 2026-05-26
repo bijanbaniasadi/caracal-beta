@@ -11,7 +11,6 @@ export interface ProjectionPagination {
 }
 
 export interface ProjectionImage {
-  storageKey: string | null;
   url: string | null;
   altText: string | null;
   width: number | null;
@@ -27,16 +26,11 @@ export interface ProjectionPrice {
   formatted: string | null;
 }
 
-export interface ProjectionCuratedPrice extends ProjectionPrice {
-  selectedOfferId: string | null;
-  selectedAt: string | null;
-}
+export interface ProjectionCuratedPrice extends ProjectionPrice {}
 
 export interface ProjectionVendorOffer extends ProjectionPrice {
   vendorName: string;
   inStock: boolean;
-  lastSeenAt: string | null;
-  confidence: number | null;
 }
 
 export interface ProjectionSpec {

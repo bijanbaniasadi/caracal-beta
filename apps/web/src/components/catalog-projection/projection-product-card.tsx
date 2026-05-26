@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import type {
   ProjectionProduct,
   ProjectionSearchProduct,
@@ -17,12 +18,16 @@ export function ProjectionProductCard({
       <Link href={`/catalog/product/${product.slug}`} className="block">
         <div className="aspect-[4/3] bg-[#111b24]">
           {imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={imageUrl}
-              alt={imageLabel(product)}
-              className="h-full w-full object-contain p-4"
-            />
+            <div className="relative h-full w-full">
+              <Image
+                src={imageUrl}
+                alt={imageLabel(product)}
+                fill
+                sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                className="object-contain p-4"
+                unoptimized
+              />
+            </div>
           ) : (
             <div className="flex h-full items-center justify-center px-4 text-center text-xs text-brand-muted">
               Projection image pending

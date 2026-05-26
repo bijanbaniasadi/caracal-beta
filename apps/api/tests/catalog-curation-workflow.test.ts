@@ -14,15 +14,14 @@ describe('catalog curation workflow invariants', () => {
   it('keeps curation route from mutating the search index directly', () => {
     const route = readApiFile('src/routes/admin-catalog-curation.ts');
 
-    expect(route).not.toMatch(/upsertTypesenseProduct|deleteTypesenseProduct|importTypesenseProducts/i);
+    expect(route).not.toMatch(
+      /upsertTypesenseProduct|deleteTypesenseProduct|importTypesenseProducts/i
+    );
     expect(route).not.toMatch(/from ['"].*typesense/i);
   });
 
   it('keeps master product writes inside admin review or master catalog workflows', () => {
-    const allowedFiles = [
-      'src/routes/admin-master-catalog.ts',
-      'src/routes/admin-review-queue.ts',
-    ];
+    const allowedFiles = ['src/routes/admin-master-catalog.ts', 'src/routes/admin-review-queue.ts'];
     const operatorRoute = readApiFile('src/routes/admin-catalog-curation.ts');
     const mk3Ingestion = readApiFile('src/lib/catalog/mk3/ingestion.ts');
     const mk3Matching = readApiFile('src/lib/catalog/mk3/matching.ts');
@@ -56,5 +55,15 @@ describe('catalog curation workflow invariants', () => {
     expect(migration).toContain('CREATE TABLE IF NOT EXISTS curated_product_prices');
     expect(migration).toContain('Not used by public_products');
     expect(phase2Projection).not.toContain('curated_product_prices');
+  });
+
+  it('keeps review-created master fingerprints server-owned', () => {
+    const schema = readApiFile('src/schemas/master-catalog.ts');
+    const route = readApiFile('src/routes/admin-review-queue.ts');
+
+    expect(schema).toMatch(/masterProductCreateSchema\s*\.omit\(\{\s*fingerprint:\s*true\s*\}\)/);
+    expect(route).toContain('fingerprintFromRawProduct');
+    expect(route).toContain('buildMk3Fingerprint');
+    expect(route).not.toContain('fingerprint: input.fingerprint');
   });
 });
