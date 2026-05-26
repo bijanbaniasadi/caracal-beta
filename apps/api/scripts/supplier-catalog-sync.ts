@@ -28,9 +28,11 @@ interface SourceConfig {
   name: string;
   baseUrl: string;
   currency: string;
+  connectorType: 'woocommerce' | 'nopcommerce' | 'legacy-iis';
   supplierTerms: string[];
   discoveryPaths: string[];
   productPathHints: string[];
+  weakSkuTerms: string[];
 }
 
 interface CliOptions {
@@ -69,42 +71,72 @@ interface NormalizedProduct extends RawProduct {
   imageApproved: boolean;
 }
 
-const SOURCES: SourceConfig[] = [
+const SOURCE_CONNECTORS: SourceConfig[] = [
   {
     slug: 'automaxtools',
     name: 'Automax Tools',
     baseUrl: 'https://automaxtools.me',
     currency: 'AED',
-    supplierTerms: ['automaxtools', 'automax tools', 'automaxtools.me'],
-    discoveryPaths: ['/', '/collections/all', '/collections/diagnostic-tools', '/collections/key-programmers', '/products'],
-    productPathHints: ['/products/', '/product/'],
+    connectorType: 'woocommerce',
+    supplierTerms: ['automaxtools', 'automax tools', 'automax', 'automaxtools.me'],
+    discoveryPaths: [
+      '/',
+      '/shop/',
+      '/product-category/diagnostic-tools/',
+      '/product-category/key-programming-tools/',
+      '/product-category/ecu-programming-tools/',
+    ],
+    productPathHints: ['/product/'],
+    weakSkuTerms: ['AUTEL', 'LAUNCH', 'OBDSTAR', 'XHORSE', 'YANHUA'],
   },
   {
     slug: 'mk3',
     name: 'MK3',
     baseUrl: 'https://www.mk3.com',
     currency: 'USD',
+    connectorType: 'nopcommerce',
     supplierTerms: ['mk3', 'mk3.com', 'www.mk3.com'],
-    discoveryPaths: ['/', '/shop', '/products', '/product-category/key-programming', '/product-category/diagnostic-tools'],
+    discoveryPaths: ['/', '/shop', '/products', '/key-programming', '/diagnostic-tools'],
     productPathHints: ['/product/', '/products/', '.html'],
+    weakSkuTerms: ['AUTEL', 'LAUNCH', 'OBDSTAR', 'XHORSE', 'YANHUA'],
   },
   {
     slug: 'obdii365',
     name: 'OBDII365',
     baseUrl: 'https://www.obdii365.com',
     currency: 'USD',
+    connectorType: 'legacy-iis',
     supplierTerms: ['obdii365', 'obdii365.com', 'www.obdii365.com'],
-    discoveryPaths: ['/', '/wholesale/', '/ecu-chip-tuning-tools/', '/car-key-programmer/', '/obd2-diagnostic-tools/'],
+    discoveryPaths: [
+      '/',
+      '/wholesale/',
+      '/wholesale/ecu-chip-tuning-tools/',
+      '/wholesale/car-diagnostic-tools/',
+      '/wholesale/key-programming-tools/',
+      '/wholesale/original-autel-tools/',
+      '/wholesale/original-obdstar-tools/',
+    ],
     productPathHints: ['/wholesale/', '.html'],
+    weakSkuTerms: ['AUTEL', 'LAUNCH', 'OBDSTAR', 'XHORSE', 'YANHUA', 'CGDI'],
   },
   {
     slug: 'uobdii',
     name: 'UOBDII',
     baseUrl: 'https://www.uobdii.com',
     currency: 'USD',
+    connectorType: 'legacy-iis',
     supplierTerms: ['uobdii', 'uobdii.com', 'www.uobdii.com'],
-    discoveryPaths: ['/', '/wholesale/', '/car-key-programmer/', '/ecu-chip-tuning-tools/', '/diagnostic-tools/'],
+    discoveryPaths: [
+      '/',
+      '/wholesale/',
+      '/wholesale/ecu-chip-tuning/',
+      '/wholesale/car-diagnostic-tool/',
+      '/wholesale/original-autel-tool/',
+      '/wholesale/original-obdstar-tool/',
+      '/wholesale/original-xhorse-tool/',
+    ],
     productPathHints: ['/wholesale/', '.html'],
+    weakSkuTerms: ['AUTEL', 'LAUNCH', 'OBDSTAR', 'XHORSE', 'YANHUA', 'CGDI'],
   },
 ];
 
@@ -118,7 +150,7 @@ function parseOptions(): CliOptions {
   const modeInput = (argValue('mode') ?? 'dry-run').toLowerCase();
   const mode =
     modeInput === 'publish' ? 'PUBLISH' : modeInput === 'stage' ? 'STAGE' : 'DRY_RUN';
-  const sources = (argValue('sources') ?? SOURCES.map((source) => source.slug).join(','))
+  const sources = (argValue('sources') ?? SOURCE_CONNECTORS.map((source) => source.slug).join(','))
     .split(',')
     .map((source) => source.trim())
     .filter(Boolean);
@@ -148,6 +180,9 @@ function textFromHtml(value: string): string {
     .replace(/&amp;/gi, '&')
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
+    .replace(/&ndash;/gi, '-')
+    .replace(/&mdash;/gi, '-')
+    .replace(/&amp;/gi, '&')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -155,6 +190,10 @@ function textFromHtml(value: string): string {
 function compact(value: string | null | undefined): string | null {
   const cleaned = value?.replace(/\s+/g, ' ').trim();
   return cleaned ? cleaned : null;
+}
+
+function cleanTextValue(value: string | null | undefined): string | null {
+  return compact(value ? textFromHtml(value) : null);
 }
 
 function slugify(value: string): string {
@@ -170,13 +209,25 @@ function hash(value: string, length = 12): string {
   return createHash('sha256').update(value).digest('hex').slice(0, length);
 }
 
-async function fetchText(url: string): Promise<string | null> {
+function sourceHeaders(source?: SourceConfig): Record<string, string> {
+  const headers: Record<string, string> = {
+    Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Cache-Control': 'no-cache',
+    'User-Agent': USER_AGENT,
+  };
+
+  if (source?.connectorType === 'legacy-iis') {
+    headers.Accept = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8';
+  }
+
+  return headers;
+}
+
+async function fetchText(url: string, source?: SourceConfig): Promise<string | null> {
   try {
     const response = await fetch(url, {
-      headers: {
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'User-Agent': USER_AGENT,
-      },
+      headers: sourceHeaders(source),
       redirect: 'follow',
     });
 
@@ -197,7 +248,7 @@ async function getRobotsSummary(source: SourceConfig): Promise<{
   summary: string;
 }> {
   const robotsUrl = new URL('/robots.txt', source.baseUrl).toString();
-  const body = await fetchText(robotsUrl);
+  const body = await fetchText(robotsUrl, source);
   if (!body) {
     return { allowed: true, summary: 'robots.txt not reachable; sync limited to polite crawl' };
   }
@@ -249,6 +300,20 @@ function isLikelyProductUrl(source: SourceConfig, url: string): boolean {
       return false;
     }
 
+    if (source.connectorType === 'woocommerce') {
+      return path.startsWith('/product/');
+    }
+
+    if (source.connectorType === 'legacy-iis') {
+      return (
+        path.startsWith('/wholesale/')
+        && path.endsWith('.html')
+        && !path.includes('/brand-')
+        && !path.includes('/producttags/')
+        && !path.includes('/vendors/')
+      );
+    }
+
     return source.productPathHints.some((hint) => path.includes(hint.toLowerCase()));
   } catch {
     return false;
@@ -266,7 +331,7 @@ async function discoverProductUrls(source: SourceConfig, limit: number): Promise
 
   for (const sitemapUrl of sitemapUrls) {
     if (candidates.size >= limit) break;
-    const sitemap = await fetchText(sitemapUrl);
+    const sitemap = await fetchText(sitemapUrl, source);
     if (!sitemap) continue;
 
     for (const url of extractUrls(sitemap, source.baseUrl)) {
@@ -280,7 +345,7 @@ async function discoverProductUrls(source: SourceConfig, limit: number): Promise
   for (const discoveryPath of source.discoveryPaths) {
     if (candidates.size >= limit) break;
     const pageUrl = new URL(discoveryPath, source.baseUrl).toString();
-    const page = await fetchText(pageUrl);
+    const page = await fetchText(pageUrl, source);
     if (!page) continue;
 
     for (const url of extractUrls(page, source.baseUrl)) {
@@ -343,7 +408,7 @@ function findProductSchema(values: unknown[]): Record<string, unknown> | null {
 }
 
 function stringValue(value: unknown): string | null {
-  if (typeof value === 'string') return compact(value);
+  if (typeof value === 'string') return cleanTextValue(value);
   if (typeof value === 'number') return String(value);
   return null;
 }
@@ -370,7 +435,7 @@ function firstString(value: unknown): string | null {
 
 function parsePriceFromText(value: string): { cents: number; currency: string | null } | null {
   const match = value.match(
-    /(AED|USD|EUR|GBP|\$|€|£|د\.إ)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/
+    /(AED|USD|EUR|GBP|US\$|DHS?|د\.إ|\$|€|£)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i
   );
   if (!match) return null;
 
@@ -379,13 +444,13 @@ function parsePriceFromText(value: string): { cents: number; currency: string | 
 
   const symbol = match[1]?.toUpperCase();
   const currency =
-    symbol === '$'
+    symbol === '$' || symbol === 'US$'
       ? 'USD'
       : symbol === '€'
         ? 'EUR'
         : symbol === '£'
           ? 'GBP'
-          : symbol === 'د.إ'
+          : symbol === 'د.إ' || symbol === 'DH' || symbol === 'DHS'
             ? 'AED'
             : symbol ?? null;
 
@@ -428,23 +493,36 @@ function metaContent(html: string, name: string): string | null {
 
 function titleFromHtml(html: string): string | null {
   const h1 = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1];
-  if (h1) return compact(textFromHtml(h1));
+  if (h1) return cleanTextValue(h1);
 
   const og = metaContent(html, 'og:title');
   if (og) return og;
 
   const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1];
-  return title ? compact(textFromHtml(title).replace(/\s*[|-]\s*.+$/, '')) : null;
+  return title ? cleanTextValue(textFromHtml(title).replace(/\s*[|-]\s*.+$/, '')) : null;
 }
 
-function skuFromHtml(html: string): string | null {
+function isWeakSku(value: string | null, source: SourceConfig): boolean {
+  if (!value) return true;
+  const sku = value.trim().toUpperCase();
+  if (sku.length < 4) return true;
+  if (/^(SKU|MODEL|ITEM|PRODUCT|CODE|N\/A|NONE|UNKNOWN)$/.test(sku)) return true;
+  return source.weakSkuTerms.some((term) => sku === term || sku === `${term}-`);
+}
+
+function normalizeExternalSku(value: string | null | undefined, source: SourceConfig): string | null {
+  const sku = value?.toUpperCase().replace(/[^\w.-]+/g, '').slice(0, 80) ?? null;
+  return isWeakSku(sku, source) ? null : sku;
+}
+
+function skuFromHtml(html: string, source: SourceConfig): string | null {
   const text = textFromHtml(html);
   const match = text.match(/\b(?:SKU|Model|Item\s*No\.?|Product\s*Code)\s*[:#-]?\s*([A-Z0-9][A-Z0-9._/-]{2,})/i);
-  return match?.[1]?.replace(/[^\w.-]+/g, '').slice(0, 80) ?? null;
+  return normalizeExternalSku(match?.[1], source);
 }
 
 async function parseProductPage(source: SourceConfig, url: string): Promise<RawProduct | null> {
-  const html = await fetchText(url);
+  const html = await fetchText(url, source);
   if (!html) return null;
 
   const pageText = textFromHtml(html);
@@ -456,7 +534,7 @@ async function parseProductPage(source: SourceConfig, url: string): Promise<RawP
 
   const schemaSku =
     productSchema && (stringValue(productSchema.sku) ?? stringValue(productSchema.mpn));
-  const externalSku = schemaSku ?? skuFromHtml(html);
+  const externalSku = normalizeExternalSku(schemaSku, source) ?? skuFromHtml(html, source);
   const schemaBrand =
     productSchema && productSchema.brand && typeof productSchema.brand === 'object'
       ? stringValue((productSchema.brand as Record<string, unknown>).name)
@@ -544,9 +622,7 @@ function normalizeProduct(source: SourceConfig, raw: RawProduct): NormalizedProd
   const warnings: string[] = [];
   const rejectReasons: string[] = [];
   const normalizedName = removeSupplierTerms(raw.name, source);
-  const normalizedSku = raw.externalSku
-    ? raw.externalSku.toUpperCase().replace(/[^\w.-]+/g, '').slice(0, 80)
-    : null;
+  const normalizedSku = normalizeExternalSku(raw.externalSku, source);
   const convertedPriceCents = convertToAedCents(raw.priceCents, raw.currency);
   const salePriceCents =
     convertedPriceCents === null ? null : Math.max(Math.round(convertedPriceCents * 1.15), 1);
@@ -621,9 +697,11 @@ async function upsertSource(source: SourceConfig, robots: { allowed: boolean; su
       scrapeAllowed: robots.allowed,
       robotsSummary: robots.summary,
       metadata: toJson({
+        connectorType: source.connectorType,
         supplierTerms: source.supplierTerms,
         productPathHints: source.productPathHints,
         discoveryPaths: source.discoveryPaths,
+        weakSkuTerms: source.weakSkuTerms,
       }),
     },
     create: {
@@ -635,9 +713,11 @@ async function upsertSource(source: SourceConfig, robots: { allowed: boolean; su
       scrapeAllowed: robots.allowed,
       robotsSummary: robots.summary,
       metadata: toJson({
+        connectorType: source.connectorType,
         supplierTerms: source.supplierTerms,
         productPathHints: source.productPathHints,
         discoveryPaths: source.discoveryPaths,
+        weakSkuTerms: source.weakSkuTerms,
       }),
     },
   });
@@ -909,13 +989,21 @@ async function syncSource(source: SourceConfig, options: CliOptions) {
 
     const urls = await discoverProductUrls(source, options.limit);
     const parsed: NormalizedProduct[] = [];
+    const parsedKeys = new Set<string>();
 
     for (const [index, url] of urls.entries()) {
       if (index > 0 && options.delayMs > 0) {
         await sleep(options.delayMs);
       }
       const raw = await parseProductPage(source, url);
-      if (raw) parsed.push(normalizeProduct(source, raw));
+      if (!raw) continue;
+
+      const normalized = normalizeProduct(source, raw);
+      if (parsedKeys.has(normalized.sourceProductKey)) {
+        continue;
+      }
+      parsedKeys.add(normalized.sourceProductKey);
+      parsed.push(normalized);
     }
 
     let publishedCount = 0;
@@ -945,6 +1033,7 @@ async function syncSource(source: SourceConfig, options: CliOptions) {
 
     return {
       source: source.slug,
+      connectorType: source.connectorType,
       mode: options.mode,
       startedAt: runStartedAt.toISOString(),
       discovered: urls.length,
@@ -983,14 +1072,24 @@ async function syncSource(source: SourceConfig, options: CliOptions) {
 
 async function main() {
   const options = parseOptions();
-  const selectedSources = SOURCES.filter((source) => options.sources.includes(source.slug));
+  const selectedSources = SOURCE_CONNECTORS.filter((source) => options.sources.includes(source.slug));
   if (selectedSources.length === 0) {
-    throw new Error(`No matching sources. Available: ${SOURCES.map((source) => source.slug).join(', ')}`);
+    throw new Error(`No matching sources. Available: ${SOURCE_CONNECTORS.map((source) => source.slug).join(', ')}`);
   }
 
   const reports = [];
   for (const source of selectedSources) {
-    reports.push(await syncSource(source, options));
+    try {
+      reports.push(await syncSource(source, options));
+    } catch (error) {
+      reports.push({
+        source: source.slug,
+        mode: options.mode,
+        connectorType: source.connectorType,
+        status: 'FAILED',
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   console.log(JSON.stringify({ mode: options.mode, reports }, null, 2));
