@@ -34,7 +34,6 @@ import {
   inferMk3Manufacturer,
   inferMk3MpnOrSku,
   inferMk3VariantKey,
-  slugifyCatalogValue,
 } from '../src/lib/catalog/mk3/fingerprint.js';
 import {
   ensureMk3VendorSource,
@@ -312,6 +311,18 @@ async function waitForFingerprintSettlement(runId: bigint): Promise<void> {
   }
 
   throw new Error('Timed out waiting for fingerprint worker to settle Stage 1 raw products.');
+}
+
+async function waitForQueueIdle(
+  queue: ReturnType<typeof getCatalogFingerprintQueue> | ReturnType<typeof getCatalogProjectionQueue>
+): Promise<void> {
+  const deadline = Date.now() + 30_000;
+
+  while (Date.now() < deadline) {
+    const counts = await queue.getJobCounts('waiting', 'active', 'delayed');
+    if (counts.waiting === 0 && counts.active === 0 && counts.delayed === 0) return;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
 }
 
 function productBySku<T extends { vendorSku: string | null; rawName: string | null }>(
@@ -698,7 +709,7 @@ async function main(): Promise<void> {
     );
 
     const apiProductList = await publicRequest<PublicProduct[]>(
-      `/api/catalog/products?limit=12&category=${slugifyCatalogValue(referenceData.category.slug)}`
+      `/api/catalog/products?limit=12&category=${referenceData.category.slug}`
     );
     const apiProductDetail = await publicRequest<PublicProduct>(
       `/api/catalog/products/${publishedProduct.slug}`
@@ -733,6 +744,7 @@ async function main(): Promise<void> {
           ...(await verifyCatalogRawAsset(image.storageKey)),
         }))
     );
+    await Promise.all([waitForQueueIdle(fingerprintQueue), waitForQueueIdle(projectionQueue)]);
     const fingerprintAfter = await fingerprintQueue.getJobCounts('waiting', 'active', 'completed', 'failed');
     const projectionAfter = await projectionQueue.getJobCounts('waiting', 'active', 'completed', 'failed');
 
@@ -748,6 +760,8 @@ async function main(): Promise<void> {
         indexedCount >= validation.publishedProductProjectionCount &&
         directSearch.hits.some((hit) => hit.slug === publishedProduct.slug) &&
         apiProductList.status === 200 &&
+        Array.isArray(apiProductList.data) &&
+        apiProductList.data.some((item) => item.slug === publishedProduct.slug) &&
         apiProductDetail.status === 200 &&
         apiSearch.status === 200 &&
         Array.isArray(apiSearch.data) &&
