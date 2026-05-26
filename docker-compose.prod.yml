@@ -133,6 +133,43 @@ services:
         max-size: 10m
         max-file: '3'
 
+  api-projection-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-worker
+    command: ['node', 'dist/workers/projection-worker.js']
+    env_file:
+      - path: .env.production
+        required: false
+    environment:
+      NODE_ENV: production
+      NODE_OPTIONS: ${WORKER_NODE_OPTIONS:---max-old-space-size=768}
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      TYPESENSE_URL: ${TYPESENSE_URL:-http://typesense:8108}
+      TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:?Set TYPESENSE_API_KEY}
+      TYPESENSE_COLLECTION_ALIAS: ${TYPESENSE_COLLECTION_ALIAS:-products}
+      TYPESENSE_COLLECTION_PREFIX: ${TYPESENSE_COLLECTION_PREFIX:-products}
+      CATALOG_PROJECTION_WORKER_CONCURRENCY: ${CATALOG_PROJECTION_WORKER_CONCURRENCY:-1}
+      WORKER_SHUTDOWN_TIMEOUT_MS: ${WORKER_SHUTDOWN_TIMEOUT_MS:-30000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    restart: unless-stopped
+    stop_grace_period: 35s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      typesense:
+        condition: service_started
+    volumes:
+      - api-logs:/app/logs/api
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+
   postgres:
     image: postgres:15-alpine
     environment:
@@ -174,6 +211,28 @@ services:
         max-size: 10m
         max-file: '3'
 
+  typesense:
+    image: typesense/typesense:30.2
+    command:
+      [
+        '--data-dir',
+        '/data',
+        '--api-key',
+        '${TYPESENSE_API_KEY:?Set TYPESENSE_API_KEY}',
+        '--listen-port',
+        '8108',
+      ]
+    expose:
+      - '8108'
+    volumes:
+      - typesense-data:/data
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+
 volumes:
   api-logs:
     name: caracal-api-logs
@@ -185,3 +244,5 @@ volumes:
     name: caracal-postgres-data
   redis-data:
     name: caracal-redis-data
+  typesense-data:
+    name: caracal-typesense-data

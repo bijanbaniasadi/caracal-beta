@@ -26,9 +26,6 @@ model User {
   ecuPatcherAccess    EcuPatcherAccess?
   ecuPatcherJobs      EcuPatcherJob[]
   catalogApprovalLogs CatalogApprovalLog[] @relation("CatalogApprovalAdmin")
-  createdMasterProducts MasterProduct[]    @relation("MasterProductCreatedBy")
-  updatedMasterProducts MasterProduct[]    @relation("MasterProductUpdatedBy")
-  catalogAdminAuditLogs AdminAuditLog[]    @relation("CatalogAdminAuditUser")
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -140,46 +137,30 @@ enum StagingProductStatus {
   PUBLISHED
 }
 
+enum VendorCommissionType {
+  NONE
+  PERCENT
+  FIXED
+}
+
+enum VendorProductMatchStatus {
+  UNMAPPED
+  SUGGESTED
+  MATCHED
+  REJECTED
+}
+
+enum CuratedPricingStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 enum InventoryStatus {
   IN_STOCK
   LOW_STOCK
   OUT_OF_STOCK
   DISCONTINUED
-}
-
-enum CatalogProductStatus {
-  DRAFT          @map("draft")
-  PENDING_REVIEW @map("pending_review")
-  PUBLISHED      @map("published")
-  ARCHIVED       @map("archived")
-
-  @@map("product_status")
-}
-
-enum IngestionStatus {
-  RUNNING   @map("running")
-  COMPLETED @map("completed")
-  FAILED    @map("failed")
-  PARTIAL   @map("partial")
-
-  @@map("ingestion_status")
-}
-
-enum RawMatchStatus {
-  UNMATCHED     @map("unmatched")
-  AUTO_MATCHED  @map("auto_matched")
-  ADMIN_MATCHED @map("admin_matched")
-  REJECTED      @map("rejected")
-
-  @@map("raw_match_status")
-}
-
-enum OfferStatus {
-  ACTIVE       @map("active")
-  PAUSED       @map("paused")
-  DISCONTINUED @map("discontinued")
-
-  @@map("offer_status")
 }
 
 enum CartStatus {
@@ -307,9 +288,9 @@ model Article {
 }
 
 model Supplier {
-  id           String    @id @default(cuid())
+  id           String           @id @default(cuid())
   name         String
-  slug         String    @unique
+  slug         String           @unique
   contactName  String?
   contactEmail String?
   contactPhone String?
@@ -318,8 +299,8 @@ model Supplier {
   metadata     Json?
   products     Product[]
   syncSources  SupplierSource[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   @@index([name])
   @@index([createdAt])
@@ -346,34 +327,37 @@ model Category {
 }
 
 model Product {
-  id               String           @id @default(cuid())
-  sku              String           @unique
-  slug             String           @unique
+  id               String            @id @default(cuid())
+  sku              String            @unique
+  slug             String            @unique
   name             String
   shortDescription String?
   description      String?
-  status           ProductStatus    @default(DRAFT)
+  status           ProductStatus     @default(DRAFT)
   priceCents       Int?
-  currency         String           @default("AED")
+  currency         String            @default("AED")
   categoryId       String?
-  category         Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  category         Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   supplierId       String?
-  supplier         Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  supplier         Supplier?         @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   images           ProductImage[]
   inventoryItems   InventoryItem[]
-  stagingProducts StagingProduct[]
+  stagingProducts  StagingProduct[]
+  vendorProducts   VendorProduct[]
+  rawPriceHistory  RawPriceHistory[]
+  curatedPricing   CuratedPricing?
   cartItems        CartItem[]
   orderItems       OrderItem[]
   inquiries        ProductInquiry[]
-  isFeatured       Boolean          @default(false)
-  isB2BEligible    Boolean          @default(false)
-  isTradeOnly      Boolean          @default(false)
+  isFeatured       Boolean           @default(false)
+  isB2BEligible    Boolean           @default(false)
+  isTradeOnly      Boolean           @default(false)
   tradePriceCents  Int?
   attributes       Json?
   metadata         Json?
   publishedAt      DateTime?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   @@index([status])
   @@index([categoryId])
@@ -389,46 +373,55 @@ model Product {
 }
 
 model SupplierSource {
-  id             String                    @id @default(cuid())
-  supplierId     String?
-  supplier       Supplier?                 @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  slug           String                    @unique
-  name           String
-  baseUrl        String
-  currency       String                    @default("AED")
-  isActive       Boolean                   @default(true)
-  scrapeAllowed  Boolean?
-  robotsSummary  String?
-  metadata       Json?
-  syncRuns       SupplierSyncRun[]
-  stagingProducts StagingProduct[]
-  createdAt      DateTime                  @default(now())
-  updatedAt      DateTime                  @updatedAt
+  id                       String               @id @default(cuid())
+  supplierId               String?
+  supplier                 Supplier?            @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  slug                     String               @unique
+  name                     String
+  baseUrl                  String
+  currency                 String               @default("AED")
+  commissionType           VendorCommissionType @default(NONE)
+  commissionRateBps        Int?
+  commissionFixedCents     Int?
+  reliabilityScore         Int?
+  shippingNotes            String?
+  isActive                 Boolean              @default(true)
+  scrapeAllowed            Boolean?
+  robotsSummary            String?
+  metadata                 Json?
+  syncRuns                 SupplierSyncRun[]
+  stagingProducts          StagingProduct[]
+  vendorProducts           VendorProduct[]
+  rawPriceHistory          RawPriceHistory[]
+  curatedPricingSelections CuratedPricing[]
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
 
   @@index([supplierId])
   @@index([isActive])
+  @@index([reliabilityScore])
   @@index([createdAt])
 }
 
 model SupplierSyncRun {
-  id                 String                @id @default(cuid())
-  sourceId           String?
-  source             SupplierSource?       @relation(fields: [sourceId], references: [id], onDelete: SetNull)
-  mode               SupplierSyncMode
-  status             SupplierSyncRunStatus @default(RUNNING)
-  startedAt          DateTime              @default(now())
-  finishedAt         DateTime?
-  discoveredCount    Int                   @default(0)
-  stagedCount        Int                   @default(0)
-  acceptedCount      Int                   @default(0)
-  reviewCount        Int                   @default(0)
-  rejectedCount      Int                   @default(0)
-  publishedCount     Int                   @default(0)
-  errorMessage       String?
-  metadata           Json?
-  stagingProducts    StagingProduct[]
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
+  id              String                @id @default(cuid())
+  sourceId        String?
+  source          SupplierSource?       @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  mode            SupplierSyncMode
+  status          SupplierSyncRunStatus @default(RUNNING)
+  startedAt       DateTime              @default(now())
+  finishedAt      DateTime?
+  discoveredCount Int                   @default(0)
+  stagedCount     Int                   @default(0)
+  acceptedCount   Int                   @default(0)
+  reviewCount     Int                   @default(0)
+  rejectedCount   Int                   @default(0)
+  publishedCount  Int                   @default(0)
+  errorMessage    String?
+  metadata        Json?
+  stagingProducts StagingProduct[]
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
 
   @@index([sourceId])
   @@index([mode])
@@ -474,6 +467,7 @@ model StagingProduct {
   approvedAt          DateTime?
   publishedAt         DateTime?
   approvalLogs        CatalogApprovalLog[]
+  vendorProducts      VendorProduct[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -486,229 +480,99 @@ model StagingProduct {
   @@index([lastSeenAt])
 }
 
-model VendorSource {
-  id              BigInt             @id @default(autoincrement())
-  slug            String             @unique @db.Citext
-  name            String
-  baseUrl         String             @map("base_url")
-  enabled         Boolean            @default(true)
-  scrapeCadence   String             @default("24 hours") @map("scrape_cadence")
-  lastScrapedAt   DateTime?          @map("last_scraped_at") @db.Timestamptz(6)
-  notes           String?
-  ingestionRuns   IngestionRun[]
-  rawProducts     VendorRawProduct[]
-  offers          VendorOffer[]
-  productImages   CatalogProductImage[]
-  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+model VendorProduct {
+  id                String                   @id @default(cuid())
+  sourceId          String
+  source            SupplierSource           @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  productId         String?
+  product           Product?                 @relation(fields: [productId], references: [id], onDelete: SetNull)
+  stagingProductId  String?
+  stagingProduct    StagingProduct?          @relation(fields: [stagingProductId], references: [id], onDelete: SetNull)
+  sourceProductKey  String
+  vendorSku         String?
+  normalizedSku     String?
+  vendorTitle       String
+  normalizedTitle   String
+  vendorUrl         String
+  brand             String?
+  categoryName      String?
+  imageUrl          String?
+  matchStatus       VendorProductMatchStatus @default(UNMAPPED)
+  firstSeenAt       DateTime                 @default(now())
+  lastSeenAt        DateTime                 @default(now())
+  metadata          Json?
+  priceHistory      RawPriceHistory[]
+  curatedSelections CuratedPricing[]         @relation("CuratedSelectedVendorProduct")
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
 
-  @@map("vendor_sources")
-}
-
-model CatalogCategory {
-  id             BigInt          @id @default(autoincrement())
-  parentId       BigInt?         @map("parent_id")
-  parent         CatalogCategory? @relation("CatalogCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children       CatalogCategory[] @relation("CatalogCategoryHierarchy")
-  slug           String          @db.Citext
-  name           String
-  description    String?
-  sortOrder      Int             @default(0) @map("sort_order")
-  masterProducts MasterProduct[]
-  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  @@unique([parentId, slug])
-  @@index([parentId])
-  @@map("categories")
-}
-
-model IngestionRun {
-  id            BigInt             @id @default(autoincrement())
-  vendorId      BigInt             @map("vendor_id")
-  vendor        VendorSource       @relation(fields: [vendorId], references: [id], onDelete: Restrict)
-  startedAt     DateTime           @default(now()) @map("started_at") @db.Timestamptz(6)
-  finishedAt    DateTime?          @map("finished_at") @db.Timestamptz(6)
-  status        IngestionStatus    @default(RUNNING)
-  pagesScraped  Int                @default(0) @map("pages_scraped")
-  productsFound Int                @default(0) @map("products_found")
-  errors        Json               @default("[]")
-  triggeredBy   String             @map("triggered_by")
-  rawProducts   VendorRawProduct[]
-
-  @@index([vendorId])
-  @@index([status])
-  @@index([startedAt])
-  @@map("ingestion_runs")
-}
-
-model VendorRawProduct {
-  id                 BigInt             @id @default(autoincrement())
-  ingestionRunId     BigInt             @map("ingestion_run_id")
-  ingestionRun       IngestionRun       @relation(fields: [ingestionRunId], references: [id], onDelete: Restrict)
-  vendorId           BigInt             @map("vendor_id")
-  vendor             VendorSource       @relation(fields: [vendorId], references: [id], onDelete: Restrict)
-  vendorUrl          String             @map("vendor_url")
-  vendorSku          String?            @map("vendor_sku")
-  rawName            String?            @map("raw_name")
-  rawDescription     String?            @map("raw_description")
-  rawPriceText       String?            @map("raw_price_text")
-  parsedPriceCents   BigInt?            @map("parsed_price_cents")
-  parsedCurrency     String?            @map("parsed_currency") @db.Char(3)
-  parsedInStock      Boolean?           @map("parsed_in_stock")
-  rawSpecs           Json?              @map("raw_specs")
-  rawImageUrls       String[]           @default([]) @map("raw_image_urls")
-  rawHtmlStorageKey  String?            @map("raw_html_storage_key")
-  fingerprint        String
-  matchedProductId   BigInt?            @map("matched_product_id")
-  matchedProduct     MasterProduct?     @relation("VendorRawProductMatch", fields: [matchedProductId], references: [id], onDelete: SetNull)
-  matchStatus        RawMatchStatus     @default(UNMATCHED) @map("match_status")
-  matchConfidence    Decimal?           @map("match_confidence") @db.Decimal(3, 2)
-  scrapedAt          DateTime           @default(now()) @map("scraped_at") @db.Timestamptz(6)
-  images             VendorRawImage[]
-
-  @@unique([ingestionRunId, vendorId, vendorUrl])
-  @@index([ingestionRunId])
-  @@index([vendorId])
-  @@index([fingerprint])
-  @@index([matchStatus])
-  @@index([matchedProductId])
-  @@map("vendor_raw_products")
-}
-
-model VendorRawImage {
-  id             BigInt           @id @default(autoincrement())
-  rawProductId   BigInt           @map("raw_product_id")
-  rawProduct     VendorRawProduct @relation(fields: [rawProductId], references: [id], onDelete: Cascade)
-  originalUrl    String           @map("original_url")
-  storageKey     String?          @map("storage_key")
-  bytes          Int?
-  width          Int?
-  height         Int?
-  downloadedAt   DateTime?        @map("downloaded_at") @db.Timestamptz(6)
-  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  @@index([rawProductId])
-  @@map("vendor_raw_images")
-}
-
-model MasterProduct {
-  id                BigInt               @id @default(autoincrement())
-  publicId          String               @unique @default(dbgenerated("gen_random_uuid()")) @map("public_id") @db.Uuid
-  slug              String               @unique @db.Citext
-  sku               String?              @unique @db.Citext
-  mpn               String?              @db.Citext
-  name              String
-  shortDescription  String?              @map("short_description")
-  longDescriptionMd String?              @map("long_description_md")
-  manufacturerSlug  String               @map("manufacturer_slug") @db.Citext
-  manufacturerName  String               @map("manufacturer_name")
-  categoryId        BigInt               @map("category_id")
-  category          CatalogCategory      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  status            CatalogProductStatus @default(DRAFT)
-  fingerprint       String
-  featured          Boolean              @default(false)
-  seoTitle          String?              @map("seo_title")
-  seoDescription    String?              @map("seo_description")
-  createdById       String               @map("created_by")
-  createdBy         User                 @relation("MasterProductCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  updatedById       String               @map("updated_by")
-  updatedBy         User                 @relation("MasterProductUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
-  publishedAt       DateTime?            @map("published_at") @db.Timestamptz(6)
-  archivedAt        DateTime?            @map("archived_at") @db.Timestamptz(6)
-  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
-  offers            VendorOffer[]
-  images            CatalogProductImage[]
-  matchedRawProducts VendorRawProduct[]  @relation("VendorRawProductMatch")
-
-  @@index([status])
-  @@index([categoryId])
-  @@index([manufacturerSlug])
-  @@index([fingerprint])
-  @@map("master_products")
-}
-
-model VendorOffer {
-  id              BigInt       @id @default(autoincrement())
-  productId       BigInt       @map("product_id")
-  product         MasterProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
-  vendorId        BigInt       @map("vendor_id")
-  vendor          VendorSource @relation(fields: [vendorId], references: [id], onDelete: Restrict)
-  vendorSku       String?      @map("vendor_sku")
-  vendorUrl       String       @map("vendor_url")
-  priceCents      BigInt?      @map("price_cents")
-  currency        String       @default("USD") @db.Char(3)
-  inStock         Boolean?     @map("in_stock")
-  lastSeenAt      DateTime     @map("last_seen_at") @db.Timestamptz(6)
-  status          OfferStatus  @default(ACTIVE)
-  confidence      Decimal      @default(1.00) @db.Decimal(3, 2)
-  notes           String?
-  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  @@unique([vendorId, vendorUrl])
+  @@unique([sourceId, sourceProductKey])
+  @@unique([sourceId, vendorUrl])
+  @@index([sourceId])
   @@index([productId])
-  @@index([vendorId])
+  @@index([stagingProductId])
+  @@index([matchStatus])
+  @@index([normalizedSku])
+  @@index([normalizedTitle])
+  @@index([lastSeenAt])
+  @@index([sourceId, matchStatus])
+  @@index([sourceId, lastSeenAt])
+}
+
+model RawPriceHistory {
+  id                   String           @id @default(cuid())
+  vendorProductId      String
+  vendorProduct        VendorProduct    @relation(fields: [vendorProductId], references: [id], onDelete: Cascade)
+  sourceId             String
+  source               SupplierSource   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  productId            String?
+  product              Product?         @relation(fields: [productId], references: [id], onDelete: SetNull)
+  rawPriceCents        Int?
+  rawCurrency          String           @default("AED")
+  normalizedPriceCents Int?
+  normalizedCurrency   String           @default("AED")
+  availability         InventoryStatus?
+  sourceUrl            String?
+  discountBadge        String?
+  scrapedAt            DateTime         @default(now())
+  metadata             Json?
+  createdAt            DateTime         @default(now())
+
+  @@index([vendorProductId])
+  @@index([sourceId])
+  @@index([productId])
+  @@index([scrapedAt])
+  @@index([vendorProductId, scrapedAt])
+  @@index([productId, scrapedAt])
+  @@index([sourceId, scrapedAt])
+}
+
+model CuratedPricing {
+  id                      String               @id @default(cuid())
+  productId               String               @unique
+  product                 Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  selectedSourceId        String?
+  selectedSource          SupplierSource?      @relation(fields: [selectedSourceId], references: [id], onDelete: SetNull)
+  selectedVendorProductId String?
+  selectedVendorProduct   VendorProduct?       @relation("CuratedSelectedVendorProduct", fields: [selectedVendorProductId], references: [id], onDelete: SetNull)
+  publicPriceCents        Int?
+  compareAtPriceCents     Int?
+  costBasisCents          Int?
+  currency                String               @default("AED")
+  marginBps               Int?
+  discountBps             Int?
+  commissionBps           Int?
+  status                  CuratedPricingStatus @default(DRAFT)
+  adminNotes              String?
+  metadata                Json?
+  publishedAt             DateTime?
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+
+  @@index([selectedSourceId])
+  @@index([selectedVendorProductId])
   @@index([status])
-  @@map("vendor_offers")
-}
-
-model CatalogProductImage {
-  id             BigInt        @id @default(autoincrement())
-  productId      BigInt        @map("product_id")
-  product        MasterProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
-  storageKey     String        @map("storage_key")
-  width          Int?
-  height         Int?
-  mimeType       String?       @map("mime_type")
-  altText        String?       @map("alt_text")
-  isPrimary      Boolean       @default(false) @map("is_primary")
-  sortOrder      Int           @default(0) @map("sort_order")
-  sourceVendorId BigInt?       @map("source_vendor_id")
-  sourceVendor   VendorSource? @relation(fields: [sourceVendorId], references: [id], onDelete: SetNull)
-  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  @@index([productId, sortOrder])
-  @@index([sourceVendorId])
-  @@map("product_images")
-}
-
-model AdminAuditLog {
-  id          BigInt   @id @default(autoincrement())
-  userId      String   @map("user_id")
-  user        User     @relation("CatalogAdminAuditUser", fields: [userId], references: [id], onDelete: Restrict)
-  entityType  String   @map("entity_type")
-  entityId    BigInt   @map("entity_id")
-  action      String
-  diff        Json?
-  requestId   String?  @map("request_id")
-  occurredAt  DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
-
-  @@index([entityType, entityId, occurredAt], map: "audit_entity_idx")
-  @@index([userId])
-  @@map("admin_audit_log")
-}
-
-model PublicProduct {
-  publicId          String    @id @map("public_id") @db.Uuid
-  slug              String    @unique @db.Citext
-  name              String
-  shortDescription  String?   @map("short_description")
-  longDescriptionMd String?   @map("long_description_md")
-  manufacturerSlug  String    @map("manufacturer_slug") @db.Citext
-  manufacturerName  String    @map("manufacturer_name")
-  categorySlug      String    @map("category_slug") @db.Citext
-  categoryName      String    @map("category_name")
-  primaryImage      Json?     @map("primary_image")
-  bestPriceCents    BigInt?   @map("best_price_cents")
-  inStock           Boolean   @map("in_stock")
-  offerCount        Int       @map("offer_count")
-  featured          Boolean
-  publishedAt       DateTime? @map("published_at") @db.Timestamptz(6)
-
-  @@index([categorySlug])
-  @@map("public_products")
+  @@index([updatedAt])
 }
 
 model ProductImage {

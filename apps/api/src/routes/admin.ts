@@ -26,6 +26,7 @@ import {
   getBinAnalysisQueue,
   retryBinAnalysisJob,
 } from '../lib/bin-analysis/queue.js';
+import { getCatalogQueues } from '../lib/catalog/queues.js';
 import {
   ecuCorpusStages,
   getEcuCorpusQueue,
@@ -39,6 +40,7 @@ import { authenticateAccessToken, requireRoles } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
 import { adminCatalogSyncRouter } from './admin-catalog-sync.js';
 import { adminEcuPatcherRouter } from './admin-ecu-patcher.js';
+import { adminMasterCatalogRouter } from './admin-master-catalog.js';
 import { ecuCorpusRouter } from './ecu-corpus.js';
 import {
   adminListQuerySchema,
@@ -79,6 +81,7 @@ createBullBoard({
   queues: [
     new BullMQAdapter(getBinAnalysisQueue()),
     ...ecuCorpusStages.map((stage) => new BullMQAdapter(getEcuCorpusQueue(stage))),
+    ...getCatalogQueues().map((queue) => new BullMQAdapter(queue)),
   ],
   serverAdapter: queueBoardAdapter,
 });
@@ -86,6 +89,7 @@ createBullBoard({
 adminRouter.use(authenticateAccessToken, requireRoles('admin', 'staff'));
 adminRouter.use('/queues/ui', queueBoardAdapter.getRouter());
 adminRouter.use('/catalog/sync', adminCatalogSyncRouter);
+adminRouter.use('/master-products', adminMasterCatalogRouter);
 adminRouter.use('/ecu-patcher', adminEcuPatcherRouter);
 adminRouter.use('/ecu-corpus', ecuCorpusRouter);
 
