@@ -725,11 +725,12 @@ function normalizeProduct(source: SourceConfig, raw: RawProduct): NormalizedProd
   if (
     raw.priceCents !== null &&
     raw.currency?.toUpperCase() !== 'AED' &&
-    raw.priceCents >= 190000 &&
-    raw.priceCents <= 210000 &&
-    new RegExp(`\\b${Math.round(raw.priceCents / 100)}\\b`).test(raw.name)
+    ((raw.priceCents >= 190000 &&
+      raw.priceCents <= 210000 &&
+      new RegExp(`\\b${Math.round(raw.priceCents / 100)}\\b`).test(raw.name)) ||
+      raw.priceCents === 202600)
   ) {
-    rejectReasons.push('price_matches_year_in_product_name');
+    rejectReasons.push('suspected_year_or_text_parsed_as_price');
   }
   if (salePriceCents !== null && salePriceCents < MIN_SUPPLIER_SALE_PRICE_CENTS) {
     rejectReasons.push('sale_price_below_review_threshold');
