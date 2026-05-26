@@ -101,12 +101,46 @@ async function missingImageScan(): Promise<ScanResult> {
   };
 }
 
+async function projectionConsistencyScan(): Promise<ScanResult> {
+  const prisma = getPrismaClient();
+  const rows = await prisma.$queryRaw`
+    WITH published AS (
+      SELECT public_id, slug
+      FROM master_products
+      WHERE status = 'published'
+    ),
+    projected AS (
+      SELECT public_id, slug
+      FROM public_products
+    )
+    SELECT 'missing_projection' AS issue, p.public_id::text, p.slug::text
+    FROM published p
+    LEFT JOIN projected pp ON pp.public_id = p.public_id
+    WHERE pp.public_id IS NULL
+    UNION ALL
+    SELECT 'stale_projection' AS issue, pp.public_id::text, pp.slug::text
+    FROM projected pp
+    LEFT JOIN published p ON p.public_id = pp.public_id
+    WHERE p.public_id IS NULL
+    ORDER BY issue, slug
+  `;
+
+  return {
+    name: 'projection consistency scan',
+    ok: Array.isArray(rows) && rows.length === 0,
+    severity: 'error',
+    count: Array.isArray(rows) ? rows.length : 0,
+    rows: Array.isArray(rows) ? rows : [],
+  };
+}
+
 async function main(): Promise<void> {
   const scans = await Promise.all([
     duplicateFingerprintScan(),
     orphanVendorOfferScan(),
     unpublishedMasterScan(),
     missingImageScan(),
+    projectionConsistencyScan(),
   ]);
   const failed = scans.filter((scan) => !scan.ok && scan.severity === 'error');
 

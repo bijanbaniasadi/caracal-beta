@@ -1,7 +1,18 @@
 import { getPrismaClient } from '@caracal/db';
 
 import { logger } from '../logger.js';
-import { deleteTypesenseProduct, upsertTypesenseProduct } from './typesense.js';
+import {
+  createTypesenseProductsCollection,
+  deleteTypesenseCollection,
+  deleteTypesenseProduct,
+  getTypesenseAliasTarget,
+  getTypesenseCollectionDocumentCount,
+  getTypesenseConfig,
+  importTypesenseProducts,
+  timestampedProductsCollectionName,
+  upsertTypesenseAlias,
+  upsertTypesenseProduct,
+} from './typesense.js';
 
 interface PublicProductProjectionRow {
   public_id: string;
@@ -45,7 +56,7 @@ function publishedAtEpochSeconds(value: Date | string | null): number {
   return Math.floor(new Date(value).getTime() / 1000);
 }
 
-function buildTypesenseDocument(row: PublicProductProjectionRow) {
+export function buildTypesenseDocument(row: PublicProductProjectionRow) {
   return {
     id: row.public_id,
     public_id: row.public_id,
@@ -67,6 +78,17 @@ function buildTypesenseDocument(row: PublicProductProjectionRow) {
   };
 }
 
+function matviewRefreshDebounceMs(): number {
+  return Number.parseInt(process.env.CATALOG_MATVIEW_REFRESH_DEBOUNCE_MS ?? '30000', 10);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+let lastMatviewRefreshAt = 0;
+let matviewRefreshPromise: Promise<void> | null = null;
+
 export async function refreshPublicProductsMaterializedView(): Promise<void> {
   const prisma = getPrismaClient();
 
@@ -76,6 +98,36 @@ export async function refreshPublicProductsMaterializedView(): Promise<void> {
     logger.warn({ err: error }, 'concurrent public_products refresh failed; retrying non-concurrently');
     await prisma.$executeRawUnsafe('REFRESH MATERIALIZED VIEW public_products');
   }
+}
+
+export async function refreshPublicProductsMaterializedViewDebounced(): Promise<{
+  action: 'refresh-matview';
+  debouncedMs: number;
+}> {
+  if (matviewRefreshPromise) {
+    await matviewRefreshPromise;
+    return { action: 'refresh-matview', debouncedMs: 0 };
+  }
+
+  const elapsed = Date.now() - lastMatviewRefreshAt;
+  const waitMs = Math.max(matviewRefreshDebounceMs() - elapsed, 0);
+
+  if (waitMs > 0) {
+    await sleep(waitMs);
+  }
+
+  if (matviewRefreshPromise) {
+    await matviewRefreshPromise;
+    return { action: 'refresh-matview', debouncedMs: waitMs };
+  }
+
+  matviewRefreshPromise = refreshPublicProductsMaterializedView().finally(() => {
+    lastMatviewRefreshAt = Date.now();
+    matviewRefreshPromise = null;
+  });
+
+  await matviewRefreshPromise;
+  return { action: 'refresh-matview', debouncedMs: waitMs };
 }
 
 async function findPublicProjection(publicId: string): Promise<PublicProductProjectionRow | null> {
@@ -104,6 +156,30 @@ async function findPublicProjection(publicId: string): Promise<PublicProductProj
   return rows[0] ?? null;
 }
 
+async function findAllPublicProjections(): Promise<PublicProductProjectionRow[]> {
+  const prisma = getPrismaClient();
+
+  return prisma.$queryRaw<PublicProductProjectionRow[]>`
+    SELECT
+      public_id::text,
+      slug::text,
+      name,
+      short_description,
+      manufacturer_slug::text,
+      manufacturer_name,
+      category_slug::text,
+      category_name,
+      primary_image,
+      best_price_cents,
+      in_stock,
+      offer_count,
+      featured,
+      published_at
+    FROM public_products
+    ORDER BY published_at DESC NULLS LAST, public_id
+  `;
+}
+
 export async function projectMasterProductToSearch(masterProductId: string) {
   const prisma = getPrismaClient();
   const productId = BigInt(masterProductId);
@@ -128,7 +204,7 @@ export async function projectMasterProductToSearch(masterProductId: string) {
   let projection = await findPublicProjection(master.publicId);
 
   if (!projection) {
-    await refreshPublicProductsMaterializedView();
+    await refreshPublicProductsMaterializedViewDebounced();
     projection = await findPublicProjection(master.publicId);
   }
 
@@ -139,4 +215,42 @@ export async function projectMasterProductToSearch(masterProductId: string) {
 
   await upsertTypesenseProduct(buildTypesenseDocument(projection));
   return { action: 'upsert' as const, publicId: master.publicId };
+}
+
+export async function reindexAllPublicProductsWithAliasSwap() {
+  await refreshPublicProductsMaterializedViewDebounced();
+
+  const config = getTypesenseConfig();
+  const previousCollection = await getTypesenseAliasTarget(config.collectionAlias, config).catch((error) => {
+    logger.warn({ err: error, alias: config.collectionAlias }, 'Typesense alias lookup failed before reindex');
+    return null;
+  });
+  const nextCollection = timestampedProductsCollectionName(config);
+  const projections = await findAllPublicProjections();
+  const documents = projections.map(buildTypesenseDocument);
+
+  await createTypesenseProductsCollection(nextCollection, config);
+  await importTypesenseProducts(nextCollection, documents, config);
+
+  const indexedCount = await getTypesenseCollectionDocumentCount(nextCollection, config);
+  if (indexedCount !== documents.length) {
+    throw new Error(
+      `Typesense alias-swap validation failed: expected ${documents.length} documents in ${nextCollection}, found ${indexedCount}`
+    );
+  }
+
+  await upsertTypesenseAlias(config.collectionAlias, nextCollection, config);
+
+  if (previousCollection && previousCollection !== nextCollection) {
+    await deleteTypesenseCollection(previousCollection, config);
+  }
+
+  return {
+    action: 'alias-swap-reindex' as const,
+    alias: config.collectionAlias,
+    previousCollection,
+    nextCollection,
+    postgresCount: documents.length,
+    indexedCount,
+  };
 }

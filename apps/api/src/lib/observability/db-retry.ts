@@ -51,7 +51,10 @@ export async function withDbRetry<T>(
   options: RuntimeRetryOptions = {}
 ): Promise<T> {
   const settings = {
-    attempts: options.attempts ?? Number.parseInt(process.env.DB_RUNTIME_RETRY_ATTEMPTS ?? '3', 10),
+    attempts: Math.max(
+      1,
+      options.attempts ?? Number.parseInt(process.env.DB_RUNTIME_RETRY_ATTEMPTS ?? '3', 10)
+    ),
     baseDelayMs:
       options.baseDelayMs ?? Number.parseInt(process.env.DB_RUNTIME_RETRY_BASE_MS ?? '100', 10),
     maxDelayMs:
@@ -60,7 +63,7 @@ export async function withDbRetry<T>(
   const started = Date.now();
   let attempt = 0;
 
-  while (true) {
+  while (attempt < settings.attempts) {
     attempt += 1;
 
     try {
@@ -90,4 +93,6 @@ export async function withDbRetry<T>(
       await delay(sleepMs);
     }
   }
+
+  throw new Error(`Database operation ${operation} failed without a captured error.`);
 }

@@ -29,6 +29,8 @@ model User {
   createdMasterProducts MasterProduct[]    @relation("MasterProductCreatedBy")
   updatedMasterProducts MasterProduct[]    @relation("MasterProductUpdatedBy")
   catalogAdminAuditLogs AdminAuditLog[]    @relation("CatalogAdminAuditUser")
+  assignedReviewQueueItems ReviewQueue[]   @relation("ReviewQueueAssignedTo")
+  resolvedReviewQueueItems ReviewQueue[]   @relation("ReviewQueueResolvedBy")
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -36,6 +38,7 @@ model User {
   @@index([isActive])
   @@index([createdAt])
 }
+
 
 enum UserRole {
   ADMIN
@@ -180,6 +183,15 @@ enum OfferStatus {
   DISCONTINUED @map("discontinued")
 
   @@map("offer_status")
+}
+
+enum ReviewAction {
+  CREATE_MASTER    @map("create_master")
+  ATTACH_TO_MASTER @map("attach_to_master")
+  REJECT           @map("reject")
+  DUPLICATE        @map("duplicate")
+
+  @@map("review_action")
 }
 
 enum CartStatus {
@@ -505,6 +517,31 @@ model VendorSource {
   @@map("vendor_sources")
 }
 
+model Manufacturer {
+  id             BigInt               @id @default(autoincrement())
+  slug           String               @unique @db.Citext
+  name           String
+  website        String?
+  logoImageId    BigInt?              @map("logo_image_id")
+  logoImage      CatalogProductImage? @relation("ManufacturerLogoImage", fields: [logoImageId], references: [id], onDelete: SetNull)
+  masterProducts MasterProduct[]
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("manufacturers")
+}
+
+model CatalogTag {
+  id             BigInt             @id @default(autoincrement())
+  slug           String             @unique @db.Citext
+  name           String
+  masterProducts MasterProductTag[]
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("tags")
+}
+
 model CatalogCategory {
   id             BigInt          @id @default(autoincrement())
   parentId       BigInt?         @map("parent_id")
@@ -566,6 +603,7 @@ model VendorRawProduct {
   matchConfidence    Decimal?           @map("match_confidence") @db.Decimal(3, 2)
   scrapedAt          DateTime           @default(now()) @map("scraped_at") @db.Timestamptz(6)
   images             VendorRawImage[]
+  reviewQueue        ReviewQueue?
 
   @@unique([ingestionRunId, vendorId, vendorUrl])
   @@index([ingestionRunId])
@@ -575,6 +613,7 @@ model VendorRawProduct {
   @@index([matchedProductId])
   @@map("vendor_raw_products")
 }
+
 
 model VendorRawImage {
   id             BigInt           @id @default(autoincrement())
@@ -596,11 +635,13 @@ model MasterProduct {
   id                BigInt               @id @default(autoincrement())
   publicId          String               @unique @default(dbgenerated("gen_random_uuid()")) @map("public_id") @db.Uuid
   slug              String               @unique @db.Citext
-  sku               String?              @unique @db.Citext
+  sku               String?              @db.Citext
   mpn               String?              @db.Citext
   name              String
   shortDescription  String?              @map("short_description")
   longDescriptionMd String?              @map("long_description_md")
+  manufacturerId    BigInt?              @map("manufacturer_id")
+  manufacturer      Manufacturer?        @relation(fields: [manufacturerId], references: [id], onDelete: Restrict)
   manufacturerSlug  String               @map("manufacturer_slug") @db.Citext
   manufacturerName  String               @map("manufacturer_name")
   categoryId        BigInt               @map("category_id")
@@ -621,13 +662,20 @@ model MasterProduct {
   offers            VendorOffer[]
   images            CatalogProductImage[]
   matchedRawProducts VendorRawProduct[]  @relation("VendorRawProductMatch")
+  reviewSuggestions ReviewQueue[]        @relation("ReviewQueueSuggestion")
+  tags              MasterProductTag[]
+  specs             MasterProductSpec[]
+  compatibility     MasterProductCompatibility[]
 
   @@index([status])
+  @@index([sku])
   @@index([categoryId])
+  @@index([manufacturerId])
   @@index([manufacturerSlug])
   @@index([fingerprint])
   @@map("master_products")
 }
+
 
 model VendorOffer {
   id              BigInt       @id @default(autoincrement())
@@ -646,6 +694,7 @@ model VendorOffer {
   notes           String?
   createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  priceHistory    PriceHistory[]
 
   @@unique([vendorId, vendorUrl])
   @@index([productId])
@@ -653,6 +702,20 @@ model VendorOffer {
   @@index([status])
   @@map("vendor_offers")
 }
+
+model PriceHistory {
+  id          BigInt      @id @default(autoincrement())
+  offerId     BigInt      @map("offer_id")
+  offer       VendorOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  priceCents  BigInt      @map("price_cents")
+  currency    String      @db.Char(3)
+  inStock     Boolean?    @map("in_stock")
+  observedAt  DateTime    @default(now()) @map("observed_at") @db.Timestamptz(6)
+
+  @@index([offerId, observedAt(sort: Desc)], map: "price_history_offer_time_idx")
+  @@map("price_history")
+}
+
 
 model CatalogProductImage {
   id             BigInt        @id @default(autoincrement())
@@ -667,11 +730,77 @@ model CatalogProductImage {
   sortOrder      Int           @default(0) @map("sort_order")
   sourceVendorId BigInt?       @map("source_vendor_id")
   sourceVendor   VendorSource? @relation(fields: [sourceVendorId], references: [id], onDelete: SetNull)
+  manufacturerLogos Manufacturer[] @relation("ManufacturerLogoImage")
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([productId, sortOrder])
   @@index([sourceVendorId])
   @@map("product_images")
+}
+
+
+model MasterProductSpec {
+  id        BigInt        @id @default(autoincrement())
+  productId BigInt        @map("product_id")
+  product   MasterProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  key       String        @db.Citext
+  value     String
+  unit      String?
+  sortOrder Int           @default(0) @map("sort_order")
+
+  @@unique([productId, key])
+  @@index([productId, sortOrder])
+  @@map("master_product_specs")
+}
+
+model MasterProductTag {
+  productId BigInt        @map("product_id")
+  product   MasterProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tagId     BigInt        @map("tag_id")
+  tag       CatalogTag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([productId, tagId])
+  @@index([tagId])
+  @@map("master_product_tags")
+}
+
+model MasterProductCompatibility {
+  id        BigInt        @id @default(autoincrement())
+  productId BigInt        @map("product_id")
+  product   MasterProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  make      String?
+  model     String?
+  yearFrom  Int?          @map("year_from")
+  yearTo    Int?          @map("year_to")
+  ecu       String?
+  notes     String?
+
+  @@index([productId])
+  @@index([make, model])
+  @@map("master_product_compatibility")
+}
+
+model ReviewQueue {
+  id                  BigInt           @id @default(autoincrement())
+  rawProductId        BigInt           @unique @map("raw_product_id")
+  rawProduct          VendorRawProduct @relation(fields: [rawProductId], references: [id], onDelete: Cascade)
+  suggestedProductId  BigInt?          @map("suggested_product_id")
+  suggestedProduct    MasterProduct?   @relation("ReviewQueueSuggestion", fields: [suggestedProductId], references: [id], onDelete: SetNull)
+  suggestedConfidence Decimal?         @map("suggested_confidence") @db.Decimal(3, 2)
+  priority            Int              @default(100)
+  assignedToId        String?          @map("assigned_to")
+  assignedTo          User?            @relation("ReviewQueueAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  resolvedAt          DateTime?        @map("resolved_at") @db.Timestamptz(6)
+  resolvedById        String?          @map("resolved_by")
+  resolvedBy          User?            @relation("ReviewQueueResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAction      ReviewAction?    @map("resolved_action")
+  notes               String?
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([priority, createdAt], map: "review_queue_open_idx")
+  @@index([suggestedProductId])
+  @@index([assignedToId])
+  @@map("review_queue")
 }
 
 model AdminAuditLog {
@@ -708,8 +837,10 @@ model PublicProduct {
   publishedAt       DateTime? @map("published_at") @db.Timestamptz(6)
 
   @@index([categorySlug])
+  @@ignore
   @@map("public_products")
 }
+
 
 model ProductImage {
   id        String   @id @default(cuid())

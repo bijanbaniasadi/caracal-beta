@@ -2,12 +2,14 @@ import { Worker } from 'bullmq';
 
 import {
   catalogQueueNames,
+  enqueueCatalogProjectionJob,
   type CatalogProjectionJobData,
   type CatalogSearchIndexJobData,
 } from '../lib/catalog/queues.js';
 import {
   projectMasterProductToSearch,
-  refreshPublicProductsMaterializedView,
+  refreshPublicProductsMaterializedViewDebounced,
+  reindexAllPublicProductsWithAliasSwap,
 } from '../lib/catalog/projection.js';
 import { getRedisConnectionOptions } from '../lib/bin-analysis/queue.js';
 import { logger } from '../lib/logger.js';
@@ -18,18 +20,16 @@ const projectionWorker = new Worker<CatalogProjectionJobData>(
   catalogQueueNames.projection,
   async (job) => {
     if (job.data.type === 'refresh-matview') {
-      await refreshPublicProductsMaterializedView();
-      return { action: 'refresh-matview' };
+      return refreshPublicProductsMaterializedViewDebounced();
     }
 
     if (job.data.type === 'project-product' && job.data.masterProductId) {
-      await refreshPublicProductsMaterializedView();
+      await refreshPublicProductsMaterializedViewDebounced();
       return projectMasterProductToSearch(job.data.masterProductId);
     }
 
     if (job.data.type === 'full-reindex') {
-      await refreshPublicProductsMaterializedView();
-      return { action: 'full-reindex-placeholder' };
+      return reindexAllPublicProductsWithAliasSwap();
     }
 
     throw new Error(`Unsupported projection job: ${JSON.stringify(job.data)}`);
@@ -44,12 +44,23 @@ const searchIndexWorker = new Worker<CatalogSearchIndexJobData>(
   catalogQueueNames.searchIndex,
   async (job) => {
     if ((job.data.type === 'upsert' || job.data.type === 'delete') && job.data.masterProductId) {
-      return projectMasterProductToSearch(job.data.masterProductId);
+      await enqueueCatalogProjectionJob({
+        type: 'project-product',
+        masterProductId: job.data.masterProductId,
+        publicId: job.data.publicId,
+        reason: job.data.reason ?? `search-index.${job.data.type}`,
+      });
+
+      return { action: 'delegated-to-projection' };
     }
 
     if (job.data.type === 'reindex-full') {
-      await refreshPublicProductsMaterializedView();
-      return { action: 'reindex-full-placeholder' };
+      await enqueueCatalogProjectionJob({
+        type: 'full-reindex',
+        reason: job.data.reason ?? 'search-index.reindex-full',
+      });
+
+      return { action: 'delegated-full-reindex-to-projection' };
     }
 
     throw new Error(`Unsupported search-index job: ${JSON.stringify(job.data)}`);

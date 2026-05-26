@@ -41,6 +41,7 @@ import { validateBody } from '../middleware/validate.js';
 import { adminCatalogSyncRouter } from './admin-catalog-sync.js';
 import { adminEcuPatcherRouter } from './admin-ecu-patcher.js';
 import { adminMasterCatalogRouter } from './admin-master-catalog.js';
+import { adminReviewQueueRouter } from './admin-review-queue.js';
 import { ecuCorpusRouter } from './ecu-corpus.js';
 import {
   adminListQuerySchema,
@@ -90,6 +91,7 @@ adminRouter.use(authenticateAccessToken, requireRoles('admin', 'staff'));
 adminRouter.use('/queues/ui', queueBoardAdapter.getRouter());
 adminRouter.use('/catalog/sync', adminCatalogSyncRouter);
 adminRouter.use('/master-products', adminMasterCatalogRouter);
+adminRouter.use('/review-queue', adminReviewQueueRouter);
 adminRouter.use('/ecu-patcher', adminEcuPatcherRouter);
 adminRouter.use('/ecu-corpus', ecuCorpusRouter);
 

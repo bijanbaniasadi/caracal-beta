@@ -8,6 +8,7 @@ export const catalogQueueNames = {
   imagePipeline: process.env.CATALOG_IMAGE_PIPELINE_QUEUE_NAME ?? 'image-pipeline',
   projection: process.env.CATALOG_PROJECTION_QUEUE_NAME ?? 'projection',
   searchIndex: process.env.CATALOG_SEARCH_INDEX_QUEUE_NAME ?? 'search-index',
+  reconciliation: process.env.CATALOG_RECONCILIATION_QUEUE_NAME ?? 'reconciliation',
 } as const;
 
 export interface CatalogIngestionJobData {
@@ -41,11 +42,17 @@ export interface CatalogSearchIndexJobData {
   reason?: string;
 }
 
+export interface CatalogReconciliationJobData {
+  type: 'projection-consistency' | 'search-count' | 'full-reconcile';
+  reason?: string;
+}
+
 let ingestionQueue: Queue<CatalogIngestionJobData> | null = null;
 let fingerprintQueue: Queue<CatalogFingerprintJobData> | null = null;
 let imagePipelineQueue: Queue<CatalogImagePipelineJobData> | null = null;
 let projectionQueue: Queue<CatalogProjectionJobData> | null = null;
 let searchIndexQueue: Queue<CatalogSearchIndexJobData> | null = null;
+let reconciliationQueue: Queue<CatalogReconciliationJobData> | null = null;
 
 function catalogDefaultJobOptions(): JobsOptions {
   return {
@@ -104,6 +111,18 @@ export function getCatalogSearchIndexQueue(): Queue<CatalogSearchIndexJobData> {
   return searchIndexQueue;
 }
 
+export function getCatalogReconciliationQueue(): Queue<CatalogReconciliationJobData> {
+  reconciliationQueue ??= new Queue<CatalogReconciliationJobData>(
+    catalogQueueNames.reconciliation,
+    {
+      connection: getRedisConnectionOptions(),
+      defaultJobOptions: catalogDefaultJobOptions(),
+    }
+  );
+
+  return reconciliationQueue;
+}
+
 export function getCatalogQueues(): Array<Queue> {
   return [
     getCatalogIngestionQueue(),
@@ -111,6 +130,7 @@ export function getCatalogQueues(): Array<Queue> {
     getCatalogImagePipelineQueue(),
     getCatalogProjectionQueue(),
     getCatalogSearchIndexQueue(),
+    getCatalogReconciliationQueue(),
   ];
 }
 
@@ -130,6 +150,14 @@ export async function enqueueCatalogSearchIndexJob(data: CatalogSearchIndexJobDa
   });
 }
 
+export async function enqueueCatalogReconciliationJob(data: CatalogReconciliationJobData) {
+  const jobName = data.type;
+
+  return getCatalogReconciliationQueue().add(jobName, data, {
+    jobId: `${jobName}:${Date.now()}`,
+  });
+}
+
 export async function closeCatalogQueues(): Promise<void> {
   await Promise.all(
     [
@@ -138,6 +166,7 @@ export async function closeCatalogQueues(): Promise<void> {
       imagePipelineQueue,
       projectionQueue,
       searchIndexQueue,
+      reconciliationQueue,
     ].map((queue) => queue?.close())
   );
 
@@ -146,4 +175,5 @@ export async function closeCatalogQueues(): Promise<void> {
   imagePipelineQueue = null;
   projectionQueue = null;
   searchIndexQueue = null;
+  reconciliationQueue = null;
 }

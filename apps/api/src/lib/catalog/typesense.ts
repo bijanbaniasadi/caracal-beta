@@ -61,6 +61,18 @@ export function getTypesenseConfig(source: NodeJS.ProcessEnv = process.env): Typ
   };
 }
 
+export function timestampedProductsCollectionName(
+  config = getTypesenseConfig(),
+  date = new Date()
+): string {
+  const timestamp = date
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}Z$/, 'Z');
+
+  return `${config.collectionPrefix}_v_${timestamp}`;
+}
+
 function requireTypesenseConfig(config = getTypesenseConfig()): TypesenseConfig {
   if (!config.apiKey) {
     throw new Error('TYPESENSE_API_KEY is required for catalog projection writes.');
@@ -82,6 +94,163 @@ async function typesenseFetch(
       ...init.headers,
     },
   });
+}
+
+async function parseTypesenseJson<T>(response: Response): Promise<T> {
+  return (await response.json()) as T;
+}
+
+export async function createTypesenseProductsCollection(
+  collectionName: string,
+  config = requireTypesenseConfig()
+): Promise<void> {
+  const response = await typesenseFetch(
+    '/collections',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        ...productsCollectionSchema,
+        name: collectionName,
+      }),
+    },
+    config
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Typesense collection create failed for ${collectionName}: ${response.status} ${await response.text()}`
+    );
+  }
+}
+
+export async function importTypesenseProducts(
+  collectionName: string,
+  input: TypesenseProductDocument[],
+  config = requireTypesenseConfig()
+): Promise<{ indexed: number }> {
+  const documents = input.map((document) => typesenseProductDocumentSchema.parse(document));
+
+  if (documents.length === 0) {
+    return { indexed: 0 };
+  }
+
+  const response = await typesenseFetch(
+    `/collections/${encodeURIComponent(collectionName)}/documents/import?action=create`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+      body: documents.map((document) => JSON.stringify(document)).join('\n'),
+    },
+    config
+  );
+
+  const body = await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `Typesense bulk import failed for ${collectionName}: ${response.status} ${body}`
+    );
+  }
+
+  const failures = body
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as { success?: boolean; error?: string })
+    .filter((result) => result.success === false);
+
+  if (failures.length > 0) {
+    throw new Error(
+      `Typesense bulk import rejected ${failures.length} product documents for ${collectionName}: ${JSON.stringify(
+        failures.slice(0, 5)
+      )}`
+    );
+  }
+
+  return { indexed: documents.length };
+}
+
+export async function getTypesenseCollectionDocumentCount(
+  collectionNameOrAlias: string,
+  config = requireTypesenseConfig()
+): Promise<number> {
+  const response = await typesenseFetch(
+    `/collections/${encodeURIComponent(collectionNameOrAlias)}`,
+    { method: 'GET' },
+    config
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Typesense collection fetch failed for ${collectionNameOrAlias}: ${response.status} ${await response.text()}`
+    );
+  }
+
+  const body = await parseTypesenseJson<{ num_documents?: number }>(response);
+  return body.num_documents ?? 0;
+}
+
+export async function getTypesenseAliasTarget(
+  aliasName: string,
+  config = requireTypesenseConfig()
+): Promise<string | null> {
+  const response = await typesenseFetch(
+    `/aliases/${encodeURIComponent(aliasName)}`,
+    { method: 'GET' },
+    config
+  );
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `Typesense alias fetch failed for ${aliasName}: ${response.status} ${await response.text()}`
+    );
+  }
+
+  const body = await parseTypesenseJson<{ collection_name?: string }>(response);
+  return body.collection_name ?? null;
+}
+
+export async function upsertTypesenseAlias(
+  aliasName: string,
+  collectionName: string,
+  config = requireTypesenseConfig()
+): Promise<void> {
+  const response = await typesenseFetch(
+    `/aliases/${encodeURIComponent(aliasName)}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ collection_name: collectionName }),
+    },
+    config
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Typesense alias swap failed for ${aliasName}: ${response.status} ${await response.text()}`
+    );
+  }
+}
+
+export async function deleteTypesenseCollection(
+  collectionName: string,
+  config = requireTypesenseConfig()
+): Promise<void> {
+  const response = await typesenseFetch(
+    `/collections/${encodeURIComponent(collectionName)}`,
+    { method: 'DELETE' },
+    config
+  );
+
+  if (!response.ok && response.status !== 404) {
+    throw new Error(
+      `Typesense collection delete failed for ${collectionName}: ${response.status} ${await response.text()}`
+    );
+  }
 }
 
 export async function upsertTypesenseProduct(
