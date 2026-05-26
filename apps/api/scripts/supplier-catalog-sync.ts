@@ -439,6 +439,73 @@ function firstString(value: unknown): string | null {
   return stringValue(value);
 }
 
+function htmlAttribute(tag: string, name: string): string | null {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = tag.match(new RegExp(`\\b${escaped}\\s*=\\s*["']([^"']+)["']`, 'i'));
+  return match?.[1] ? cleanTextValue(match[1]) : null;
+}
+
+function metaAttributeContent(html: string, attribute: string, value: string): string | null {
+  const tags = html.matchAll(/<meta\b[^>]*>/gi);
+
+  for (const tagMatch of tags) {
+    const tag = tagMatch[0];
+    if (htmlAttribute(tag, attribute)?.toLowerCase() === value.toLowerCase()) {
+      const content = htmlAttribute(tag, 'content');
+      if (content) return compact(textFromHtml(content));
+    }
+  }
+
+  return null;
+}
+
+function parseAmountToCents(value: unknown): number | null {
+  const amount = Number.parseFloat(
+    String(value ?? '')
+      .replace(/,/g, '')
+      .trim()
+  );
+  return Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : null;
+}
+
+function normalizeCurrencyToken(symbol: string | null | undefined): string | null {
+  const normalized = symbol?.trim().toUpperCase();
+  if (!normalized) return null;
+
+  if (normalized === '$' || normalized === 'US$') return 'USD';
+  if (normalized === 'â‚¬') return 'EUR';
+  if (normalized === 'Â£') return 'GBP';
+  if (normalized === 'Ø¯.Ø¥' || normalized === 'DH' || normalized === 'DHS') return 'AED';
+
+  return normalized;
+}
+
+function parsePriceFromMeta(html: string): { cents: number; currency: string | null } | null {
+  const candidates = [
+    {
+      price: metaAttributeContent(html, 'itemprop', 'price'),
+      currency: metaAttributeContent(html, 'itemprop', 'priceCurrency'),
+    },
+    {
+      price: metaContent(html, 'product:price:amount'),
+      currency: metaContent(html, 'product:price:currency'),
+    },
+    {
+      price: metaContent(html, 'og:price:amount'),
+      currency: metaContent(html, 'og:price:currency'),
+    },
+  ];
+
+  for (const candidate of candidates) {
+    const cents = parseAmountToCents(candidate.price);
+    if (cents !== null) {
+      return { cents, currency: normalizeCurrencyToken(candidate.currency) };
+    }
+  }
+
+  return null;
+}
+
 function parsePriceFromText(value: string): { cents: number; currency: string | null } | null {
   const match = value.match(
     /(AED|USD|EUR|GBP|US\$|DHS?|د\.إ|\$|€|£)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i
@@ -448,19 +515,7 @@ function parsePriceFromText(value: string): { cents: number; currency: string | 
   const amount = Number.parseFloat(match[2].replace(/,/g, ''));
   if (!Number.isFinite(amount)) return null;
 
-  const symbol = match[1]?.toUpperCase();
-  const currency =
-    symbol === '$' || symbol === 'US$'
-      ? 'USD'
-      : symbol === '€'
-        ? 'EUR'
-        : symbol === '£'
-          ? 'GBP'
-          : symbol === 'د.إ' || symbol === 'DH' || symbol === 'DHS'
-            ? 'AED'
-            : (symbol ?? null);
-
-  return { cents: Math.round(amount * 100), currency };
+  return { cents: Math.round(amount * 100), currency: normalizeCurrencyToken(match[1]) };
 }
 
 function offerRecord(productSchema: Record<string, unknown>): Record<string, unknown> | null {
@@ -564,10 +619,10 @@ async function parseProductPage(source: SourceConfig, url: string): Promise<RawP
   const rawPrice =
     offers && offers.price !== undefined
       ? {
-          cents: Math.round(Number(String(offers.price).replace(/,/g, '')) * 100),
-          currency: stringValue(offers.priceCurrency),
+          cents: parseAmountToCents(offers.price) ?? Number.NaN,
+          currency: normalizeCurrencyToken(stringValue(offers.priceCurrency)),
         }
-      : parsePriceFromText(pageText);
+      : (parsePriceFromMeta(html) ?? parsePriceFromText(pageText));
 
   const priceCents =
     rawPrice && Number.isFinite(rawPrice.cents) && rawPrice.cents > 0 ? rawPrice.cents : null;
@@ -660,6 +715,15 @@ function normalizeProduct(source: SourceConfig, raw: RawProduct): NormalizedProd
   }
   if (convertedPriceCents === null || salePriceCents === null || oldPriceCents === null) {
     rejectReasons.push('missing_or_unsupported_price');
+  }
+  if (
+    raw.priceCents !== null &&
+    raw.currency?.toUpperCase() !== 'AED' &&
+    raw.priceCents >= 190000 &&
+    raw.priceCents <= 210000 &&
+    new RegExp(`\\b${Math.round(raw.priceCents / 100)}\\b`).test(raw.name)
+  ) {
+    rejectReasons.push('price_matches_year_in_product_name');
   }
   if (salePriceCents !== null && salePriceCents < MIN_SUPPLIER_SALE_PRICE_CENTS) {
     rejectReasons.push('sale_price_below_review_threshold');
