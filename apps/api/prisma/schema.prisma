@@ -802,6 +802,8 @@ model MasterProduct {
   longDescriptionMd     String?                      @map("long_description_md")
   compareAtCents        BigInt?                      @map("compare_at_cents")
   compareAtCurrency     String?                      @map("compare_at_currency") @db.Char(3)
+  rrpSourceCents        BigInt?                      @map("rrp_source_cents")
+  rrpSourceCurrency     String?                      @map("rrp_source_currency") @db.Char(3)
   pricedSellCents       BigInt?                      @map("priced_sell_cents")
   pricedCurrency        String?                      @default("AED") @map("priced_currency") @db.Char(3)
   pricedAt              DateTime?                    @map("priced_at") @db.Timestamptz(6)

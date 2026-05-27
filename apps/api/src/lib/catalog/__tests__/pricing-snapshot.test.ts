@@ -59,6 +59,52 @@ describe('catalog pricing snapshots', () => {
     expect(liveComputedAfterFxMove?.sellPriceCents).not.toBe(initialSnapshot?.sellPriceCents);
   });
 
+  it('freezes an AED compare-at from the source RRP when it is an honest discount', () => {
+    const snapshot = computePricingSnapshot({
+      offers: [{ id: 1n, vendorId: 9n, priceCents: 10000n, currency: 'EUR' }],
+      rates: { AED: 1, EUR: 4 },
+      policies: [globalPolicy],
+      rrpSource: { cents: 15000n, currency: 'EUR' },
+    });
+
+    expect(snapshot?.sellPriceCents).toBe(46000);
+    expect(snapshot?.compareAtCents).toBe(60000);
+    expect(snapshot?.compareAtCurrency).toBe('AED');
+    expect(snapshot?.compareAtSourceCents).toBe(15000);
+    expect(snapshot?.compareAtSourceCurrency).toBe('EUR');
+
+    const data = pricingSnapshotUpdateData(snapshot);
+    expect(data.compareAtCents).toBe(60000n);
+    expect(data.compareAtCurrency).toBe('AED');
+  });
+
+  it('suppresses compare-at when the RRP does not beat the sell price (no fake discount)', () => {
+    const snapshot = computePricingSnapshot({
+      offers: [{ id: 1n, vendorId: 9n, priceCents: 10000n, currency: 'EUR' }],
+      rates: { AED: 1, EUR: 4 },
+      policies: [globalPolicy],
+      rrpSource: { cents: 11000n, currency: 'EUR' }, // 44000 AED <= 46000 sell
+    });
+
+    expect(snapshot?.sellPriceCents).toBe(46000);
+    expect(snapshot?.compareAtCents).toBeNull();
+    expect(snapshot?.compareAtCurrency).toBeNull();
+    expect(pricingSnapshotUpdateData(snapshot).compareAtCents).toBeNull();
+  });
+
+  it('adds the source RRP columns the compare-at freeze depends on', () => {
+    const migration = readFileSync(
+      resolve(
+        apiRoot,
+        'prisma/migrations/20260528120000_pricing_snapshot_rrp_freeze/migration.sql'
+      ),
+      'utf8'
+    );
+
+    expect(migration).toContain('rrp_source_cents');
+    expect(migration).toContain('rrp_source_currency');
+  });
+
   it('makes the materialized view prefer the frozen snapshot over live fallback pricing', () => {
     const migration = readFileSync(
       resolve(

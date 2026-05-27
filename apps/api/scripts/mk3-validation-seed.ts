@@ -276,12 +276,10 @@ async function main(): Promise<void> {
       update: { name: brandName },
     });
 
-    // Convert EUR RRP -> AED compare-at (only when a real RRP was captured).
-    const eurRate = rates.EUR;
-    const compareAtAedCents =
-      raw.rrpCents && eurRate
-        ? BigInt(Math.round(Number(raw.rrpCents) * eurRate))
-        : null;
+    // Carry the source RRP (vendor currency, EUR) onto the master. A3.1 freezes
+    // it into an AED compare-at at publish — no manual conversion here.
+    const rrpSourceCents = raw.rrpCents;
+    const rrpSourceCurrency = raw.rrpCurrency ? raw.rrpCurrency.toUpperCase() : null;
 
     // Create / update the master in PENDING_REVIEW (creator), then publish as
     // the publisher (two-person spirit). Publish freezes the AED sell price.
@@ -296,8 +294,8 @@ async function main(): Promise<void> {
         longDescriptionMd:
           raw.rawDescription ??
           'MK3 chain-validation seed product. Local-only; remove with the purge script.',
-        compareAtCents: compareAtAedCents,
-        compareAtCurrency: compareAtAedCents ? 'AED' : null,
+        rrpSourceCents,
+        rrpSourceCurrency,
         manufacturerId: manufacturer.id,
         manufacturerSlug: manufacturer.slug,
         manufacturerName: manufacturer.name,
@@ -310,8 +308,8 @@ async function main(): Promise<void> {
       },
       update: {
         name: raw.rawName ?? finalSlug,
-        compareAtCents: compareAtAedCents,
-        compareAtCurrency: compareAtAedCents ? 'AED' : null,
+        rrpSourceCents,
+        rrpSourceCurrency,
         categoryId: category.id,
         manufacturerId: manufacturer.id,
         manufacturerSlug: manufacturer.slug,
@@ -394,7 +392,8 @@ async function main(): Promise<void> {
       sourceCostCents: snapshot ? String(snapshot.sourceCostCents) : null,
       sourceCurrency: snapshot?.sourceCurrency ?? null,
       pricedSellCents: snapshot ? String(snapshot.sellPriceCents) : null,
-      compareAtCents: compareAtAedCents ? compareAtAedCents.toString() : null,
+      compareAtCents:
+        snapshot && snapshot.compareAtCents !== null ? String(snapshot.compareAtCents) : null,
     });
   }
 

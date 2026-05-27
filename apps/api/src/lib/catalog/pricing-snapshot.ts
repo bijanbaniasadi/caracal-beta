@@ -36,12 +36,24 @@ export interface MasterPricingSnapshot {
   fxRateToAed: number;
   marginBps: number;
   roundingIncrementCents: number;
+  /** Frozen AED compare-at (manufacturer RRP). null when no honest discount applies. */
+  compareAtCents: number | null;
+  compareAtCurrency: typeof AED_CURRENCY | null;
+  /** The source RRP that produced the frozen compare-at (vendor currency). */
+  compareAtSourceCents: number | null;
+  compareAtSourceCurrency: string | null;
+}
+
+export interface PricingSnapshotRrpSource {
+  cents: bigint | number | null;
+  currency: string | null;
 }
 
 interface ComputePricingSnapshotInput {
   offers: PricingSnapshotOffer[];
   rates: CurrencyRates;
   policies: PricingSnapshotPolicy[];
+  rrpSource?: PricingSnapshotRrpSource | null;
   now?: Date;
 }
 
@@ -128,6 +140,30 @@ export function computePricingSnapshot(
 
   if (sellPriceCents === null) return null;
 
+  // Freeze the manufacturer RRP into an AED compare-at, but only when it is an
+  // honest discount (RRP in AED strictly above our frozen sell price). Anything
+  // else yields no compare-at, so we never show a fabricated discount.
+  let compareAtCents: number | null = null;
+  let compareAtCurrency: typeof AED_CURRENCY | null = null;
+  let compareAtSourceCents: number | null = null;
+  let compareAtSourceCurrency: string | null = null;
+
+  if (input.rrpSource) {
+    const rrpCents = toFiniteNumber(input.rrpSource.cents);
+    const rrpCurrency = input.rrpSource.currency
+      ? normalizeCurrency(input.rrpSource.currency)
+      : null;
+    const rrpAedCents =
+      rrpCurrency !== null ? convertToAed(rrpCents, rrpCurrency, input.rates) : null;
+
+    if (rrpAedCents !== null && rrpCents !== null && rrpCurrency !== null && rrpAedCents > sellPriceCents) {
+      compareAtCents = rrpAedCents;
+      compareAtCurrency = AED_CURRENCY;
+      compareAtSourceCents = rrpCents;
+      compareAtSourceCurrency = rrpCurrency;
+    }
+  }
+
   return {
     sellPriceCents,
     currency: AED_CURRENCY,
@@ -139,6 +175,10 @@ export function computePricingSnapshot(
     fxRateToAed: selected.fxRateToAed,
     marginBps: policy.marginBps,
     roundingIncrementCents: policy.roundingIncrementCents,
+    compareAtCents,
+    compareAtCurrency,
+    compareAtSourceCents,
+    compareAtSourceCurrency,
   };
 }
 
@@ -154,6 +194,8 @@ export function pricingSnapshotUpdateData(
       pricedSourceCurrency: null,
       pricedFxRateToAed: null,
       pricedMarginBps: null,
+      compareAtCents: null,
+      compareAtCurrency: null,
     };
   }
 
@@ -165,6 +207,9 @@ export function pricingSnapshotUpdateData(
     pricedSourceCurrency: snapshot.sourceCurrency,
     pricedFxRateToAed: snapshot.fxRateToAed.toFixed(6),
     pricedMarginBps: snapshot.marginBps,
+    compareAtCents:
+      snapshot.compareAtCents !== null ? BigInt(snapshot.compareAtCents) : null,
+    compareAtCurrency: snapshot.compareAtCurrency,
   };
 }
 
@@ -176,20 +221,26 @@ export async function buildMasterPricingSnapshotUpdate(
   snapshot: MasterPricingSnapshot | null;
   data: Prisma.MasterProductUncheckedUpdateInput;
 }> {
-  const offerRows = await tx.vendorOffer.findMany({
-    where: {
-      productId: masterProductId,
-      status: 'ACTIVE',
-      inStock: true,
-      priceCents: { not: null },
-    },
-    select: {
-      id: true,
-      vendorId: true,
-      priceCents: true,
-      currency: true,
-    },
-  });
+  const [offerRows, master] = await Promise.all([
+    tx.vendorOffer.findMany({
+      where: {
+        productId: masterProductId,
+        status: 'ACTIVE',
+        inStock: true,
+        priceCents: { not: null },
+      },
+      select: {
+        id: true,
+        vendorId: true,
+        priceCents: true,
+        currency: true,
+      },
+    }),
+    tx.masterProduct.findUnique({
+      where: { id: masterProductId },
+      select: { rrpSourceCents: true, rrpSourceCurrency: true },
+    }),
+  ]);
   const offers: PricingSnapshotOffer[] = offerRows
     .filter((offer) => offer.priceCents !== null)
     .map((offer) => ({
@@ -230,6 +281,9 @@ export async function buildMasterPricingSnapshotUpdate(
     offers,
     rates,
     policies,
+    rrpSource: master
+      ? { cents: master.rrpSourceCents, currency: master.rrpSourceCurrency }
+      : null,
     now,
   });
 

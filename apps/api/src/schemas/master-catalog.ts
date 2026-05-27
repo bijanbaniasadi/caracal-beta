@@ -36,6 +36,10 @@ export const masterProductCreateSchema = z.object({
   featured: z.coerce.boolean().default(false),
   seoTitle: optionalText(240),
   seoDescription: optionalText(360),
+  // Source manufacturer RRP in vendor currency (e.g. EUR). Frozen to an AED
+  // compare-at at publish/reprice (A3.1). Leave null when no genuine RRP exists.
+  rrpSourceCents: z.coerce.bigint().nonnegative().nullable().optional(),
+  rrpSourceCurrency: z.string().trim().length(3).toUpperCase().nullable().optional(),
 });
 
 export const masterProductUpdateSchema = masterProductCreateSchema.partial().extend({

@@ -182,6 +182,10 @@ function serializeMasterProduct(product: MasterProductDetail) {
     featured: product.featured,
     seoTitle: product.seoTitle,
     seoDescription: product.seoDescription,
+    compareAtCents: product.compareAtCents?.toString() ?? null,
+    compareAtCurrency: product.compareAtCurrency,
+    rrpSourceCents: product.rrpSourceCents?.toString() ?? null,
+    rrpSourceCurrency: product.rrpSourceCurrency,
     pricedSellCents: product.pricedSellCents?.toString() ?? null,
     pricedCurrency: product.pricedCurrency,
     pricedAt: product.pricedAt,
@@ -256,6 +260,8 @@ function masterProductCreateData(
     featured: input.featured,
     seoTitle: input.seoTitle,
     seoDescription: input.seoDescription,
+    rrpSourceCents: input.rrpSourceCents,
+    rrpSourceCurrency: input.rrpSourceCurrency,
     createdBy: { connect: { id: userId } },
     updatedBy: { connect: { id: userId } },
   };
@@ -288,6 +294,8 @@ function masterProductUpdateData(
     featured: input.featured,
     seoTitle: input.seoTitle,
     seoDescription: input.seoDescription,
+    rrpSourceCents: input.rrpSourceCents,
+    rrpSourceCurrency: input.rrpSourceCurrency,
     updatedBy: { connect: { id: userId } },
   };
 }
