@@ -45,15 +45,15 @@ export default async function CatalogProductPage({ params }: PageProps) {
 
     return (
       <div className="mx-auto max-w-2xl py-20 text-center">
-        <p className="text-sm font-semibold text-brand-text">Catalog projection unavailable</p>
+        <p className="text-sm font-semibold text-brand-text">Product temporarily unavailable</p>
         <p className="mt-2 text-sm text-brand-muted">
-          The product exists behind the projection API, but the backend returned a temporary error.
+          We could not load this product right now.
         </p>
         <Link
           href="/catalog"
           className="mt-5 inline-flex rounded-md border border-white/10 px-4 py-2 text-sm font-semibold text-brand-text hover:border-brand-orange"
         >
-          Back to catalog preview
+          Back to catalog
         </Link>
       </div>
     );

@@ -108,7 +108,7 @@ export function ProjectionCatalogBrowser({
   const error = query.error
     ? query.error instanceof Error
       ? query.error.message
-      : 'Catalog projection is unavailable.'
+      : 'Catalog is temporarily unavailable. Please retry.'
     : page
       ? null
       : initialError;
@@ -119,15 +119,12 @@ export function ProjectionCatalogBrowser({
     <div className="space-y-8">
       <section className="border-b border-white/10 pb-6">
         <p className="font-technical text-xs font-semibold uppercase tracking-widest text-brand-orange">
-          Projection catalog
+          Professional catalog
         </p>
         <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="font-display text-3xl font-bold text-brand-text">{title}</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-muted">{subtitle}</p>
-          </div>
-          <div className="rounded-md border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-100">
-            Preview path. Legacy shop remains active.
           </div>
         </div>
       </section>
@@ -138,7 +135,7 @@ export function ProjectionCatalogBrowser({
           onChange={(event) => setFilter({ q: event.target.value || undefined })}
           placeholder="Search by product, tool, category, or manufacturer"
           className="h-11 rounded-md border border-white/10 bg-white/[0.04] px-3 text-sm text-brand-text outline-none transition focus:border-brand-orange"
-          aria-label="Search projected catalog"
+          aria-label="Search product catalog"
         />
         <select
           value={params.sort ?? 'featured'}
@@ -173,9 +170,9 @@ export function ProjectionCatalogBrowser({
 
       {!loading && !error && items.length === 0 ? (
         <div className="rounded-lg border border-white/10 bg-white/[0.04] px-6 py-14 text-center">
-          <p className="text-sm font-semibold text-brand-text">No projected products found</p>
+          <p className="text-sm font-semibold text-brand-text">No products match these filters</p>
           <p className="mt-2 text-sm text-brand-muted">
-            The public projection may be empty until admin-published catalog products are projected.
+            Clear filters or contact us for fitment help.
           </p>
         </div>
       ) : null}

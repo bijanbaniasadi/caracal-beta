@@ -8,8 +8,8 @@ import {
 import { getInitialProjectedCatalogPage } from '@/lib/api/projection-catalog-ssr';
 
 export const metadata: Metadata = {
-  title: 'Catalog Search | Caracal Tech',
-  description: 'Search projected catalog products through the Typesense products alias.',
+  title: 'Search ECU Tools | Caracal Tech',
+  description: 'Search ECU tools, tuning hardware, and workshop equipment.',
 };
 
 export const dynamic = 'force-dynamic';
@@ -27,7 +27,7 @@ export default async function CatalogSearchPage({
       <ProjectionCatalogBrowser
         mode="search"
         title="Search catalog"
-        subtitle="Instant search uses the public search API, which queries the Typesense products alias only."
+        subtitle="Search by product, manufacturer, category, or part number."
         initialParams={initialParams}
         initialPage={initial.page}
         initialError={initial.error}

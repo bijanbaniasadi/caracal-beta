@@ -30,7 +30,7 @@ export function ProjectionProductCard({
             </div>
           ) : (
             <div className="flex h-full items-center justify-center px-4 text-center text-xs text-brand-muted">
-              Projection image pending
+              Image coming soon
             </div>
           )}
         </div>

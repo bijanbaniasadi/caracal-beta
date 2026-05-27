@@ -8,9 +8,9 @@ import {
 import { getInitialProjectedCatalogPage } from '@/lib/api/projection-catalog-ssr';
 
 export const metadata: Metadata = {
-  title: 'Catalog Preview | Caracal Tech',
+  title: 'ECU Tools Catalog | Caracal Tech',
   description:
-    'Preview the layered catalog projection backed by public_products and Typesense alias search.',
+    'Browse curated ECU programming tools and workshop equipment.',
 };
 
 export const dynamic = 'force-dynamic';
@@ -27,8 +27,8 @@ export default async function CatalogPage({
     <Suspense fallback={<CatalogFallback />}>
       <ProjectionCatalogBrowser
         mode="home"
-        title="Catalog preview"
-        subtitle="Projected, admin-published products from the layered catalog. The legacy shop stays unchanged while this preview is validated."
+        title="ECU Tools Catalog"
+        subtitle="Curated ECU tools, tuning hardware, and workshop equipment for UAE professionals."
         initialParams={initialParams}
         initialPage={initial.page}
         initialError={initial.error}

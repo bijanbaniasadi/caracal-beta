@@ -72,7 +72,7 @@ export function ProjectionProductDetail({ product }: { product: ProjectionProduc
               </div>
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-brand-muted">
-                Projection image pending
+                Product image coming soon
               </div>
             )}
           </div>
@@ -132,7 +132,7 @@ export function ProjectionProductDetail({ product }: { product: ProjectionProduc
 
           <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-brand-muted">
-              Curated price
+              Caracal price
             </p>
             <div className="mt-2 flex items-end justify-between gap-4">
               <p className="font-display text-2xl font-bold text-brand-text">
@@ -154,7 +154,7 @@ export function ProjectionProductDetail({ product }: { product: ProjectionProduc
           <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-semibold text-brand-text">Vendor offers</p>
-              <span className="text-xs text-brand-muted">{product.offerCount} projected</span>
+              <span className="text-xs text-brand-muted">{product.offerCount} supplier offers</span>
             </div>
             <div className="mt-3 space-y-2">
               {product.vendorOffers.length > 0 ? (
@@ -172,7 +172,7 @@ export function ProjectionProductDetail({ product }: { product: ProjectionProduc
                 ))
               ) : (
                 <p className="rounded-md border border-white/10 px-3 py-5 text-sm text-brand-muted">
-                  No vendor offer comparison is projected yet.
+                  Supplier pricing is being confirmed.
                 </p>
               )}
             </div>
@@ -195,7 +195,9 @@ export function ProjectionProductDetail({ product }: { product: ProjectionProduc
                   )}
               </div>
             ) : (
-              <p className="text-sm text-brand-muted">Detailed copy has not been curated yet.</p>
+              <p className="text-sm text-brand-muted">
+                Product details coming soon. Contact us for fitment guidance.
+              </p>
             )}
           </div>
 
@@ -217,7 +219,7 @@ export function ProjectionProductDetail({ product }: { product: ProjectionProduc
                   ))}
                 </dl>
               ) : (
-                <p className="mt-3 text-sm text-brand-muted">Specs are pending curation.</p>
+                <p className="mt-3 text-sm text-brand-muted">Specifications coming soon.</p>
               )}
             </section>
 
@@ -233,7 +235,7 @@ export function ProjectionProductDetail({ product }: { product: ProjectionProduc
                   ))}
                 </ul>
               ) : (
-                <p className="mt-3 text-sm text-brand-muted">Compatibility is pending curation.</p>
+                <p className="mt-3 text-sm text-brand-muted">Compatibility data coming soon.</p>
               )}
             </section>
           </div>
