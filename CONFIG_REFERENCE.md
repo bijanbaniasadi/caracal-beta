@@ -331,11 +331,11 @@ trim_trailing_whitespace = false
 
 ### .github/workflows/ci.yml
 
-See: `github-actions-ci.yml` (already provided above)
+See: `.github/workflows/ci.yml`
 
 ### .github/workflows/cd.yml
 
-See: `github-actions-cd.yml` (already provided above)
+See: `.github/workflows/cd.yml`
 
 ### .github/CODEOWNERS
 

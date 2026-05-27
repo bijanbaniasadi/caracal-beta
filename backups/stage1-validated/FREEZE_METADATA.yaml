@@ -1,7 +1,16 @@
 ﻿stage: stage1-validated
-git_commit: aa21e49ec4c96629d704eb1b0850968c5fe7248b
+git_commit: 628a9b33f7be330dd7fe0e0b0fa2f5fd8806ab3e
 git_tag: stage1-mk3-validated
 postgres_dump: backups/stage1-validated/stage1.dump
 typesense_snapshot: backups/stage1-validated/typesense-stage1
+typesense_snapshot_compatible_with: typesense/typesense:30.2
 validation_status: passed
-freeze_time_utc: 2026-05-26T23:55:56.5433469+04:00
+freeze_time_utc: 2026-05-26T19:55:56.5433469Z
+checksums:
+  postgres_dump:
+    size_bytes: 11625168
+    sha256: 928a5f0ff92b56c043f44ea705ad8ec121237e9b8bbc88293cc561d0932a1292
+  typesense_snapshot:
+    file_count: 7
+    size_bytes: 20700
+    manifest_sha256: e30c6280c563b4c97f5c3b1a9734a6dbeca84cf2a72436cf64bb802f388eb628

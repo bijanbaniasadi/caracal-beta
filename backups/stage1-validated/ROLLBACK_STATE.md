@@ -9,9 +9,9 @@ post-Stage-1 state. Do not edit historical values; append new sections for new f
 | Field | Value |
 |---|---|
 | Stage | Stage 1 — MK3 controlled ingestion (validated) |
-| Frozen at (UTC) | <FILL_FROM_STEP_4 — output of `(Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")`> |
+| Frozen at (UTC) | `2026-05-26T19:55:56.5433469Z` |
 | Branch | `production-vps-fixes` |
-| HEAD commit | `aa21e49ec4c96629d704eb1b0850968c5fe7248b` |
+| HEAD commit | `628a9b33f7be330dd7fe0e0b0fa2f5fd8806ab3e` |
 | Git tag | `stage1-mk3-validated` |
 | Prior Stage 0 baseline | (none — Stage 0 had no separate snapshot; restorable from migrations + reset) |
 | Stage status | functional certification: PASS · checkpoint certification: PENDING remediation per Stage 1 audit |
@@ -70,6 +70,7 @@ Compose file: `docker-compose.yml`
 | Alias name | `products` |
 | Alias target collection | `products_v_20260526T190918Z` |
 | Alias-swap pattern in use | yes (timestamp-suffixed collection) |
+| Snapshot compatibility | `typesense/typesense:30.2` |
 | Old collections retained | unverified — confirm before Stage 2 |
 
 ## Backup artifacts
@@ -78,8 +79,8 @@ Stored under: `backups/stage1-validated/`
 
 | File | Type | Size (bytes) | SHA256 | Notes |
 |---|---|---|---|---|
-| `stage1.dump` | Postgres custom-format dump (`pg_dump --format=custom`) | `11625168` | `<FILL_FROM_STEP_4 — Get-FileHash stage1.dump>` | Created from `docker compose exec postgres pg_dump -U caracal -d caracal_dev --format=custom` |
-| `typesense-stage1/` | Typesense snapshot tree (`/operations/snapshot?snapshot_path=/tmp/stage1`) | `<FILL_FROM_STEP_4 — sum of file sizes>` | `<FILL_FROM_STEP_4 — combined SHA256>` | Copied from container via `docker compose cp typesense:/tmp/stage1` |
+| `stage1.dump` | Postgres custom-format dump (`pg_dump --format=custom`) | `11625168` | `928a5f0ff92b56c043f44ea705ad8ec121237e9b8bbc88293cc561d0932a1292` | Created from `docker compose exec postgres pg_dump -U caracal -d caracal_dev --format=custom` |
+| `typesense-stage1/` | Typesense snapshot tree (`/operations/snapshot?snapshot_path=/tmp/stage1`) | `20700` | `e30c6280c563b4c97f5c3b1a9734a6dbeca84cf2a72436cf64bb802f388eb628` | 7-file manifest checksum; copied from container via `docker compose cp typesense:/tmp/stage1` |
 | `ROLLBACK_STATE.md` | This file | n/a | n/a | Metadata index |
 
 ## Secrets
@@ -91,7 +92,7 @@ Stored under: `backups/stage1-validated/`
 
 ## Restoration procedure (local stack only — no VPS)
 
-> Run from a clean checkout of `production-vps-fixes` at commit `aa21e49`.
+> Run from a clean checkout of `production-vps-fixes` at commit `628a9b3`.
 > All commands assume PowerShell on Windows and `docker compose` v2.
 
 ```powershell
@@ -99,7 +100,7 @@ Stored under: `backups/stage1-validated/`
 docker compose down -v
 
 # 1. Recreate the stack at the validated commit
-git checkout aa21e49ec4c96629d704eb1b0850968c5fe7248b
+git checkout 628a9b33f7be330dd7fe0e0b0fa2f5fd8806ab3e
 docker compose up -d postgres redis typesense
 # Wait for healthy
 docker compose ps
