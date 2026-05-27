@@ -1,9 +1,11 @@
 import type {
+  DisplayCurrency,
   ProjectionProduct,
   ProjectionSearchProduct,
   ProjectionPrice,
   ProjectionSpec,
   ProjectionSortOption,
+  ProjectionCurrencyRates,
 } from '@/lib/api/projection-catalog-types';
 
 export const projectionSortOptions: Array<{ value: ProjectionSortOption; label: string }> = [
@@ -22,9 +24,56 @@ export function isNewCatalogFrontendEnabled(): boolean {
 }
 
 type ProjectionCardProduct = ProjectionProduct | ProjectionSearchProduct;
+type RateMap = ProjectionCurrencyRates['rates'];
+
+const priceLocales: Record<DisplayCurrency, string> = {
+  AED: 'en-AE',
+  USD: 'en-US',
+  EUR: 'de-DE',
+  GBP: 'en-GB',
+};
 
 function hasPrice(price: ProjectionPrice | null | undefined): price is ProjectionPrice {
   return Boolean(price && (price.formatted || typeof price.priceCents === 'number'));
+}
+
+function hasUsableRate(currency: DisplayCurrency, rates: RateMap): boolean {
+  if (currency === 'AED') return true;
+  const rate = rates[currency];
+  return typeof rate === 'number' && Number.isFinite(rate) && rate > 0;
+}
+
+export function displayPrice(
+  aedCents: number | null | undefined,
+  currency: DisplayCurrency,
+  rates: RateMap
+): string | null {
+  if (typeof aedCents !== 'number' || !Number.isFinite(aedCents)) return null;
+
+  const displayCurrency = hasUsableRate(currency, rates) ? currency : 'AED';
+  const rateToAed = displayCurrency === 'AED' ? 1 : rates[displayCurrency] ?? 1;
+  const amount = aedCents / 100 / rateToAed;
+
+  return new Intl.NumberFormat(priceLocales[displayCurrency], {
+    style: 'currency',
+    currency: displayCurrency,
+    currencyDisplay: 'narrowSymbol',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+export function projectionPriceLabel(
+  price: ProjectionPrice | null | undefined,
+  currency: DisplayCurrency,
+  rates: RateMap
+): string | null {
+  if (!hasPrice(price)) return null;
+  if (price.currency === 'AED') {
+    return displayPrice(price.priceCents, currency, rates) ?? price.formatted;
+  }
+
+  return price.formatted;
 }
 
 export function primaryPrice(product: ProjectionCardProduct): ProjectionPrice | null {
@@ -34,11 +83,19 @@ export function primaryPrice(product: ProjectionCardProduct): ProjectionPrice | 
   return null;
 }
 
-export function priceLabel(product: ProjectionCardProduct): string {
-  return primaryPrice(product)?.formatted ?? 'Request price';
+export function priceLabel(
+  product: ProjectionCardProduct,
+  currency: DisplayCurrency = 'AED',
+  rates: RateMap = { AED: 1 }
+): string {
+  return projectionPriceLabel(primaryPrice(product), currency, rates) ?? 'Request price';
 }
 
-export function compareAtLabel(product: ProjectionCardProduct): string | null {
+export function compareAtLabel(
+  product: ProjectionCardProduct,
+  currency: DisplayCurrency = 'AED',
+  rates: RateMap = { AED: 1 }
+): string | null {
   const primary = primaryPrice(product);
   const compareAt = product.compareAt;
 
@@ -54,7 +111,7 @@ export function compareAtLabel(product: ProjectionCardProduct): string | null {
     return null;
   }
 
-  return compareAt.formatted;
+  return projectionPriceLabel(compareAt, currency, rates);
 }
 
 export function discountLabel(product: ProjectionCardProduct): string | null {

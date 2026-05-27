@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCart } from '@/hooks/use-cart';
 import { useCustomerAuth } from '@/contexts/customer-auth';
+import { displayCurrencies, useCurrencyDisplay } from '@/contexts/currency-display';
 
 const BASE_NAV_LINKS = [
   { href: '/ecu-remapping-dubai', label: 'Services' },
@@ -22,6 +23,7 @@ export function SiteNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { count } = useCart();
   const { session, isLoading, logout } = useCustomerAuth();
+  const { currency, setCurrency } = useCurrencyDisplay();
   const navLinks = useMemo(
     () => [
       {
@@ -84,6 +86,27 @@ export function SiteNav() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label htmlFor="site-currency" className="sr-only">
+              Display currency
+            </label>
+            <select
+              id="site-currency"
+              value={currency}
+              onChange={(event) => setCurrency(event.target.value as typeof currency)}
+              className="h-8 rounded-md border border-white/15 bg-[#0b1218] px-2 text-xs font-semibold text-brand-text outline-none transition focus:border-brand-orange"
+              aria-label="Display currency"
+            >
+              {displayCurrencies.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            <span className="hidden max-w-32 text-[10px] leading-3 text-brand-muted xl:inline">
+              Shown in {currency}; charged in AED
+            </span>
+          </div>
           {/* Phone number — trust signal, always visible */}
           <a
             href={PHONE_HREF}
@@ -153,6 +176,28 @@ export function SiteNav() {
       {mobileOpen && (
         <div className="md:hidden border-t border-white/10 bg-brand-deep">
           <nav className="flex flex-col gap-1 px-4 py-3" aria-label="Mobile navigation">
+            <label className="mb-2 flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-brand-text">
+              <span>
+                <span className="block text-xs font-semibold uppercase tracking-wide text-brand-orange">
+                  Currency
+                </span>
+                <span className="block text-[11px] text-brand-muted">
+                  Shown in {currency}; charged in AED
+                </span>
+              </span>
+              <select
+                value={currency}
+                onChange={(event) => setCurrency(event.target.value as typeof currency)}
+                className="h-8 rounded-md border border-white/15 bg-[#0b1218] px-2 text-xs font-semibold text-brand-text outline-none"
+                aria-label="Display currency"
+              >
+                {displayCurrencies.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
             {navLinks.map(({ href, label }) => {
               const active = pathname === href || pathname.startsWith(href + '/');
               return (

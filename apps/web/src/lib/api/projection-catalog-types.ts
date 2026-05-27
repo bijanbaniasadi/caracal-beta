@@ -1,4 +1,12 @@
 export type ProjectionSortOption = 'featured' | 'newest' | 'name' | 'price_asc' | 'price_desc';
+export type DisplayCurrency = 'AED' | 'USD' | 'EUR' | 'GBP';
+
+export interface ProjectionCurrencyRates {
+  base: 'AED';
+  direction: 'AED_PER_UNIT';
+  rates: Partial<Record<DisplayCurrency, number>>;
+  updatedAt: string | null;
+}
 
 export interface ProjectionPagination {
   limit: number;
@@ -72,6 +80,7 @@ export interface ProjectionProduct {
   inStock: boolean;
   offerCount: number;
   vendorOffers: ProjectionVendorOffer[];
+  sourcingVendorName?: string | null;
   specs: ProjectionSpec[];
   compatibility: ProjectionCompatibility[];
   featured: boolean;
@@ -96,6 +105,7 @@ export interface ProjectionSearchProduct {
   compareAt?: ProjectionPrice | null;
   discountPct?: number | null;
   bestPrice: ProjectionPrice;
+  sourcingVendorName?: string | null;
   inStock: boolean;
   offerCount: number;
   featured: boolean;

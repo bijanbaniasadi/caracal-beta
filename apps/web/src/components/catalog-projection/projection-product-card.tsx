@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import { useCurrencyDisplay } from '@/contexts/currency-display';
 import type {
   ProjectionProduct,
   ProjectionSearchProduct,
@@ -18,12 +21,15 @@ export function ProjectionProductCard({
 }: {
   product: ProjectionProduct | ProjectionSearchProduct;
 }) {
+  const { currency, rates } = useCurrencyDisplay();
   const imageUrl = productImageUrl(product);
   const productHref = `/catalog/product/${product.slug}`;
-  const compareAt = compareAtLabel(product);
+  const compareAt = compareAtLabel(product, currency, rates);
   const discount = discountLabel(product);
   const vendorName =
-    'vendorOffers' in product ? product.vendorOffers[0]?.vendorName : undefined;
+    ('vendorOffers' in product ? product.vendorOffers[0]?.vendorName : undefined) ??
+    product.sourcingVendorName ??
+    undefined;
   const specChips =
     'specs' in product
       ? product.specs
@@ -83,7 +89,7 @@ export function ProjectionProductCard({
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-display text-base font-bold text-brand-text">
-                {priceLabel(product)}
+                {priceLabel(product, currency, rates)}
               </span>
               {compareAt ? (
                 <span className="text-xs text-brand-muted line-through">{compareAt}</span>

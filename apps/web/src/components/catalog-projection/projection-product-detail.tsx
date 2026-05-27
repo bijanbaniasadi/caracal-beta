@@ -3,8 +3,15 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useCurrencyDisplay } from '@/contexts/currency-display';
 import type { ProjectionImage, ProjectionProduct } from '@/lib/api/projection-catalog-types';
-import { imageLabel, priceLabel } from './projection-utils';
+import {
+  compareAtLabel,
+  discountLabel,
+  imageLabel,
+  priceLabel,
+  projectionPriceLabel,
+} from './projection-utils';
 
 function imageUrl(image: ProjectionImage | null): string | null {
   return image?.url ?? null;
@@ -26,6 +33,7 @@ function compatibilityLabel(item: ProjectionProduct['compatibility'][number]): s
 }
 
 export function ProjectionProductDetail({ product }: { product: ProjectionProduct }) {
+  const { currency, rates } = useCurrencyDisplay();
   const images = useMemo(() => {
     const unique = new Map<string, ProjectionImage>();
     for (const image of [product.primaryImage, ...product.galleryImages]) {
@@ -37,6 +45,8 @@ export function ProjectionProductDetail({ product }: { product: ProjectionProduc
   const [selectedUrlKey, setSelectedUrlKey] = useState(images[0]?.url ?? null);
   const selectedImage = images.find((image) => image.url === selectedUrlKey) ?? images[0] ?? null;
   const selectedUrl = imageUrl(selectedImage);
+  const compareAt = compareAtLabel(product, currency, rates);
+  const discount = discountLabel(product);
 
   return (
     <article className="space-y-10">
@@ -135,9 +145,24 @@ export function ProjectionProductDetail({ product }: { product: ProjectionProduc
               Caracal price
             </p>
             <div className="mt-2 flex items-end justify-between gap-4">
-              <p className="font-display text-2xl font-bold text-brand-text">
-                {priceLabel(product)}
-              </p>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-display text-2xl font-bold text-brand-text">
+                    {priceLabel(product, currency, rates)}
+                  </p>
+                  {compareAt ? (
+                    <span className="text-sm text-brand-muted line-through">{compareAt}</span>
+                  ) : null}
+                  {discount ? (
+                    <span className="rounded-full bg-brand-orange px-2 py-0.5 text-xs font-semibold text-white">
+                      {discount}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-1 text-xs text-brand-muted">
+                  Prices shown in {currency}; checkout is charged in AED.
+                </p>
+              </div>
               <span
                 className={[
                   'rounded-full px-2.5 py-1 text-xs font-semibold',
@@ -164,7 +189,9 @@ export function ProjectionProductDetail({ product }: { product: ProjectionProduc
                     className="grid gap-2 rounded-md border border-white/10 px-3 py-2 text-sm sm:grid-cols-[1fr_auto_auto]"
                   >
                     <span className="font-medium text-brand-text">{offer.vendorName}</span>
-                    <span className="text-brand-muted">{offer.formatted ?? 'Request price'}</span>
+                    <span className="text-brand-muted">
+                      {projectionPriceLabel(offer, currency, rates) ?? 'Request price'}
+                    </span>
                     <span className={offer.inStock ? 'text-emerald-300' : 'text-brand-muted'}>
                       {offer.inStock ? 'In stock' : 'Unknown'}
                     </span>

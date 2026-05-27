@@ -1,6 +1,7 @@
 import { CaracalApiError } from './client';
 import type {
   ProjectionCatalogParams,
+  ProjectionCurrencyRates,
   ProjectionPagination,
   ProjectionProduct,
   ProjectionProductPage,
@@ -24,7 +25,7 @@ type ApiEnvelope<T> =
 
 type QueryParams = Record<string, string | number | boolean | undefined>;
 
-function getApiBase(): string {
+export function getProjectionApiBase(): string {
   return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 }
 
@@ -50,7 +51,7 @@ async function projectionGet<T>(
   path: string,
   params?: QueryParams
 ): Promise<{ data: T; meta: ApiMeta }> {
-  const url = new URL(`${getApiBase()}${path}`);
+  const url = new URL(`${getProjectionApiBase()}${path}`);
 
   for (const [key, value] of Object.entries(params ?? {})) {
     if (value !== undefined) url.searchParams.set(key, String(value));
@@ -169,4 +170,22 @@ export async function getProjectedManufacturer(slug: string): Promise<{
     min_price_cents: number | null;
   }>(`/api/catalog/manufacturers/${encodeURIComponent(slug)}`);
   return data;
+}
+
+export async function getProjectionCurrencyRates(): Promise<ProjectionCurrencyRates> {
+  const response = await fetch(`${getProjectionApiBase()}/api/catalog/currency-rates`, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+    cache: 'force-cache',
+  });
+
+  if (!response.ok) {
+    throw new CaracalApiError({
+      code: 'internal_server_error',
+      message: `Currency rates unavailable (HTTP ${response.status})`,
+      status: response.status,
+    });
+  }
+
+  return (await response.json()) as ProjectionCurrencyRates;
 }

@@ -292,6 +292,38 @@ function logProjectionRead(input: {
 }
 
 catalogProjectionRouter.get(
+  '/currency-rates',
+  asyncHandler(async (_req, res) => {
+    const prisma = getPrismaClient();
+    const rows = await prisma.currencyRate.findMany({
+      orderBy: { currency: 'asc' },
+      select: {
+        currency: true,
+        rateToAed: true,
+        updatedAt: true,
+      },
+    });
+    const rates = rows.reduce<Record<string, number>>((accumulator, row) => {
+      accumulator[row.currency.trim().toUpperCase()] = Number(row.rateToAed);
+      return accumulator;
+    }, {});
+    const updatedAt =
+      rows
+        .map((row) => row.updatedAt)
+        .sort((left, right) => right.getTime() - left.getTime())[0]
+        ?.toISOString() ?? null;
+
+    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600');
+    res.status(200).json({
+      base: AED_CURRENCY,
+      direction: 'AED_PER_UNIT',
+      rates,
+      updatedAt,
+    });
+  })
+);
+
+catalogProjectionRouter.get(
   '/products',
   asyncHandler(async (req, res) => {
     if (req.query.q !== undefined) {

@@ -22,6 +22,7 @@ import type { ReactNode } from 'react';
 import { Toaster } from '@/components/toaster';
 import { ToastProvider } from '@/lib/toast/context';
 import { CustomerAuthProvider } from '@/contexts/customer-auth';
+import { CurrencyDisplayProvider } from '@/contexts/currency-display';
 import { ApiProvider } from './api-provider';
 import { QueryProvider } from './query-provider';
 
@@ -30,10 +31,12 @@ export function Providers({ children }: { children: ReactNode }) {
     <ApiProvider>
       <ToastProvider>
         <CustomerAuthProvider>
-          <QueryProvider>
-            {children}
-            <Toaster />
-          </QueryProvider>
+          <CurrencyDisplayProvider>
+            <QueryProvider>
+              {children}
+              <Toaster />
+            </QueryProvider>
+          </CurrencyDisplayProvider>
         </CustomerAuthProvider>
       </ToastProvider>
     </ApiProvider>
