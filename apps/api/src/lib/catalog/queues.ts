@@ -9,6 +9,7 @@ export const catalogQueueNames = {
   projection: process.env.CATALOG_PROJECTION_QUEUE_NAME ?? 'projection',
   searchIndex: process.env.CATALOG_SEARCH_INDEX_QUEUE_NAME ?? 'search-index',
   reconciliation: process.env.CATALOG_RECONCILIATION_QUEUE_NAME ?? 'reconciliation',
+  fxRates: process.env.CATALOG_FX_RATES_QUEUE_NAME ?? 'fx-rates',
 } as const;
 
 export interface CatalogIngestionJobData {
@@ -49,12 +50,18 @@ export interface CatalogReconciliationJobData {
   reason?: string;
 }
 
+export interface CatalogFxRatesJobData {
+  type: 'refresh-rates';
+  trigger: 'boot' | 'schedule' | 'manual';
+}
+
 let ingestionQueue: Queue<CatalogIngestionJobData> | null = null;
 let fingerprintQueue: Queue<CatalogFingerprintJobData> | null = null;
 let imagePipelineQueue: Queue<CatalogImagePipelineJobData> | null = null;
 let projectionQueue: Queue<CatalogProjectionJobData> | null = null;
 let searchIndexQueue: Queue<CatalogSearchIndexJobData> | null = null;
 let reconciliationQueue: Queue<CatalogReconciliationJobData> | null = null;
+let fxRatesQueue: Queue<CatalogFxRatesJobData> | null = null;
 
 function catalogDefaultJobOptions(): JobsOptions {
   return {
@@ -125,6 +132,15 @@ export function getCatalogReconciliationQueue(): Queue<CatalogReconciliationJobD
   return reconciliationQueue;
 }
 
+export function getCatalogFxRatesQueue(): Queue<CatalogFxRatesJobData> {
+  fxRatesQueue ??= new Queue<CatalogFxRatesJobData>(catalogQueueNames.fxRates, {
+    connection: getRedisConnectionOptions(),
+    defaultJobOptions: catalogDefaultJobOptions(),
+  });
+
+  return fxRatesQueue;
+}
+
 export function getCatalogQueues(): Array<Queue> {
   return [
     getCatalogIngestionQueue(),
@@ -133,6 +149,7 @@ export function getCatalogQueues(): Array<Queue> {
     getCatalogProjectionQueue(),
     getCatalogSearchIndexQueue(),
     getCatalogReconciliationQueue(),
+    getCatalogFxRatesQueue(),
   ];
 }
 
@@ -176,6 +193,12 @@ export async function enqueueCatalogReconciliationJob(data: CatalogReconciliatio
   });
 }
 
+export async function enqueueCatalogFxRatesRefreshJob(data: CatalogFxRatesJobData) {
+  return getCatalogFxRatesQueue().add('refresh-rates', data, {
+    jobId: `fx-rates:${data.trigger}:${Date.now()}`,
+  });
+}
+
 export async function closeCatalogQueues(): Promise<void> {
   await Promise.all(
     [
@@ -185,6 +208,7 @@ export async function closeCatalogQueues(): Promise<void> {
       projectionQueue,
       searchIndexQueue,
       reconciliationQueue,
+      fxRatesQueue,
     ].map((queue) => queue?.close())
   );
 
@@ -194,4 +218,5 @@ export async function closeCatalogQueues(): Promise<void> {
   projectionQueue = null;
   searchIndexQueue = null;
   reconciliationQueue = null;
+  fxRatesQueue = null;
 }

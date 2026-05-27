@@ -297,6 +297,40 @@ services:
       options:
         max-size: 10m
         max-file: '3'
+  fx-rates-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-worker
+    command: ['node', 'dist/workers/fx-rates-worker.js']
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://caracal:caracal_dev@postgres:5432/caracal_dev
+      REDIS_URL: redis://redis:6379
+      CATALOG_FX_RATES_WORKER_CONCURRENCY: 1
+      WORKER_SHUTDOWN_TIMEOUT_MS: 30000
+    restart: unless-stopped
+    stop_grace_period: 35s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - api-logs:/app/logs/api
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "const net=require(''node:net''); const s=net.connect(6379,''redis'',()=>process.exit(0)); s.on(''error'',()=>process.exit(1)); setTimeout(()=>process.exit(1),3000).unref()"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
   postgres:
     image: postgres:15-alpine
     environment:
