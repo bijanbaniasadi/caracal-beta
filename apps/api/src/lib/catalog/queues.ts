@@ -18,6 +18,8 @@ export interface CatalogIngestionJobData {
   trigger: 'schedule' | 'manual';
   startUrls?: string[];
   maxPages?: number;
+  limit?: number;
+  fullCrawl?: boolean;
 }
 
 export interface CatalogFingerprintJobData {

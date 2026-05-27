@@ -18,6 +18,8 @@ const ingestionWorker = new Worker<CatalogIngestionJobData>(
       trigger: job.data.trigger,
       startUrls: job.data.startUrls,
       maxPages: job.data.maxPages,
+      limit: job.data.limit,
+      fullCrawl: job.data.fullCrawl,
     });
   },
   {

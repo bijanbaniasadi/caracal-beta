@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { verifyCatalogRawAsset } from '../src/lib/catalog/object-storage.js';
-import { downloadMk3Image } from '../src/lib/catalog/mk3/fetch.js';
+import { downloadMk3Image, isMk3PathAllowedByRobots } from '../src/lib/catalog/mk3/fetch.js';
+import { extractMk3ProductsFromHtml } from '../src/lib/catalog/mk3/extract.js';
 import {
   decideMk3Match,
   type Mk3MasterCandidate,
@@ -59,12 +60,14 @@ describe('MK3 staged ingestion invariants', () => {
   it('keeps MK3 ingestion worker away from master products and Typesense', () => {
     const worker = readApiFile('src/workers/ingestion-worker.ts');
     const ingestion = readApiFile('src/lib/catalog/mk3/ingestion.ts');
+    const fetcher = readApiFile('src/lib/catalog/mk3/fetch.ts');
     const combined = `${worker}\n${ingestion}`;
 
     expect(combined).not.toMatch(/masterProduct\.(create|update|delete)/);
     expect(combined).not.toMatch(/typesense/i);
     expect(combined).not.toMatch(/vendorOffer\.(create|update|upsert)/);
     expect(combined).not.toMatch(/reviewQueue\.(create|update|upsert)/);
+    expect(fetcher).not.toMatch(/writeCatalogRawAsset\('mk3-html'/);
   });
 
   it('keeps MK3 fingerprint worker away from master mutations and Typesense', () => {
@@ -97,6 +100,131 @@ describe('MK3 staged ingestion invariants', () => {
     });
     expect(matching).toMatch(/reviewQueue\.create/);
     expect(matching).not.toMatch(/masterProduct\.(create|update|delete)/);
+  });
+
+  it('extracts live MK3 EUR pricing and explicit RRP without storing markup', () => {
+    const html = `
+      <html>
+        <body>
+          <script type="application/ld+json">
+            {
+              "@context": "https://schema.org",
+              "@type": "Product",
+              "name": "Autotuner Master Tool",
+              "sku": "AT-MASTER",
+              "brand": {"name": "Autotuner"},
+              "description": "Bench and OBD tuning tool",
+              "image": ["https://www.mk3.com/cdn/shop/files/autotuner.jpg"],
+              "offers": {
+                "@type": "Offer",
+                "price": "1599.00",
+                "priceCurrency": "EUR",
+                "availability": "https://schema.org/InStock"
+              }
+            }
+          </script>
+          <span>RRP: €1899.00</span>
+        </body>
+      </html>
+    `;
+
+    const [product] = extractMk3ProductsFromHtml(
+      html,
+      'https://www.mk3.com/products/autotuner-master-tool',
+      'https://www.mk3.com'
+    );
+
+    expect(product).toBeDefined();
+    if (!product) throw new Error('expected product');
+
+    expect(product).toMatchObject({
+      vendorSku: 'AT-MASTER',
+      rawName: 'Autotuner Master Tool',
+      parsedCurrency: 'EUR',
+      rrpCurrency: 'EUR',
+      parsedInStock: true,
+    });
+    expect(product.parsedPriceCents).toBe(159900n);
+    expect(product.rrpCents).toBe(189900n);
+    expect(product.rawDescription).toBe('Bench and OBD tuning tool');
+  });
+
+  it('discovers nopCommerce product-title links from MK3 category pages', () => {
+    const [product] = extractMk3ProductsFromHtml(
+      '<h2 class="product-title"><a href="/mkon331">AutoTuner Tool Device Slave Version</a></h2>',
+      'https://www.mk3.com/autotuner-tool',
+      'https://www.mk3.com'
+    );
+
+    expect(product).toBeDefined();
+    if (!product) throw new Error('expected product link');
+    expect(product.vendorUrl).toBe('https://www.mk3.com/mkon331');
+    expect(product.rawSpecs).toMatchObject({ source: 'product-link' });
+  });
+
+  it('prefers EUR prices from nopCommerce product pages when USD is also displayed', () => {
+    const [product] = extractMk3ProductsFromHtml(
+      `
+        <html>
+          <head>
+            <title>AutoTuner Tool - Upgrade from Slave to Master | MK3</title>
+            <meta name="description" content="Software Activation From Autotuner Tool">
+            <meta property="og:image" content="/images/uploaded/products/product/MK23754/main.jpg">
+          </head>
+          <body>
+            <h1>AutoTuner Tool - Upgrade from Slave to Master</h1>
+            <span>SKU: MK23754</span>
+            <span>$2,588.24 (€2200,00)</span>
+            <span>Category: Software Activation</span>
+            <span>Manufacturer: Autotuner Tool</span>
+            <span>Availability: In stock</span>
+          </body>
+        </html>
+      `,
+      'https://www.mk3.com/autotuner-tool-upgrade-from-slave-to-master',
+      'https://www.mk3.com'
+    );
+
+    expect(product).toBeDefined();
+    if (!product) throw new Error('expected product page fallback');
+    expect(product.vendorSku).toBe('MK23754');
+    expect(product.rawPriceText).toBe('€2200,00');
+    expect(product.parsedCurrency).toBe('EUR');
+    expect(product.parsedPriceCents).toBe(220000n);
+    expect(product.rawImageUrls).toEqual([
+      'https://www.mk3.com/images/uploaded/products/product/MK23754/main.jpg',
+    ]);
+  });
+
+  it('honors robots.txt disallow rules for live MK3 paths', () => {
+    const robots = `
+      User-agent: *
+      Disallow: /account
+      Disallow: /collections/private
+      Allow: /collections/private/allowed-product
+    `;
+
+    expect(
+      isMk3PathAllowedByRobots(
+        robots,
+        'CaracalTechMotorsCatalogBot/1.0',
+        'https://www.mk3.com/collections/all'
+      )
+    ).toBe(true);
+    expect(
+      isMk3PathAllowedByRobots(
+        robots,
+        'CaracalTechMotorsCatalogBot/1.0',
+        'https://www.mk3.com/collections/private'
+      )
+    ).toBe(false);
+    expect(
+      isMk3PathAllowedByRobots(
+        robots,
+        'CaracalTechMotorsCatalogBot/1.0',
+        'https://www.mk3.com/collections/private/allowed-product'
+      )
+    ).toBe(true);
   });
 
   it('stores fixture data-url images through the raw asset abstraction', async () => {

@@ -18,6 +18,8 @@ export const adminMk3IngestionRouter: ExpressRouter = Router();
 const mk3EnqueueSchema = z.object({
   startUrls: z.array(z.string().trim().url()).min(1).max(20).optional(),
   maxPages: z.coerce.number().int().min(1).max(50).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  fullCrawl: z.boolean().optional(),
 });
 
 function emptySummary(): Mk3RunSummary {
@@ -44,6 +46,8 @@ adminMk3IngestionRouter.post(
       trigger: 'manual',
       startUrls: input.startUrls,
       maxPages: input.maxPages,
+      limit: input.limit,
+      fullCrawl: input.fullCrawl,
     });
 
     sendSuccess(

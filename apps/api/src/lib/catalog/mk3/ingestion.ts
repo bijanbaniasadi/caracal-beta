@@ -13,6 +13,8 @@ export interface Mk3IngestionOptions {
   trigger: 'schedule' | 'manual';
   startUrls?: string[];
   maxPages?: number;
+  limit?: number;
+  fullCrawl?: boolean;
 }
 
 export interface Mk3RunSummary {
@@ -35,9 +37,7 @@ function stringifyError(error: unknown): string {
 }
 
 function triggerLabel(options: Mk3IngestionOptions): string {
-  return options.requestedBy
-    ? `${options.trigger}:userId=${options.requestedBy}`
-    : options.trigger;
+  return options.requestedBy ? `${options.trigger}:userId=${options.requestedBy}` : options.trigger;
 }
 
 export async function ensureMk3VendorSource() {
@@ -51,14 +51,14 @@ export async function ensureMk3VendorSource() {
       baseUrl: 'https://www.mk3.com',
       enabled: true,
       scrapeCadence: '12 hours',
-      notes: 'Phase 3A staged ingestion source. Scraper writes raw staging only.',
+      notes: 'Phase C live staged ingestion source. Scraper writes raw staging only.',
     },
     update: {
       name: 'MK3',
       baseUrl: 'https://www.mk3.com',
       enabled: true,
       scrapeCadence: '12 hours',
-      notes: 'Phase 3A staged ingestion source. Scraper writes raw staging only.',
+      notes: 'Phase C live staged ingestion source. Scraper writes raw staging only.',
     },
   });
 }
@@ -137,10 +137,10 @@ async function upsertRawProduct(input: {
   runId: bigint;
   vendorId: bigint;
   product: Mk3ExtractedProduct;
-  rawHtmlStorageKey: string;
+  rawHtmlStorageKey: string | null;
 }): Promise<{ rawProductId: bigint; created: boolean }> {
   const prisma = getPrismaClient();
-  const existing = await prisma.vendorRawProduct.findUnique({
+  const existingInRun = await prisma.vendorRawProduct.findUnique({
     where: {
       ingestionRunId_vendorId_vendorUrl: {
         ingestionRunId: input.runId,
@@ -150,19 +150,40 @@ async function upsertRawProduct(input: {
     },
     select: { id: true },
   });
+  const existing =
+    existingInRun ??
+    (await prisma.vendorRawProduct.findFirst({
+      where: {
+        vendorId: input.vendorId,
+        OR: [
+          { vendorUrl: input.product.vendorUrl },
+          ...(input.product.vendorSku ? [{ vendorSku: input.product.vendorSku }] : []),
+        ],
+      },
+      orderBy: { scrapedAt: 'desc' },
+      select: { id: true },
+    }));
 
-  const data = {
+  const rawData = {
+    vendorUrl: input.product.vendorUrl,
     vendorSku: input.product.vendorSku,
     rawName: input.product.rawName,
     rawDescription: input.product.rawDescription,
     rawPriceText: input.product.rawPriceText,
     parsedPriceCents: input.product.parsedPriceCents,
     parsedCurrency: input.product.parsedCurrency,
+    rrpCents: input.product.rrpCents,
+    rrpCurrency: input.product.rrpCurrency,
     parsedInStock: input.product.parsedInStock,
     rawSpecs: toPrismaJson(input.product.rawSpecs),
     rawImageUrls: input.product.rawImageUrls,
     rawHtmlStorageKey: input.rawHtmlStorageKey,
     fingerprint: input.product.fingerprint,
+    scrapedAt: new Date(),
+  };
+  const data = {
+    ingestionRun: { connect: { id: input.runId } },
+    ...rawData,
   } satisfies Prisma.VendorRawProductUpdateInput;
 
   if (existing) {
@@ -178,8 +199,7 @@ async function upsertRawProduct(input: {
     data: {
       ingestionRunId: input.runId,
       vendorId: input.vendorId,
-      vendorUrl: input.product.vendorUrl,
-      ...data,
+      ...rawData,
     },
     select: { id: true },
   });
@@ -199,15 +219,14 @@ export async function summarizeMk3IngestionRun(runId: string): Promise<Mk3RunSum
     throw new Error('MK3 ingestion run not found.');
   }
 
-  const [importedCount, reviewQueueCount, exactMatchCount, rawImageCount] =
-    await Promise.all([
-      prisma.vendorRawProduct.count({ where: { ingestionRunId: id } }),
-      prisma.reviewQueue.count({ where: { rawProduct: { ingestionRunId: id } } }),
-      prisma.vendorRawProduct.count({
-        where: { ingestionRunId: id, matchStatus: 'AUTO_MATCHED', matchConfidence: 1 },
-      }),
-      prisma.vendorRawImage.count({ where: { rawProduct: { ingestionRunId: id } } }),
-    ]);
+  const [importedCount, reviewQueueCount, exactMatchCount, rawImageCount] = await Promise.all([
+    prisma.vendorRawProduct.count({ where: { ingestionRunId: id } }),
+    prisma.reviewQueue.count({ where: { rawProduct: { ingestionRunId: id } } }),
+    prisma.vendorRawProduct.count({
+      where: { ingestionRunId: id, matchStatus: 'AUTO_MATCHED', matchConfidence: 1 },
+    }),
+    prisma.vendorRawImage.count({ where: { rawProduct: { ingestionRunId: id } } }),
+  ]);
   const duplicateRows = await prisma.$queryRaw<Array<{ count: bigint }>>`
     WITH duplicate_urls AS (
       SELECT vendor_url
@@ -262,6 +281,8 @@ export async function runMk3Ingestion(options: Mk3IngestionOptions): Promise<Mk3
       baseUrl: vendor.baseUrl,
       startUrls: options.startUrls,
       maxPages: options.maxPages,
+      limit: options.limit,
+      fullCrawl: options.fullCrawl,
     });
     const seenUrls = new Set<string>();
 
@@ -281,7 +302,7 @@ export async function runMk3Ingestion(options: Mk3IngestionOptions): Promise<Mk3
           });
 
           if (!raw.created) duplicateRawCount += 1;
-          if (raw.created) importedCount += 1;
+          importedCount += 1;
 
           for (const originalUrl of product.rawImageUrls) {
             const created = await upsertRawImage({
