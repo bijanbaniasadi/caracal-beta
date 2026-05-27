@@ -55,6 +55,12 @@ export const masterProductArchiveSchema = z.object({
   reason: optionalReason,
 });
 
+export const masterProductRepriceSchema = z
+  .object({
+    reason: optionalReason,
+  })
+  .default({});
+
 export const vendorOfferCreateSchema = z.object({
   vendorId: bigIntId,
   vendorSku: optionalText(180),
@@ -134,6 +140,7 @@ export type MasterProductCreateInput = z.infer<typeof masterProductCreateSchema>
 export type MasterProductUpdateInput = z.infer<typeof masterProductUpdateSchema>;
 export type MasterProductPublishInput = z.infer<typeof masterProductPublishSchema>;
 export type MasterProductArchiveInput = z.infer<typeof masterProductArchiveSchema>;
+export type MasterProductRepriceInput = z.infer<typeof masterProductRepriceSchema>;
 export type VendorOfferCreateInput = z.infer<typeof vendorOfferCreateSchema>;
 export type VendorOfferUpdateInput = z.infer<typeof vendorOfferUpdateSchema>;
 export type CatalogProductImageCreateInput = z.infer<typeof catalogProductImageCreateSchema>;

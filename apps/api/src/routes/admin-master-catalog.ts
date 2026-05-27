@@ -5,6 +5,10 @@ import { Router, type Request, type Router as ExpressRouter } from 'express';
 import { sendSuccess } from '../lib/api-response.js';
 import { asyncHandler } from '../lib/async-handler.js';
 import { enqueueCatalogProjectionJob } from '../lib/catalog/queues.js';
+import {
+  buildMasterPricingSnapshotUpdate,
+  repriceMasterInTransaction,
+} from '../lib/catalog/pricing-snapshot.js';
 import { badRequest, notFound } from '../lib/errors.js';
 import { logger } from '../lib/logger.js';
 import { toPrismaJson } from '../lib/prisma-json.js';
@@ -16,6 +20,7 @@ import {
   masterProductCreateSchema,
   masterProductListQuerySchema,
   masterProductPublishSchema,
+  masterProductRepriceSchema,
   masterProductUpdateSchema,
   vendorOfferCreateSchema,
   vendorOfferUpdateSchema,
@@ -25,6 +30,7 @@ import {
   type MasterProductCreateInput,
   type MasterProductListQuery,
   type MasterProductPublishInput,
+  type MasterProductRepriceInput,
   type MasterProductUpdateInput,
   type VendorOfferCreateInput,
   type VendorOfferUpdateInput,
@@ -176,6 +182,13 @@ function serializeMasterProduct(product: MasterProductDetail) {
     featured: product.featured,
     seoTitle: product.seoTitle,
     seoDescription: product.seoDescription,
+    pricedSellCents: product.pricedSellCents?.toString() ?? null,
+    pricedCurrency: product.pricedCurrency,
+    pricedAt: product.pricedAt,
+    pricedSourceCostCents: product.pricedSourceCostCents?.toString() ?? null,
+    pricedSourceCurrency: product.pricedSourceCurrency,
+    pricedFxRateToAed: product.pricedFxRateToAed?.toString() ?? null,
+    pricedMarginBps: product.pricedMarginBps,
     publishedAt: product.publishedAt,
     archivedAt: product.archivedAt,
     createdAt: product.createdAt,
@@ -548,11 +561,14 @@ adminMasterCatalogRouter.post(
         throw badRequest('Master product is not publishable.', { id: id.toString(), blockers });
       }
 
+      const publishedAt = new Date();
+      const pricingSnapshot = await buildMasterPricingSnapshotUpdate(tx, id, publishedAt);
       const updated = await tx.masterProduct.update({
         where: { id },
         data: {
+          ...pricingSnapshot.data,
           status: 'PUBLISHED',
-          publishedAt: new Date(),
+          publishedAt,
           archivedAt: null,
           updatedById: userId,
         },
@@ -563,7 +579,14 @@ adminMasterCatalogRouter.post(
         entityType: 'master_product',
         entityId: id,
         action: 'publish',
-        diff: { before: { status: existing.status }, after: { status: 'published' }, reason: input.reason },
+        diff: {
+          before: { status: existing.status },
+          after: {
+            status: 'published',
+            pricedSellCents: pricingSnapshot.snapshot?.sellPriceCents ?? null,
+          },
+          reason: input.reason,
+        },
       });
 
       return updated;
@@ -607,6 +630,58 @@ adminMasterCatalogRouter.post(
     });
 
     await enqueueProjectionAfterMutation({ masterProductId: id, action: 'archive' });
+    sendSuccess(res, serializeMasterProduct(product));
+  })
+);
+
+adminMasterCatalogRouter.post(
+  '/:id/reprice',
+  validateBody(masterProductRepriceSchema),
+  asyncHandler(async (req, res) => {
+    const input = req.body as MasterProductRepriceInput;
+    const id = parseBigIntId(req.params.id);
+    const userId = actorId(req);
+    const prisma = getPrismaClient();
+    const product = await prisma.$transaction(async (tx) => {
+      const existing = await tx.masterProduct.findUnique({ where: { id } });
+      if (!existing) throw notFound('Master product not found.', { id: id.toString() });
+
+      const snapshot = await repriceMasterInTransaction(tx, {
+        masterProductId: id,
+        updatedById: userId,
+      });
+
+      await audit(tx, req, {
+        entityType: 'master_product',
+        entityId: id,
+        action: 'reprice',
+        diff: {
+          before: {
+            pricedSellCents: existing.pricedSellCents?.toString() ?? null,
+            pricedAt: existing.pricedAt,
+          },
+          after: {
+            pricedSellCents: snapshot?.sellPriceCents ?? null,
+            pricedAt: snapshot?.pricedAt ?? null,
+            sourceCurrency: snapshot?.sourceCurrency ?? null,
+            sourceCostCents: snapshot?.sourceCostCents ?? null,
+            fxRateToAed: snapshot?.fxRateToAed ?? null,
+            marginBps: snapshot?.marginBps ?? null,
+          },
+          reason: input.reason,
+        },
+      });
+
+      const updated = await tx.masterProduct.findUnique({
+        where: { id },
+        include: masterProductDetailInclude,
+      });
+
+      if (!updated) throw notFound('Master product not found after reprice.', { id: id.toString() });
+      return updated;
+    });
+
+    await enqueueProjectionAfterMutation({ masterProductId: id, action: 'reprice' });
     sendSuccess(res, serializeMasterProduct(product));
   })
 );

@@ -792,43 +792,50 @@ model VendorRawImage {
 }
 
 model MasterProduct {
-  id                 BigInt                       @id @default(autoincrement())
-  publicId           String                       @unique @default(dbgenerated("gen_random_uuid()")) @map("public_id") @db.Uuid
-  slug               String                       @unique @db.Citext
-  sku                String?                      @db.Citext
-  mpn                String?                      @db.Citext
-  name               String
-  shortDescription   String?                      @map("short_description")
-  longDescriptionMd  String?                      @map("long_description_md")
-  compareAtCents     BigInt?                      @map("compare_at_cents")
-  compareAtCurrency  String?                      @map("compare_at_currency") @db.Char(3)
-  manufacturerId     BigInt?                      @map("manufacturer_id")
-  manufacturer       Manufacturer?                @relation(fields: [manufacturerId], references: [id], onDelete: Restrict)
-  manufacturerSlug   String                       @map("manufacturer_slug") @db.Citext
-  manufacturerName   String                       @map("manufacturer_name")
-  categoryId         BigInt                       @map("category_id")
-  category           CatalogCategory              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  status             CatalogProductStatus         @default(DRAFT)
-  fingerprint        String
-  featured           Boolean                      @default(false)
-  seoTitle           String?                      @map("seo_title")
-  seoDescription     String?                      @map("seo_description")
-  createdById        String                       @map("created_by")
-  createdBy          User                         @relation("MasterProductCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  updatedById        String                       @map("updated_by")
-  updatedBy          User                         @relation("MasterProductUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
-  publishedAt        DateTime?                    @map("published_at") @db.Timestamptz(6)
-  archivedAt         DateTime?                    @map("archived_at") @db.Timestamptz(6)
-  createdAt          DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
-  offers             VendorOffer[]
-  images             CatalogProductImage[]
-  matchedRawProducts VendorRawProduct[]           @relation("VendorRawProductMatch")
-  reviewSuggestions  ReviewQueue[]                @relation("ReviewQueueSuggestion")
-  curatedPrice       CuratedProductPrice?
-  tags               MasterProductTag[]
-  specs              MasterProductSpec[]
-  compatibility      MasterProductCompatibility[]
+  id                    BigInt                       @id @default(autoincrement())
+  publicId              String                       @unique @default(dbgenerated("gen_random_uuid()")) @map("public_id") @db.Uuid
+  slug                  String                       @unique @db.Citext
+  sku                   String?                      @db.Citext
+  mpn                   String?                      @db.Citext
+  name                  String
+  shortDescription      String?                      @map("short_description")
+  longDescriptionMd     String?                      @map("long_description_md")
+  compareAtCents        BigInt?                      @map("compare_at_cents")
+  compareAtCurrency     String?                      @map("compare_at_currency") @db.Char(3)
+  pricedSellCents       BigInt?                      @map("priced_sell_cents")
+  pricedCurrency        String?                      @default("AED") @map("priced_currency") @db.Char(3)
+  pricedAt              DateTime?                    @map("priced_at") @db.Timestamptz(6)
+  pricedSourceCostCents BigInt?                      @map("priced_source_cost_cents")
+  pricedSourceCurrency  String?                      @map("priced_source_currency") @db.Char(3)
+  pricedFxRateToAed     Decimal?                     @map("priced_fx_rate_to_aed") @db.Decimal(18, 6)
+  pricedMarginBps       Int?                         @map("priced_margin_bps")
+  manufacturerId        BigInt?                      @map("manufacturer_id")
+  manufacturer          Manufacturer?                @relation(fields: [manufacturerId], references: [id], onDelete: Restrict)
+  manufacturerSlug      String                       @map("manufacturer_slug") @db.Citext
+  manufacturerName      String                       @map("manufacturer_name")
+  categoryId            BigInt                       @map("category_id")
+  category              CatalogCategory              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  status                CatalogProductStatus         @default(DRAFT)
+  fingerprint           String
+  featured              Boolean                      @default(false)
+  seoTitle              String?                      @map("seo_title")
+  seoDescription        String?                      @map("seo_description")
+  createdById           String                       @map("created_by")
+  createdBy             User                         @relation("MasterProductCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedById           String                       @map("updated_by")
+  updatedBy             User                         @relation("MasterProductUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+  publishedAt           DateTime?                    @map("published_at") @db.Timestamptz(6)
+  archivedAt            DateTime?                    @map("archived_at") @db.Timestamptz(6)
+  createdAt             DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  offers                VendorOffer[]
+  images                CatalogProductImage[]
+  matchedRawProducts    VendorRawProduct[]           @relation("VendorRawProductMatch")
+  reviewSuggestions     ReviewQueue[]                @relation("ReviewQueueSuggestion")
+  curatedPrice          CuratedProductPrice?
+  tags                  MasterProductTag[]
+  specs                 MasterProductSpec[]
+  compatibility         MasterProductCompatibility[]
 
   @@index([status])
   @@index([sku])
