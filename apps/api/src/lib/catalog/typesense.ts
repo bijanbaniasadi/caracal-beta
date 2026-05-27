@@ -18,6 +18,8 @@ const nullableIntField = z
   .nullable()
   .optional()
   .transform((value) => value ?? null);
+const optionalNullableStringField = z.string().nullable().optional();
+const optionalNullableIntField = z.number().int().nullable().optional();
 
 export const typesenseProductDocumentSchema = z.object({
   id: z.string().uuid(),
@@ -33,7 +35,11 @@ export const typesenseProductDocumentSchema = z.object({
   tags: z.array(z.string()),
   compatibility: z.array(z.string()),
   best_price_cents: nullableIntField,
+  sell_price_cents: optionalNullableIntField,
+  compare_at_cents: optionalNullableIntField,
+  discount_pct: optionalNullableIntField,
   currency: z.string().length(3),
+  sourcing_vendor_name: optionalNullableStringField,
   in_stock: z.boolean(),
   offer_count: z.number().int().nonnegative(),
   featured: z.boolean(),
@@ -44,7 +50,7 @@ export const typesenseProductDocumentSchema = z.object({
 export type TypesenseProductDocument = z.infer<typeof typesenseProductDocumentSchema>;
 
 export const productsCollectionSchema = {
-  name: 'products_v1',
+  name: 'products_v2',
   fields: [
     { name: 'public_id', type: 'string' },
     { name: 'slug', type: 'string' },
@@ -58,7 +64,11 @@ export const productsCollectionSchema = {
     { name: 'tags', type: 'string[]', facet: true },
     { name: 'compatibility', type: 'string[]', facet: true },
     { name: 'best_price_cents', type: 'int64', optional: true, sort: true },
+    { name: 'sell_price_cents', type: 'int64', optional: true, sort: true },
+    { name: 'compare_at_cents', type: 'int64', optional: true },
+    { name: 'discount_pct', type: 'int32', optional: true, sort: true },
     { name: 'currency', type: 'string', facet: true },
+    { name: 'sourcing_vendor_name', type: 'string', optional: true, facet: true },
     { name: 'in_stock', type: 'bool', facet: true },
     { name: 'offer_count', type: 'int32', sort: true },
     { name: 'featured', type: 'bool', facet: true, sort: true },

@@ -7,6 +7,7 @@ import { sendSuccess } from '../lib/api-response.js';
 import { asyncHandler } from '../lib/async-handler.js';
 import { badRequest, notFound } from '../lib/errors.js';
 import { logger } from '../lib/logger.js';
+import { AED_CURRENCY } from '../lib/catalog/pricing.js';
 import { searchTypesenseProducts } from '../lib/catalog/typesense.js';
 
 export const catalogProjectionRouter: ExpressRouter = Router();
@@ -50,10 +51,14 @@ interface PublicProjectionRow {
   gallery_images: unknown;
   best_price_cents: bigint | number | null;
   price_currency: string;
+  sell_price_cents: bigint | number | null;
+  compare_at_cents: bigint | number | null;
+  discount_pct: number | null;
   curated_price: unknown;
   in_stock: boolean;
   offer_count: number;
   vendor_offers: unknown;
+  sourcing_vendor_name: string | null;
   specs: unknown;
   compatibility: unknown;
   featured: boolean;
@@ -121,8 +126,20 @@ function normalizeCuratedPrice(value: unknown) {
   };
 }
 
+function normalizePrice(cents: number | null, currency: string) {
+  if (cents === null) return null;
+
+  return {
+    priceCents: cents,
+    currency,
+    formatted: formatPrice(cents, currency),
+  };
+}
+
 function serializeProjection(row: PublicProjectionRow) {
   const bestPriceCents = toNumber(row.best_price_cents);
+  const sellPriceCents = toNumber(row.sell_price_cents);
+  const compareAtCents = toNumber(row.compare_at_cents);
   const curatedPrice = normalizeCuratedPrice(row.curated_price);
   const currency = curatedPrice?.currency ?? row.price_currency;
 
@@ -147,6 +164,9 @@ function serializeProjection(row: PublicProjectionRow) {
       currency,
       formatted: formatPrice(bestPriceCents, currency),
     },
+    sellPrice: normalizePrice(sellPriceCents, AED_CURRENCY),
+    compareAt: normalizePrice(compareAtCents, AED_CURRENCY),
+    discountPct: row.discount_pct,
     curatedPrice,
     inStock: row.in_stock,
     offerCount: row.offer_count,
@@ -168,6 +188,7 @@ function serializeProjection(row: PublicProjectionRow) {
         inStock: item.in_stock === true,
       };
     }),
+    sourcingVendorName: row.sourcing_vendor_name,
     specs: asArray(row.specs),
     compatibility: asArray(row.compatibility),
     featured: row.featured,
@@ -299,10 +320,14 @@ catalogProjectionRouter.get(
           gallery_images,
           best_price_cents,
           price_currency,
+          sell_price_cents,
+          compare_at_cents,
+          discount_pct,
           curated_price,
           in_stock,
           offer_count,
           vendor_offers,
+          sourcing_vendor_name,
           specs,
           compatibility,
           featured,
@@ -392,6 +417,10 @@ catalogProjectionRouter.get(
           currency: document.currency,
           formatted: formatPrice(document.best_price_cents, document.currency),
         },
+        sellPrice: normalizePrice(document.sell_price_cents ?? null, AED_CURRENCY),
+        compareAt: normalizePrice(document.compare_at_cents ?? null, AED_CURRENCY),
+        discountPct: document.discount_pct ?? null,
+        sourcingVendorName: document.sourcing_vendor_name ?? null,
         inStock: document.in_stock,
         offerCount: document.offer_count,
         featured: document.featured,
@@ -435,10 +464,14 @@ catalogProjectionRouter.get(
         gallery_images,
         best_price_cents,
         price_currency,
+        sell_price_cents,
+        compare_at_cents,
+        discount_pct,
         curated_price,
         in_stock,
         offer_count,
         vendor_offers,
+        sourcing_vendor_name,
         specs,
         compatibility,
         featured,

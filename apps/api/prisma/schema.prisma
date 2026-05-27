@@ -8,32 +8,32 @@ datasource db {
 }
 
 model User {
-  id                  String               @id @default(cuid())
-  email               String               @unique
-  name                String?
-  phone               String?
-  companyName         String?
-  workshopName        String?
-  passwordHash        String?
-  role                UserRole             @default(CUSTOMER)
-  isActive            Boolean              @default(true)
-  lastLoginAt         DateTime?
-  carts               Cart[]
-  orders              Order[]
-  articles            Article[]            @relation("ArticleAuthor")
-  refreshTokens       RefreshToken[]
-  passwordResetTokens PasswordResetToken[]
-  ecuPatcherAccess    EcuPatcherAccess?
-  ecuPatcherJobs      EcuPatcherJob[]
-  catalogApprovalLogs CatalogApprovalLog[] @relation("CatalogApprovalAdmin")
-  createdMasterProducts MasterProduct[]    @relation("MasterProductCreatedBy")
-  updatedMasterProducts MasterProduct[]    @relation("MasterProductUpdatedBy")
-  catalogAdminAuditLogs AdminAuditLog[]    @relation("CatalogAdminAuditUser")
-  assignedReviewQueueItems ReviewQueue[]   @relation("ReviewQueueAssignedTo")
-  resolvedReviewQueueItems ReviewQueue[]   @relation("ReviewQueueResolvedBy")
-  selectedCuratedPrices CuratedProductPrice[] @relation("CuratedProductPriceSelectedBy")
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  id                       String                @id @default(cuid())
+  email                    String                @unique
+  name                     String?
+  phone                    String?
+  companyName              String?
+  workshopName             String?
+  passwordHash             String?
+  role                     UserRole              @default(CUSTOMER)
+  isActive                 Boolean               @default(true)
+  lastLoginAt              DateTime?
+  carts                    Cart[]
+  orders                   Order[]
+  articles                 Article[]             @relation("ArticleAuthor")
+  refreshTokens            RefreshToken[]
+  passwordResetTokens      PasswordResetToken[]
+  ecuPatcherAccess         EcuPatcherAccess?
+  ecuPatcherJobs           EcuPatcherJob[]
+  catalogApprovalLogs      CatalogApprovalLog[]  @relation("CatalogApprovalAdmin")
+  createdMasterProducts    MasterProduct[]       @relation("MasterProductCreatedBy")
+  updatedMasterProducts    MasterProduct[]       @relation("MasterProductUpdatedBy")
+  catalogAdminAuditLogs    AdminAuditLog[]       @relation("CatalogAdminAuditUser")
+  assignedReviewQueueItems ReviewQueue[]         @relation("ReviewQueueAssignedTo")
+  resolvedReviewQueueItems ReviewQueue[]         @relation("ReviewQueueResolvedBy")
+  selectedCuratedPrices    CuratedProductPrice[] @relation("CuratedProductPriceSelectedBy")
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
 
   @@index([role])
   @@index([isActive])
@@ -627,22 +627,48 @@ model CuratedPricing {
 }
 
 model VendorSource {
-  id              BigInt             @id @default(autoincrement())
-  slug            String             @unique @db.Citext
+  id              BigInt                 @id @default(autoincrement())
+  slug            String                 @unique @db.Citext
   name            String
-  baseUrl         String             @map("base_url")
-  enabled         Boolean            @default(true)
-  scrapeCadence   String             @default("24 hours") @map("scrape_cadence")
-  lastScrapedAt   DateTime?          @map("last_scraped_at") @db.Timestamptz(6)
+  baseUrl         String                 @map("base_url")
+  enabled         Boolean                @default(true)
+  scrapeCadence   String                 @default("24 hours") @map("scrape_cadence")
+  lastScrapedAt   DateTime?              @map("last_scraped_at") @db.Timestamptz(6)
   notes           String?
   ingestionRuns   IngestionRun[]
   rawProducts     VendorRawProduct[]
   offers          VendorOffer[]
   productImages   CatalogProductImage[]
-  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  pricingPolicies CatalogPricingPolicy[]
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("vendor_sources")
+}
+
+model CatalogPricingPolicy {
+  id                     BigInt        @id @default(autoincrement())
+  scope                  String
+  vendorId               BigInt?       @map("vendor_id")
+  vendor                 VendorSource? @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  marginBps              Int           @default(1500) @map("margin_bps")
+  roundingIncrementCents BigInt        @default(1000) @map("rounding_increment_cents")
+  enabled                Boolean       @default(true)
+  createdAt              DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([scope])
+  @@index([vendorId])
+  @@map("catalog_pricing_policies")
+}
+
+model CurrencyRate {
+  currency     String   @id @db.Char(3)
+  baseCurrency String   @default("AED") @map("base_currency") @db.Char(3)
+  rateToAed    Decimal  @map("rate_to_aed") @db.Decimal(18, 6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("currency_rates")
 }
 
 model Manufacturer {
@@ -671,17 +697,17 @@ model CatalogTag {
 }
 
 model CatalogCategory {
-  id             BigInt          @id @default(autoincrement())
-  parentId       BigInt?         @map("parent_id")
-  parent         CatalogCategory? @relation("CatalogCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  id             BigInt            @id @default(autoincrement())
+  parentId       BigInt?           @map("parent_id")
+  parent         CatalogCategory?  @relation("CatalogCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children       CatalogCategory[] @relation("CatalogCategoryHierarchy")
-  slug           String          @db.Citext
+  slug           String            @db.Citext
   name           String
   description    String?
-  sortOrder      Int             @default(0) @map("sort_order")
+  sortOrder      Int               @default(0) @map("sort_order")
   masterProducts MasterProduct[]
-  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([parentId, slug])
   @@index([parentId])
@@ -708,30 +734,32 @@ model IngestionRun {
 }
 
 model VendorRawProduct {
-  id                 BigInt             @id @default(autoincrement())
-  ingestionRunId     BigInt             @map("ingestion_run_id")
-  ingestionRun       IngestionRun       @relation(fields: [ingestionRunId], references: [id], onDelete: Restrict)
-  vendorId           BigInt             @map("vendor_id")
-  vendor             VendorSource       @relation(fields: [vendorId], references: [id], onDelete: Restrict)
-  vendorUrl          String             @map("vendor_url")
-  vendorSku          String?            @map("vendor_sku")
-  rawName            String?            @map("raw_name")
-  rawDescription     String?            @map("raw_description")
-  rawPriceText       String?            @map("raw_price_text")
-  parsedPriceCents   BigInt?            @map("parsed_price_cents")
-  parsedCurrency     String?            @map("parsed_currency") @db.Char(3)
-  parsedInStock      Boolean?           @map("parsed_in_stock")
-  rawSpecs           Json?              @map("raw_specs")
-  rawImageUrls       String[]           @default([]) @map("raw_image_urls")
-  rawHtmlStorageKey  String?            @map("raw_html_storage_key")
-  fingerprint        String
-  matchedProductId   BigInt?            @map("matched_product_id")
-  matchedProduct     MasterProduct?     @relation("VendorRawProductMatch", fields: [matchedProductId], references: [id], onDelete: SetNull)
-  matchStatus        RawMatchStatus     @default(UNMATCHED) @map("match_status")
-  matchConfidence    Decimal?           @map("match_confidence") @db.Decimal(3, 2)
-  scrapedAt          DateTime           @default(now()) @map("scraped_at") @db.Timestamptz(6)
-  images             VendorRawImage[]
-  reviewQueue        ReviewQueue?
+  id                BigInt           @id @default(autoincrement())
+  ingestionRunId    BigInt           @map("ingestion_run_id")
+  ingestionRun      IngestionRun     @relation(fields: [ingestionRunId], references: [id], onDelete: Restrict)
+  vendorId          BigInt           @map("vendor_id")
+  vendor            VendorSource     @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  vendorUrl         String           @map("vendor_url")
+  vendorSku         String?          @map("vendor_sku")
+  rawName           String?          @map("raw_name")
+  rawDescription    String?          @map("raw_description")
+  rawPriceText      String?          @map("raw_price_text")
+  parsedPriceCents  BigInt?          @map("parsed_price_cents")
+  parsedCurrency    String?          @map("parsed_currency") @db.Char(3)
+  rrpCents          BigInt?          @map("rrp_cents")
+  rrpCurrency       String?          @map("rrp_currency") @db.Char(3)
+  parsedInStock     Boolean?         @map("parsed_in_stock")
+  rawSpecs          Json?            @map("raw_specs")
+  rawImageUrls      String[]         @default([]) @map("raw_image_urls")
+  rawHtmlStorageKey String?          @map("raw_html_storage_key")
+  fingerprint       String
+  matchedProductId  BigInt?          @map("matched_product_id")
+  matchedProduct    MasterProduct?   @relation("VendorRawProductMatch", fields: [matchedProductId], references: [id], onDelete: SetNull)
+  matchStatus       RawMatchStatus   @default(UNMATCHED) @map("match_status")
+  matchConfidence   Decimal?         @map("match_confidence") @db.Decimal(3, 2)
+  scrapedAt         DateTime         @default(now()) @map("scraped_at") @db.Timestamptz(6)
+  images            VendorRawImage[]
+  reviewQueue       ReviewQueue?
 
   @@unique([ingestionRunId, vendorId, vendorUrl])
   @@index([ingestionRunId])
@@ -743,19 +771,19 @@ model VendorRawProduct {
 }
 
 model VendorRawImage {
-  id             BigInt           @id @default(autoincrement())
-  rawProductId   BigInt           @map("raw_product_id")
-  rawProduct     VendorRawProduct @relation(fields: [rawProductId], references: [id], onDelete: Cascade)
-  originalUrl    String           @map("original_url")
-  storageKey     String?          @map("storage_key")
-  contentHash    String?          @map("content_hash")
-  mimeType       String?          @map("mime_type")
-  bytes          Int?
-  width          Int?
-  height         Int?
-  downloadedAt   DateTime?        @map("downloaded_at") @db.Timestamptz(6)
-  downloadError  String?          @map("download_error")
-  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  id            BigInt           @id @default(autoincrement())
+  rawProductId  BigInt           @map("raw_product_id")
+  rawProduct    VendorRawProduct @relation(fields: [rawProductId], references: [id], onDelete: Cascade)
+  originalUrl   String           @map("original_url")
+  storageKey    String?          @map("storage_key")
+  contentHash   String?          @map("content_hash")
+  mimeType      String?          @map("mime_type")
+  bytes         Int?
+  width         Int?
+  height        Int?
+  downloadedAt  DateTime?        @map("downloaded_at") @db.Timestamptz(6)
+  downloadError String?          @map("download_error")
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([rawProductId])
   @@index([rawProductId, originalUrl])
@@ -764,41 +792,43 @@ model VendorRawImage {
 }
 
 model MasterProduct {
-  id                BigInt               @id @default(autoincrement())
-  publicId          String               @unique @default(dbgenerated("gen_random_uuid()")) @map("public_id") @db.Uuid
-  slug              String               @unique @db.Citext
-  sku               String?              @db.Citext
-  mpn               String?              @db.Citext
-  name              String
-  shortDescription  String?              @map("short_description")
-  longDescriptionMd String?              @map("long_description_md")
-  manufacturerId    BigInt?              @map("manufacturer_id")
-  manufacturer      Manufacturer?        @relation(fields: [manufacturerId], references: [id], onDelete: Restrict)
-  manufacturerSlug  String               @map("manufacturer_slug") @db.Citext
-  manufacturerName  String               @map("manufacturer_name")
-  categoryId        BigInt               @map("category_id")
-  category          CatalogCategory      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  status            CatalogProductStatus @default(DRAFT)
-  fingerprint       String
-  featured          Boolean              @default(false)
-  seoTitle          String?              @map("seo_title")
-  seoDescription    String?              @map("seo_description")
-  createdById       String               @map("created_by")
-  createdBy         User                 @relation("MasterProductCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  updatedById       String               @map("updated_by")
-  updatedBy         User                 @relation("MasterProductUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
-  publishedAt       DateTime?            @map("published_at") @db.Timestamptz(6)
-  archivedAt        DateTime?            @map("archived_at") @db.Timestamptz(6)
-  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
-  offers            VendorOffer[]
-  images            CatalogProductImage[]
-  matchedRawProducts VendorRawProduct[]  @relation("VendorRawProductMatch")
-  reviewSuggestions ReviewQueue[]        @relation("ReviewQueueSuggestion")
-  curatedPrice      CuratedProductPrice?
-  tags              MasterProductTag[]
-  specs             MasterProductSpec[]
-  compatibility     MasterProductCompatibility[]
+  id                 BigInt                       @id @default(autoincrement())
+  publicId           String                       @unique @default(dbgenerated("gen_random_uuid()")) @map("public_id") @db.Uuid
+  slug               String                       @unique @db.Citext
+  sku                String?                      @db.Citext
+  mpn                String?                      @db.Citext
+  name               String
+  shortDescription   String?                      @map("short_description")
+  longDescriptionMd  String?                      @map("long_description_md")
+  compareAtCents     BigInt?                      @map("compare_at_cents")
+  compareAtCurrency  String?                      @map("compare_at_currency") @db.Char(3)
+  manufacturerId     BigInt?                      @map("manufacturer_id")
+  manufacturer       Manufacturer?                @relation(fields: [manufacturerId], references: [id], onDelete: Restrict)
+  manufacturerSlug   String                       @map("manufacturer_slug") @db.Citext
+  manufacturerName   String                       @map("manufacturer_name")
+  categoryId         BigInt                       @map("category_id")
+  category           CatalogCategory              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  status             CatalogProductStatus         @default(DRAFT)
+  fingerprint        String
+  featured           Boolean                      @default(false)
+  seoTitle           String?                      @map("seo_title")
+  seoDescription     String?                      @map("seo_description")
+  createdById        String                       @map("created_by")
+  createdBy          User                         @relation("MasterProductCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedById        String                       @map("updated_by")
+  updatedBy          User                         @relation("MasterProductUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+  publishedAt        DateTime?                    @map("published_at") @db.Timestamptz(6)
+  archivedAt         DateTime?                    @map("archived_at") @db.Timestamptz(6)
+  createdAt          DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  offers             VendorOffer[]
+  images             CatalogProductImage[]
+  matchedRawProducts VendorRawProduct[]           @relation("VendorRawProductMatch")
+  reviewSuggestions  ReviewQueue[]                @relation("ReviewQueueSuggestion")
+  curatedPrice       CuratedProductPrice?
+  tags               MasterProductTag[]
+  specs              MasterProductSpec[]
+  compatibility      MasterProductCompatibility[]
 
   @@index([status])
   @@index([sku])
@@ -810,23 +840,23 @@ model MasterProduct {
 }
 
 model VendorOffer {
-  id              BigInt       @id @default(autoincrement())
-  productId       BigInt       @map("product_id")
-  product         MasterProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
-  vendorId        BigInt       @map("vendor_id")
-  vendor          VendorSource @relation(fields: [vendorId], references: [id], onDelete: Restrict)
-  vendorSku       String?      @map("vendor_sku")
-  vendorUrl       String       @map("vendor_url")
-  priceCents      BigInt?      @map("price_cents")
-  currency        String       @default("USD") @db.Char(3)
-  inStock         Boolean?     @map("in_stock")
-  lastSeenAt      DateTime     @map("last_seen_at") @db.Timestamptz(6)
-  status          OfferStatus  @default(ACTIVE)
-  confidence      Decimal      @default(1.00) @db.Decimal(3, 2)
-  notes           String?
-  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
-  priceHistory    PriceHistory[]
+  id                BigInt                @id @default(autoincrement())
+  productId         BigInt                @map("product_id")
+  product           MasterProduct         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  vendorId          BigInt                @map("vendor_id")
+  vendor            VendorSource          @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  vendorSku         String?               @map("vendor_sku")
+  vendorUrl         String                @map("vendor_url")
+  priceCents        BigInt?               @map("price_cents")
+  currency          String                @default("USD") @db.Char(3)
+  inStock           Boolean?              @map("in_stock")
+  lastSeenAt        DateTime              @map("last_seen_at") @db.Timestamptz(6)
+  status            OfferStatus           @default(ACTIVE)
+  confidence        Decimal               @default(1.00) @db.Decimal(3, 2)
+  notes             String?
+  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  priceHistory      PriceHistory[]
   curatedSelections CuratedProductPrice[]
 
   @@unique([vendorId, vendorUrl])
@@ -837,13 +867,13 @@ model VendorOffer {
 }
 
 model PriceHistory {
-  id          BigInt      @id @default(autoincrement())
-  offerId     BigInt      @map("offer_id")
-  offer       VendorOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
-  priceCents  BigInt      @map("price_cents")
-  currency    String      @db.Char(3)
-  inStock     Boolean?    @map("in_stock")
-  observedAt  DateTime    @default(now()) @map("observed_at") @db.Timestamptz(6)
+  id         BigInt      @id @default(autoincrement())
+  offerId    BigInt      @map("offer_id")
+  offer      VendorOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  priceCents BigInt      @map("price_cents")
+  currency   String      @db.Char(3)
+  inStock    Boolean?    @map("in_stock")
+  observedAt DateTime    @default(now()) @map("observed_at") @db.Timestamptz(6)
 
   @@index([offerId, observedAt(sort: Desc)], map: "price_history_offer_time_idx")
   @@map("price_history")
@@ -870,20 +900,20 @@ model CuratedProductPrice {
 }
 
 model CatalogProductImage {
-  id             BigInt        @id @default(autoincrement())
-  productId      BigInt        @map("product_id")
-  product        MasterProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
-  storageKey     String        @map("storage_key")
-  width          Int?
-  height         Int?
-  mimeType       String?       @map("mime_type")
-  altText        String?       @map("alt_text")
-  isPrimary      Boolean       @default(false) @map("is_primary")
-  sortOrder      Int           @default(0) @map("sort_order")
-  sourceVendorId BigInt?       @map("source_vendor_id")
-  sourceVendor   VendorSource? @relation(fields: [sourceVendorId], references: [id], onDelete: SetNull)
+  id                BigInt         @id @default(autoincrement())
+  productId         BigInt         @map("product_id")
+  product           MasterProduct  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  storageKey        String         @map("storage_key")
+  width             Int?
+  height            Int?
+  mimeType          String?        @map("mime_type")
+  altText           String?        @map("alt_text")
+  isPrimary         Boolean        @default(false) @map("is_primary")
+  sortOrder         Int            @default(0) @map("sort_order")
+  sourceVendorId    BigInt?        @map("source_vendor_id")
+  sourceVendor      VendorSource?  @relation(fields: [sourceVendorId], references: [id], onDelete: SetNull)
   manufacturerLogos Manufacturer[] @relation("ManufacturerLogoImage")
-  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([productId, sortOrder])
   @@index([sourceVendorId])
@@ -955,15 +985,15 @@ model ReviewQueue {
 }
 
 model AdminAuditLog {
-  id          BigInt   @id @default(autoincrement())
-  userId      String   @map("user_id")
-  user        User     @relation("CatalogAdminAuditUser", fields: [userId], references: [id], onDelete: Restrict)
-  entityType  String   @map("entity_type")
-  entityId    BigInt   @map("entity_id")
-  action      String
-  diff        Json?
-  requestId   String?  @map("request_id")
-  occurredAt  DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  id         BigInt   @id @default(autoincrement())
+  userId     String   @map("user_id")
+  user       User     @relation("CatalogAdminAuditUser", fields: [userId], references: [id], onDelete: Restrict)
+  entityType String   @map("entity_type")
+  entityId   BigInt   @map("entity_id")
+  action     String
+  diff       Json?
+  requestId  String?  @map("request_id")
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
 
   @@index([entityType, entityId, occurredAt], map: "audit_entity_idx")
   @@index([userId])
@@ -971,34 +1001,39 @@ model AdminAuditLog {
 }
 
 model PublicProduct {
-  publicId          String    @id @map("public_id") @db.Uuid
-  slug              String    @unique @db.Citext
-  name              String
-  shortDescription  String?   @map("short_description")
-  longDescriptionMd String?   @map("long_description_md")
-  manufacturerSlug  String    @map("manufacturer_slug") @db.Citext
-  manufacturerName  String    @map("manufacturer_name")
-  categorySlug      String    @map("category_slug") @db.Citext
-  categoryName      String    @map("category_name")
-  primaryImage      Json?     @map("primary_image")
-  galleryImages     Json?     @map("gallery_images")
-  bestPriceCents    BigInt?   @map("best_price_cents")
-  priceCurrency     String    @map("price_currency")
-  curatedPrice      Json?     @map("curated_price")
-  inStock           Boolean   @map("in_stock")
-  offerCount        Int       @map("offer_count")
-  vendorOffers      Json?     @map("vendor_offers")
-  specs             Json?
-  compatibility     Json?
-  featured          Boolean
-  publishedAt       DateTime? @map("published_at") @db.Timestamptz(6)
-  projectedAt       DateTime? @map("projected_at") @db.Timestamptz(6)
+  publicId           String    @id @map("public_id") @db.Uuid
+  slug               String    @unique @db.Citext
+  name               String
+  shortDescription   String?   @map("short_description")
+  longDescriptionMd  String?   @map("long_description_md")
+  manufacturerSlug   String    @map("manufacturer_slug") @db.Citext
+  manufacturerName   String    @map("manufacturer_name")
+  categorySlug       String    @map("category_slug") @db.Citext
+  categoryName       String    @map("category_name")
+  primaryImage       Json?     @map("primary_image")
+  galleryImages      Json?     @map("gallery_images")
+  bestPriceCents     BigInt?   @map("best_price_cents")
+  priceCurrency      String    @map("price_currency")
+  sellPriceCents     BigInt?   @map("sell_price_cents")
+  compareAtCents     BigInt?   @map("compare_at_cents")
+  compareAtCurrency  String?   @map("compare_at_currency")
+  discountPct        Int?      @map("discount_pct")
+  curatedPrice       Json?     @map("curated_price")
+  inStock            Boolean   @map("in_stock")
+  offerCount         Int       @map("offer_count")
+  vendorOffers       Json?     @map("vendor_offers")
+  sourcingVendorName String?   @map("sourcing_vendor_name")
+  specs              Json?
+  compatibility      Json?
+  featured           Boolean
+  publishedAt        DateTime? @map("published_at") @db.Timestamptz(6)
+  projectedAt        DateTime? @map("projected_at") @db.Timestamptz(6)
 
   @@index([categorySlug])
   @@index([manufacturerSlug])
   @@index([projectedAt])
-  @@ignore
   @@map("public_products")
+  @@ignore
 }
 
 model ProductImage {

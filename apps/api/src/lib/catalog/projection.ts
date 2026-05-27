@@ -26,6 +26,10 @@ interface PublicProductProjectionRow {
   primary_image: unknown;
   best_price_cents: bigint | number | null;
   price_currency: string;
+  sell_price_cents: bigint | number | null;
+  compare_at_cents: bigint | number | null;
+  discount_pct: number | null;
+  sourcing_vendor_name: string | null;
   in_stock: boolean;
   offer_count: number;
   featured: boolean;
@@ -72,7 +76,11 @@ export function buildTypesenseDocument(row: PublicProductProjectionRow) {
     tags: [],
     compatibility: [],
     best_price_cents: toNumber(row.best_price_cents),
+    sell_price_cents: toNumber(row.sell_price_cents),
+    compare_at_cents: toNumber(row.compare_at_cents),
+    discount_pct: row.discount_pct,
     currency: row.price_currency,
+    sourcing_vendor_name: row.sourcing_vendor_name,
     in_stock: row.in_stock,
     offer_count: row.offer_count,
     featured: row.featured,
@@ -151,6 +159,10 @@ async function findPublicProjection(publicId: string): Promise<PublicProductProj
       primary_image,
       best_price_cents,
       price_currency,
+      sell_price_cents,
+      compare_at_cents,
+      discount_pct,
+      sourcing_vendor_name,
       in_stock,
       offer_count,
       featured,
@@ -179,6 +191,10 @@ async function findAllPublicProjections(): Promise<PublicProductProjectionRow[]>
       primary_image,
       best_price_cents,
       price_currency,
+      sell_price_cents,
+      compare_at_cents,
+      discount_pct,
+      sourcing_vendor_name,
       in_stock,
       offer_count,
       featured,
