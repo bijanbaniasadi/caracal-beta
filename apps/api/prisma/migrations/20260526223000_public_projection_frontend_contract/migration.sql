@@ -128,10 +128,10 @@ LEFT JOIN manufacturers m ON m.id = mp.manufacturer_id
 JOIN categories c ON c.id = mp.category_id
 WHERE mp.status = 'published';
 
-CREATE UNIQUE INDEX public_products_public_id_idx ON public_products(public_id);
-CREATE UNIQUE INDEX public_products_slug_idx ON public_products(slug);
-CREATE INDEX public_products_category_idx ON public_products(category_slug);
-CREATE INDEX public_products_manufacturer_idx ON public_products(manufacturer_slug);
+CREATE UNIQUE INDEX IF NOT EXISTS public_products_public_id_idx ON public_products(public_id);
+CREATE UNIQUE INDEX IF NOT EXISTS public_products_slug_idx ON public_products(slug);
+CREATE INDEX IF NOT EXISTS public_products_category_idx ON public_products(category_slug);
+CREATE INDEX IF NOT EXISTS public_products_manufacturer_idx ON public_products(manufacturer_slug);
 
 COMMENT ON MATERIALIZED VIEW public_products IS
   'Derived Layer 3 projection. Do not write directly; refreshed only by worker-projection.';
