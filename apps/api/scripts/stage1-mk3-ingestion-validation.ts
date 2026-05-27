@@ -3,10 +3,9 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { disconnectPrismaClient, getPrismaClient } from '@caracal/db';
-import type { UserRole } from '@prisma/client';
 import { QueueEvents, Worker } from 'bullmq';
 
-import { signAccessToken, type AuthenticatedUser } from '../src/lib/auth.js';
+import { signAccessToken } from '../src/lib/auth.js';
 import { getRedisConnectionOptions } from '../src/lib/bin-analysis/queue.js';
 import { verifyCatalogRawAsset } from '../src/lib/catalog/object-storage.js';
 import {
@@ -30,17 +29,12 @@ import {
   searchTypesenseProducts,
 } from '../src/lib/catalog/typesense.js';
 import {
-  buildMk3Fingerprint,
-  inferMk3Manufacturer,
-  inferMk3MpnOrSku,
-  inferMk3VariantKey,
-} from '../src/lib/catalog/mk3/fingerprint.js';
-import {
   ensureMk3VendorSource,
   runMk3Ingestion,
   summarizeMk3IngestionRun,
 } from '../src/lib/catalog/mk3/ingestion.js';
 import { processMk3RawProductFingerprint } from '../src/lib/catalog/mk3/matching.js';
+import { ensureStageUser, seedMk3Stage1References } from './seed-mk3-stage1-references.js';
 
 interface ApiEnvelope<T> {
   success: boolean;
@@ -93,17 +87,6 @@ function slugSuffix(runId: string): string {
   return runId.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 }
 
-function mk3Fingerprint(input: { name: string; sku: string; brand: string }): string {
-  const manufacturer = inferMk3Manufacturer(input.name, input.brand);
-
-  return buildMk3Fingerprint({
-    manufacturerSlug: manufacturer.slug,
-    manufacturerName: manufacturer.name,
-    mpnOrSku: inferMk3MpnOrSku(input.name, input.sku),
-    variantKey: inferMk3VariantKey(input.name),
-  });
-}
-
 async function apiRequest<T>(
   path: string,
   token: string,
@@ -143,149 +126,6 @@ async function publicRequest<T>(path: string): Promise<{ data: T; status: number
     status: response.status,
     body,
   };
-}
-
-async function ensureStageUser(input: {
-  id: string;
-  email: string;
-  name: string;
-  role: UserRole;
-}): Promise<AuthenticatedUser> {
-  const prisma = getPrismaClient();
-  const user = await prisma.user.upsert({
-    where: { email: input.email },
-    create: {
-      id: input.id,
-      email: input.email,
-      name: input.name,
-      role: input.role,
-      isActive: true,
-    },
-    update: {
-      name: input.name,
-      role: input.role,
-      isActive: true,
-    },
-  });
-
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-    isActive: user.isActive,
-  };
-}
-
-async function ensureReferenceData(creatorId: string) {
-  const prisma = getPrismaClient();
-  const existingCategory = await prisma.catalogCategory.findFirst({
-    where: {
-      parentId: null,
-      slug: 'stage1-validation-tools',
-    },
-  });
-  const category = existingCategory
-    ? await prisma.catalogCategory.update({
-        where: { id: existingCategory.id },
-        data: {
-          name: 'Stage 1 Validation Tools',
-          description: 'Local-only Stage 1 catalog validation category.',
-        },
-      })
-    : await prisma.catalogCategory.create({
-        data: {
-          slug: 'stage1-validation-tools',
-          name: 'Stage 1 Validation Tools',
-          description: 'Local-only Stage 1 catalog validation category.',
-        },
-      });
-  const [alientech, autotuner] = await Promise.all([
-    prisma.manufacturer.upsert({
-      where: { slug: 'alientech' },
-      create: { slug: 'alientech', name: 'Alientech' },
-      update: { name: 'Alientech' },
-    }),
-    prisma.manufacturer.upsert({
-      where: { slug: 'autotuner' },
-      create: { slug: 'autotuner', name: 'Autotuner' },
-      update: { name: 'Autotuner' },
-    }),
-  ]);
-
-  const exactFingerprint = mk3Fingerprint({
-    name: 'Alientech KESS3 Master Kit Stage 1',
-    sku: 'STAGE1-KESS3-MASTER',
-    brand: 'Alientech',
-  });
-  const fuzzyFingerprint = mk3Fingerprint({
-    name: 'Alientech KESS3 Master Variant Reference Stage 1',
-    sku: 'STAGE1-KESS3',
-    brand: 'Alientech',
-  });
-
-  const [exactMaster, fuzzyMaster] = await Promise.all([
-    prisma.masterProduct.upsert({
-      where: { slug: 'stage1-mk3-kess3-master-reference' },
-      create: {
-        slug: 'stage1-mk3-kess3-master-reference',
-        sku: 'STAGE1-KESS3-MASTER',
-        mpn: 'STAGE1-KESS3-MASTER',
-        name: 'Alientech KESS3 Master Kit Stage 1 Reference',
-        shortDescription: 'Reference master used for exact MK3 fingerprint validation.',
-        longDescriptionMd: 'Reference-only master for Stage 1 exact-match validation.',
-        manufacturerId: alientech.id,
-        manufacturerSlug: alientech.slug,
-        manufacturerName: alientech.name,
-        categoryId: category.id,
-        status: 'DRAFT',
-        fingerprint: exactFingerprint,
-        featured: false,
-        createdById: creatorId,
-        updatedById: creatorId,
-      },
-      update: {
-        manufacturerId: alientech.id,
-        manufacturerSlug: alientech.slug,
-        manufacturerName: alientech.name,
-        categoryId: category.id,
-        status: 'DRAFT',
-        fingerprint: exactFingerprint,
-        updatedById: creatorId,
-      },
-    }),
-    prisma.masterProduct.upsert({
-      where: { slug: 'stage1-mk3-kess3-variant-reference' },
-      create: {
-        slug: 'stage1-mk3-kess3-variant-reference',
-        sku: 'STAGE1-KESS3',
-        mpn: 'STAGE1-KESS3',
-        name: 'Alientech KESS3 Master Variant Stage 1 Reference',
-        shortDescription: 'Reference master used for fuzzy MK3 review validation.',
-        longDescriptionMd: 'Reference-only master for Stage 1 fuzzy-match validation.',
-        manufacturerId: alientech.id,
-        manufacturerSlug: alientech.slug,
-        manufacturerName: alientech.name,
-        categoryId: category.id,
-        status: 'DRAFT',
-        fingerprint: fuzzyFingerprint,
-        featured: false,
-        createdById: creatorId,
-        updatedById: creatorId,
-      },
-      update: {
-        manufacturerId: alientech.id,
-        manufacturerSlug: alientech.slug,
-        manufacturerName: alientech.name,
-        categoryId: category.id,
-        status: 'DRAFT',
-        fingerprint: fuzzyFingerprint,
-        updatedById: creatorId,
-      },
-    }),
-  ]);
-
-  return { category, alientech, autotuner, exactMaster, fuzzyMaster };
 }
 
 async function waitForFingerprintSettlement(runId: bigint): Promise<void> {
@@ -509,7 +349,7 @@ async function main(): Promise<void> {
     });
     const creatorToken = signAccessToken(creator).token;
     const publisherToken = signAccessToken(publisher).token;
-    const referenceData = await ensureReferenceData(creator.id);
+    const referenceData = await seedMk3Stage1References(creator.id);
     const vendor = await ensureMk3VendorSource();
 
     const baselineProjection = await enqueueProjectionAndWait(
