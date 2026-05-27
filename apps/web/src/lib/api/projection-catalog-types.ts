@@ -64,6 +64,9 @@ export interface ProjectionProduct {
   };
   primaryImage: ProjectionImage | null;
   galleryImages: ProjectionImage[];
+  sellPrice?: ProjectionPrice | null;
+  compareAt?: ProjectionPrice | null;
+  discountPct?: number | null;
   bestPrice: ProjectionPrice;
   curatedPrice: ProjectionCuratedPrice | null;
   inStock: boolean;
@@ -89,6 +92,9 @@ export interface ProjectionSearchProduct {
     name: string;
   };
   primaryImage: ProjectionImage | null;
+  sellPrice?: ProjectionPrice | null;
+  compareAt?: ProjectionPrice | null;
+  discountPct?: number | null;
   bestPrice: ProjectionPrice;
   inStock: boolean;
   offerCount: number;

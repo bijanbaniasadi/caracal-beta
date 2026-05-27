@@ -4,7 +4,14 @@ import type {
   ProjectionProduct,
   ProjectionSearchProduct,
 } from '@/lib/api/projection-catalog-types';
-import { imageLabel, priceLabel, productImageUrl } from './projection-utils';
+import {
+  compareAtLabel,
+  discountLabel,
+  imageLabel,
+  priceLabel,
+  productImageUrl,
+  specChipLabel,
+} from './projection-utils';
 
 export function ProjectionProductCard({
   product,
@@ -12,55 +19,86 @@ export function ProjectionProductCard({
   product: ProjectionProduct | ProjectionSearchProduct;
 }) {
   const imageUrl = productImageUrl(product);
+  const productHref = `/catalog/product/${product.slug}`;
+  const compareAt = compareAtLabel(product);
+  const discount = discountLabel(product);
+  const vendorName =
+    'vendorOffers' in product ? product.vendorOffers[0]?.vendorName : undefined;
+  const specChips =
+    'specs' in product
+      ? product.specs
+          .map(specChipLabel)
+          .filter((label): label is string => Boolean(label))
+          .slice(0, 3)
+      : [];
+  const offerCountLabel = `${product.offerCount} supplier ${
+    product.offerCount === 1 ? 'offer' : 'offers'
+  }`;
 
   return (
-    <article className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.04]">
-      <Link href={`/catalog/product/${product.slug}`} className="block">
-        <div className="aspect-[4/3] bg-[#111b24]">
+    <article className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
+      <div className="flex gap-3">
+        <Link
+          href={productHref}
+          className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-brand-deep"
+          aria-label={`View ${product.name}`}
+        >
           {imageUrl ? (
-            <div className="relative h-full w-full">
-              <Image
-                src={imageUrl}
-                alt={imageLabel(product)}
-                fill
-                sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                className="object-contain p-4"
-                unoptimized
-              />
-            </div>
+            <Image
+              src={imageUrl}
+              alt={imageLabel(product)}
+              fill
+              sizes="96px"
+              className="object-contain p-2"
+              unoptimized
+            />
           ) : (
-            <div className="flex h-full items-center justify-center px-4 text-center text-xs text-brand-muted">
+            <span className="px-2 text-center text-xs leading-4 text-brand-muted">
               Image coming soon
-            </div>
+            </span>
           )}
-        </div>
-      </Link>
-      <div className="space-y-3 p-4">
-        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-brand-orange">
-          <Link href={`/catalog/manufacturer/${product.manufacturer.slug}`}>
-            {product.manufacturer.name}
-          </Link>
-          <span className="text-brand-muted">/</span>
-          <Link href={`/catalog/category/${product.category.slug}`}>{product.category.name}</Link>
-        </div>
-        <div className="space-y-1">
+        </Link>
+
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="truncate text-xs font-semibold uppercase tracking-wide text-brand-orange">
+            <Link href={`/catalog/manufacturer/${product.manufacturer.slug}`}>
+              {product.manufacturer.name}
+            </Link>
+          </div>
+
           <Link
-            href={`/catalog/product/${product.slug}`}
+            href={productHref}
             className="line-clamp-2 text-sm font-semibold leading-5 text-brand-text hover:text-brand-orange"
           >
             {product.name}
           </Link>
-          {product.shortDescription && (
-            <p className="line-clamp-2 text-xs leading-5 text-brand-muted">
-              {product.shortDescription}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-semibold text-brand-text">{priceLabel(product)}</span>
+
+          <Link
+            href={`/catalog/category/${product.category.slug}`}
+            className="block truncate text-xs text-brand-muted hover:text-brand-text"
+          >
+            {product.category.name}
+          </Link>
+
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-display text-base font-bold text-brand-text">
+                {priceLabel(product)}
+              </span>
+              {compareAt ? (
+                <span className="text-xs text-brand-muted line-through">{compareAt}</span>
+              ) : null}
+              {discount ? (
+                <span className="rounded-full bg-brand-orange px-2 py-0.5 text-xs font-semibold text-white">
+                  {discount}
+                </span>
+              ) : null}
+            </div>
+          </div>
+
           <span
             className={[
-              'rounded-full px-2 py-1 text-[11px] font-semibold',
+              'inline-flex w-fit rounded-full px-2 py-1 text-xs font-semibold',
               product.inStock
                 ? 'bg-emerald-500/10 text-emerald-300'
                 : 'bg-white/5 text-brand-muted',
@@ -68,6 +106,27 @@ export function ProjectionProductCard({
           >
             {product.inStock ? 'In stock' : 'Check stock'}
           </span>
+
+          {vendorName ? (
+            <p className="truncate text-xs text-brand-muted">
+              Source: <span className="text-brand-text">{vendorName}</span>
+            </p>
+          ) : null}
+
+          {specChips.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {specChips.map((label) => (
+                <span
+                  key={label}
+                  className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-brand-muted"
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          ) : null}
+
+          <p className="text-xs text-brand-muted">{offerCountLabel}</p>
         </div>
       </div>
     </article>
