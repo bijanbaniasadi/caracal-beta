@@ -27,6 +27,8 @@
     "catalog:import:legacy": "tsx scripts/import-legacy-shop-catalog.ts",
     "catalog:stage:legacy-public": "tsx scripts/stage-legacy-public-shop-inventory.ts",
     "catalog:verify:legacy": "tsx scripts/verify-legacy-shop-runtime.ts",
+    "catalog:seed:validation": "tsx scripts/mk3-validation-seed.ts",
+    "catalog:purge:validation": "tsx scripts/mk3-validation-seed-purge.ts",
     "supplier:sync": "tsx scripts/supplier-catalog-sync.ts",
     "supplier:upsert-staging": "tsx scripts/upsert-staging-products.ts",
     "ecu:scan": "tsx scripts/ecu-corpus-scan.ts",
