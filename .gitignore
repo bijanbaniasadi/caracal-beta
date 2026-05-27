@@ -39,3 +39,8 @@ Thumbs.db
 uploads/
 tmp/
 temp/
+
+# Deployment backups
+backups/**
+!backups/*/ROLLBACK_STATE.md
+!backups/*/FREEZE_METADATA.yaml
