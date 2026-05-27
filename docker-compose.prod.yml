@@ -35,12 +35,15 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${PUBLIC_SITE_URL:?Set PUBLIC_SITE_URL}
         NEXT_PUBLIC_APP_URL: ${PUBLIC_SITE_URL:?Set PUBLIC_SITE_URL}
+        NEXT_PUBLIC_NEW_CATALOG_FRONTEND: ${NEXT_PUBLIC_NEW_CATALOG_FRONTEND:-false}
     environment:
       NODE_ENV: production
       NODE_OPTIONS: ${WEB_NODE_OPTIONS:---max-old-space-size=512}
       NEXT_TELEMETRY_DISABLED: '1'
       NEXT_PUBLIC_API_URL: ${PUBLIC_SITE_URL:?Set PUBLIC_SITE_URL}
       NEXT_PUBLIC_APP_URL: ${PUBLIC_SITE_URL:?Set PUBLIC_SITE_URL}
+      NEXT_PUBLIC_NEW_CATALOG_FRONTEND: ${NEXT_PUBLIC_NEW_CATALOG_FRONTEND:-false}
+      NEW_CATALOG_FRONTEND: ${NEW_CATALOG_FRONTEND:-false}
     expose:
       - '3000'
     restart: unless-stopped
@@ -66,6 +69,10 @@ services:
       API_PORT: 3001
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      TYPESENSE_URL: ${TYPESENSE_URL:-http://typesense:8108}
+      TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:?Set TYPESENSE_API_KEY}
+      TYPESENSE_COLLECTION_ALIAS: ${TYPESENSE_COLLECTION_ALIAS:-products}
+      TYPESENSE_COLLECTION_PREFIX: ${TYPESENSE_COLLECTION_PREFIX:-products}
       PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:?Set PUBLIC_SITE_URL}
       CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
@@ -86,6 +93,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      typesense:
+        condition: service_started
     volumes:
       - api-uploads:/app/apps/api/uploads
       - api-logs:/app/logs/api
@@ -127,6 +136,15 @@ services:
     volumes:
       - api-uploads:/app/apps/api/uploads
       - api-logs:/app/logs/api
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "const net=require(''node:net''); const s=net.connect(6379,''redis'',()=>process.exit(0)); s.on(''error'',()=>process.exit(1)); setTimeout(()=>process.exit(1),3000).unref()"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     logging:
       driver: json-file
       options:
@@ -164,6 +182,179 @@ services:
         condition: service_started
     volumes:
       - api-logs:/app/logs/api
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "const net=require(''node:net''); const s=net.connect(6379,''redis'',()=>process.exit(0)); s.on(''error'',()=>process.exit(1)); setTimeout(()=>process.exit(1),3000).unref()"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+
+  ingestion-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-worker
+    command: ['node', 'dist/workers/ingestion-worker.js']
+    env_file:
+      - path: .env.production
+        required: false
+    environment:
+      NODE_ENV: production
+      NODE_OPTIONS: ${WORKER_NODE_OPTIONS:---max-old-space-size=768}
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      LOCAL_UPLOAD_DIR: /app/apps/api/uploads
+      CATALOG_INGESTION_WORKER_CONCURRENCY: ${CATALOG_INGESTION_WORKER_CONCURRENCY:-1}
+      WORKER_SHUTDOWN_TIMEOUT_MS: ${WORKER_SHUTDOWN_TIMEOUT_MS:-30000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    restart: unless-stopped
+    stop_grace_period: 35s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - api-uploads:/app/apps/api/uploads
+      - api-logs:/app/logs/api
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "const net=require(''node:net''); const s=net.connect(6379,''redis'',()=>process.exit(0)); s.on(''error'',()=>process.exit(1)); setTimeout(()=>process.exit(1),3000).unref()"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+
+  fingerprint-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-worker
+    command: ['node', 'dist/workers/fingerprint-worker.js']
+    env_file:
+      - path: .env.production
+        required: false
+    environment:
+      NODE_ENV: production
+      NODE_OPTIONS: ${WORKER_NODE_OPTIONS:---max-old-space-size=768}
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      CATALOG_FINGERPRINT_WORKER_CONCURRENCY: ${CATALOG_FINGERPRINT_WORKER_CONCURRENCY:-1}
+      WORKER_SHUTDOWN_TIMEOUT_MS: ${WORKER_SHUTDOWN_TIMEOUT_MS:-30000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    restart: unless-stopped
+    stop_grace_period: 35s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - api-logs:/app/logs/api
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "const net=require(''node:net''); const s=net.connect(6379,''redis'',()=>process.exit(0)); s.on(''error'',()=>process.exit(1)); setTimeout(()=>process.exit(1),3000).unref()"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+
+  image-pipeline-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-worker
+    command: ['node', 'dist/workers/image-pipeline-worker.js']
+    env_file:
+      - path: .env.production
+        required: false
+    environment:
+      NODE_ENV: production
+      NODE_OPTIONS: ${WORKER_NODE_OPTIONS:---max-old-space-size=768}
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      LOCAL_UPLOAD_DIR: /app/apps/api/uploads
+      CATALOG_IMAGE_PIPELINE_WORKER_CONCURRENCY: ${CATALOG_IMAGE_PIPELINE_WORKER_CONCURRENCY:-1}
+      WORKER_SHUTDOWN_TIMEOUT_MS: ${WORKER_SHUTDOWN_TIMEOUT_MS:-30000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    restart: unless-stopped
+    stop_grace_period: 35s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - api-uploads:/app/apps/api/uploads
+      - api-logs:/app/logs/api
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "const net=require(''node:net''); const s=net.connect(6379,''redis'',()=>process.exit(0)); s.on(''error'',()=>process.exit(1)); setTimeout(()=>process.exit(1),3000).unref()"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+
+  reconciliation-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-worker
+    command: ['node', 'dist/workers/reconciliation-worker.js']
+    env_file:
+      - path: .env.production
+        required: false
+    environment:
+      NODE_ENV: production
+      NODE_OPTIONS: ${WORKER_NODE_OPTIONS:---max-old-space-size=768}
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      CATALOG_RECONCILIATION_WORKER_CONCURRENCY: ${CATALOG_RECONCILIATION_WORKER_CONCURRENCY:-1}
+      WORKER_SHUTDOWN_TIMEOUT_MS: ${WORKER_SHUTDOWN_TIMEOUT_MS:-30000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    restart: unless-stopped
+    stop_grace_period: 35s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - api-logs:/app/logs/api
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "const net=require(''node:net''); const s=net.connect(6379,''redis'',()=>process.exit(0)); s.on(''error'',()=>process.exit(1)); setTimeout(()=>process.exit(1),3000).unref()"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     logging:
       driver: json-file
       options:

@@ -8,6 +8,10 @@ services:
       API_PORT: 3001
       DATABASE_URL: postgresql://caracal:caracal_dev@postgres:5432/caracal_dev
       REDIS_URL: redis://redis:6379
+      TYPESENSE_URL: http://typesense:8108
+      TYPESENSE_API_KEY: dev-typesense-key
+      TYPESENSE_COLLECTION_ALIAS: products
+      TYPESENSE_COLLECTION_PREFIX: products
       LOCAL_UPLOAD_DIR: /app/apps/api/uploads
       BIN_ANALYSIS_AUTO_QUEUE: 'true'
       BIN_ANALYSIS_QUEUE_NAME: bin-analysis
@@ -20,6 +24,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      typesense:
+        condition: service_started
     volumes:
       - api-uploads:/app/apps/api/uploads
       - api-logs:/app/logs/api
@@ -55,6 +61,15 @@ services:
     volumes:
       - api-uploads:/app/apps/api/uploads
       - api-logs:/app/logs/api
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "const net=require(''node:net''); const s=net.connect(6379,''redis'',()=>process.exit(0)); s.on(''error'',()=>process.exit(1)); setTimeout(()=>process.exit(1),3000).unref()"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     logging:
       driver: json-file
       options:
@@ -128,6 +143,155 @@ services:
         condition: service_started
     volumes:
       - api-logs:/app/logs/api
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "const net=require(''node:net''); const s=net.connect(6379,''redis'',()=>process.exit(0)); s.on(''error'',()=>process.exit(1)); setTimeout(()=>process.exit(1),3000).unref()"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+  ingestion-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-worker
+    command: ['node', 'dist/workers/ingestion-worker.js']
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://caracal:caracal_dev@postgres:5432/caracal_dev
+      REDIS_URL: redis://redis:6379
+      LOCAL_UPLOAD_DIR: /app/apps/api/uploads
+      CATALOG_INGESTION_WORKER_CONCURRENCY: 1
+      WORKER_SHUTDOWN_TIMEOUT_MS: 30000
+    restart: unless-stopped
+    stop_grace_period: 35s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - api-uploads:/app/apps/api/uploads
+      - api-logs:/app/logs/api
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "const net=require(''node:net''); const s=net.connect(6379,''redis'',()=>process.exit(0)); s.on(''error'',()=>process.exit(1)); setTimeout(()=>process.exit(1),3000).unref()"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+  fingerprint-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-worker
+    command: ['node', 'dist/workers/fingerprint-worker.js']
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://caracal:caracal_dev@postgres:5432/caracal_dev
+      REDIS_URL: redis://redis:6379
+      CATALOG_FINGERPRINT_WORKER_CONCURRENCY: 1
+      WORKER_SHUTDOWN_TIMEOUT_MS: 30000
+    restart: unless-stopped
+    stop_grace_period: 35s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - api-logs:/app/logs/api
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "const net=require(''node:net''); const s=net.connect(6379,''redis'',()=>process.exit(0)); s.on(''error'',()=>process.exit(1)); setTimeout(()=>process.exit(1),3000).unref()"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+  image-pipeline-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-worker
+    command: ['node', 'dist/workers/image-pipeline-worker.js']
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://caracal:caracal_dev@postgres:5432/caracal_dev
+      REDIS_URL: redis://redis:6379
+      LOCAL_UPLOAD_DIR: /app/apps/api/uploads
+      CATALOG_IMAGE_PIPELINE_WORKER_CONCURRENCY: 1
+      WORKER_SHUTDOWN_TIMEOUT_MS: 30000
+    restart: unless-stopped
+    stop_grace_period: 35s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - api-uploads:/app/apps/api/uploads
+      - api-logs:/app/logs/api
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "const net=require(''node:net''); const s=net.connect(6379,''redis'',()=>process.exit(0)); s.on(''error'',()=>process.exit(1)); setTimeout(()=>process.exit(1),3000).unref()"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+  reconciliation-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-worker
+    command: ['node', 'dist/workers/reconciliation-worker.js']
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://caracal:caracal_dev@postgres:5432/caracal_dev
+      REDIS_URL: redis://redis:6379
+      CATALOG_RECONCILIATION_WORKER_CONCURRENCY: 1
+      WORKER_SHUTDOWN_TIMEOUT_MS: 30000
+    restart: unless-stopped
+    stop_grace_period: 35s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - api-logs:/app/logs/api
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "const net=require(''node:net''); const s=net.connect(6379,''redis'',()=>process.exit(0)); s.on(''error'',()=>process.exit(1)); setTimeout(()=>process.exit(1),3000).unref()"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     logging:
       driver: json-file
       options:
