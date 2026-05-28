@@ -61,13 +61,14 @@ interface CategorySeed {
   slug: string;
   name: string;
   description: string;
+  sortOrder: number;
 }
 
 const CATEGORIES: CategorySeed[] = [
-  { slug: 'tuning-tools', name: 'Tuning Tools', description: 'ECU and TCU programmers for OBD, Bench and Boot tuning.' },
-  { slug: 'diagnostic-tools', name: 'Diagnostic Tools', description: 'Scanners, programmers and diagnostic interfaces for workshops.' },
-  { slug: 'cables-adapters', name: 'Cables & Adapters', description: 'Bench, boot and protocol cables and adapter harnesses.' },
-  { slug: 'key-programming', name: 'Key Programming', description: 'Key programmers, remotes and immobiliser tools.' },
+  { slug: 'tuning-tools', name: 'Tuning Tools', description: 'ECU and TCU programmers for OBD, Bench and Boot tuning.', sortOrder: 1 },
+  { slug: 'diagnostic-tools', name: 'Diagnostic Tools', description: 'Scanners, programmers and diagnostic interfaces for workshops.', sortOrder: 2 },
+  { slug: 'cables-adapters', name: 'Cables & Adapters', description: 'Bench, boot and protocol cables and adapter harnesses.', sortOrder: 3 },
+  { slug: 'key-programming', name: 'Key Programming', description: 'Key programmers, remotes and immobiliser tools.', sortOrder: 4 },
 ];
 
 // --------------------------------------------------------------------------
@@ -151,11 +152,16 @@ async function upsertCategory(seed: CategorySeed) {
   if (existing) {
     return prisma.catalogCategory.update({
       where: { id: existing.id },
-      data: { name: seed.name, description: seed.description },
+      data: { name: seed.name, description: seed.description, sortOrder: seed.sortOrder },
     });
   }
   return prisma.catalogCategory.create({
-    data: { slug: seed.slug, name: seed.name, description: seed.description },
+    data: {
+      slug: seed.slug,
+      name: seed.name,
+      description: seed.description,
+      sortOrder: seed.sortOrder,
+    },
   });
 }
 
@@ -241,6 +247,7 @@ async function main(): Promise<void> {
           categoryId: category.id,
           status: 'PENDING_REVIEW',
           fingerprint,
+          sortOrder: product.sortOrder,
           featured: false,
           createdById: creator.id,
           updatedById: creator.id,
@@ -254,6 +261,7 @@ async function main(): Promise<void> {
           manufacturerName: manufacturerRow.name,
           categoryId: category.id,
           fingerprint,
+          sortOrder: product.sortOrder,
           updatedById: creator.id,
         },
       });

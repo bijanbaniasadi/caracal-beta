@@ -819,6 +819,7 @@ model MasterProduct {
   category              CatalogCategory              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   status                CatalogProductStatus         @default(DRAFT)
   fingerprint           String
+  sortOrder             Int                          @default(0) @map("sort_order")
   featured              Boolean                      @default(false)
   seoTitle              String?                      @map("seo_title")
   seoDescription        String?                      @map("seo_description")

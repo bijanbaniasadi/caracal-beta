@@ -77,13 +77,36 @@ function htmlToMarkdown(html: string | null | undefined): string {
     .trim();
 }
 
+function looksLikeMultiPack(variant: ShopifyVariant): boolean {
+  const title = (variant.title ?? '').trim().toLowerCase();
+  if (!title) return false;
+  if (/^\d+$/.test(title)) return true; // bare quantity ("10")
+  if (/\b(pack|pcs|pieces?|bundle|kit|qty|lot)\b/.test(title)) return true;
+  return false;
+}
+
+function variantPriceFloat(variant: ShopifyVariant): number {
+  const number = Number.parseFloat((variant.price ?? '0').replace(/,/g, ''));
+  return Number.isFinite(number) ? number : 0;
+}
+
 function selectVariant(variants: ShopifyVariant[], variantTitle: string | undefined): ShopifyVariant | null {
   if (variants.length === 0) return null;
-  if (!variantTitle) return variants[0];
-  const needle = variantTitle.trim().toLowerCase();
-  return (
-    variants.find((variant) => (variant.title ?? '').trim().toLowerCase() === needle) ??
-    variants[0]
+  if (variantTitle) {
+    const needle = variantTitle.trim().toLowerCase();
+    const exact = variants.find((v) => (v.title ?? '').trim().toLowerCase() === needle);
+    if (exact) return exact;
+    const partial = variants.find((v) => (v.title ?? '').trim().toLowerCase().includes(needle));
+    if (partial) return partial;
+  }
+  // No explicit variant title → pick the single-unit retail variant.
+  // Skip obvious multi-pack SKUs ("10", "5 pcs", "Pack of 3") and prefer the
+  // highest-priced remaining variant (typically the headline single-unit price).
+  const singles = variants.filter((v) => !looksLikeMultiPack(v));
+  const pool = singles.length > 0 ? singles : variants;
+  return pool.reduce<ShopifyVariant>(
+    (best, current) => (variantPriceFloat(current) > variantPriceFloat(best) ? current : best),
+    pool[0]
   );
 }
 

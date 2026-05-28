@@ -197,11 +197,15 @@ function serializeProjection(row: PublicProjectionRow) {
 }
 
 function orderBySql(value: z.infer<typeof sort>) {
-  if (value === 'newest') return Prisma.sql`published_at DESC NULLS LAST, public_id ASC`;
-  if (value === 'name') return Prisma.sql`name ASC, public_id ASC`;
-  if (value === 'price_asc') return Prisma.sql`best_price_cents ASC NULLS LAST, name ASC`;
-  if (value === 'price_desc') return Prisma.sql`best_price_cents DESC NULLS LAST, name ASC`;
-  return Prisma.sql`featured DESC, published_at DESC NULLS LAST, name ASC`;
+  // All references are qualified — pp.* from the public_products matview
+  // (aliased pp), mp.sort_order from master_products joined on public_id.
+  if (value === 'newest') return Prisma.sql`pp.published_at DESC NULLS LAST, pp.public_id ASC`;
+  if (value === 'name') return Prisma.sql`pp.name ASC, pp.public_id ASC`;
+  if (value === 'price_asc') return Prisma.sql`pp.best_price_cents ASC NULLS LAST, pp.name ASC`;
+  if (value === 'price_desc') return Prisma.sql`pp.best_price_cents DESC NULLS LAST, pp.name ASC`;
+  // Default 'featured' sort now respects the curated mp.sort_order from
+  // the legacy catalog (1..N) before falling back to recency / name.
+  return Prisma.sql`pp.featured DESC, mp.sort_order ASC, pp.published_at DESC NULLS LAST, pp.name ASC`;
 }
 
 function typeSenseSort(value: z.infer<typeof sort>): string | undefined {
@@ -213,12 +217,14 @@ function typeSenseSort(value: z.infer<typeof sort>): string | undefined {
 }
 
 function buildWhere(query: z.infer<typeof listQuerySchema>) {
+  // Qualified with pp.* so the same WHERE works in both the LEFT-JOIN browse
+  // query and the count query (which also aliases public_products as pp).
   const clauses: Prisma.Sql[] = [];
 
-  if (query.category) clauses.push(Prisma.sql`category_slug = ${query.category}::citext`);
+  if (query.category) clauses.push(Prisma.sql`pp.category_slug = ${query.category}::citext`);
   if (query.manufacturer)
-    clauses.push(Prisma.sql`manufacturer_slug = ${query.manufacturer}::citext`);
-  if (query.inStock !== undefined) clauses.push(Prisma.sql`in_stock = ${query.inStock}`);
+    clauses.push(Prisma.sql`pp.manufacturer_slug = ${query.manufacturer}::citext`);
+  if (query.inStock !== undefined) clauses.push(Prisma.sql`pp.in_stock = ${query.inStock}`);
   if (clauses.length === 0) return Prisma.empty;
   return Prisma.sql`WHERE ${Prisma.join(clauses, ' AND ')}`;
 }
@@ -252,7 +258,7 @@ async function countPublicProducts(where: Prisma.Sql, cacheKey: string): Promise
   const prisma = getPrismaClient();
   const rows = await prisma.$queryRaw<Array<{ count: bigint }>>`
     SELECT COUNT(*)::bigint AS count
-    FROM public_products
+    FROM public_products pp
     ${where}
   `;
   const total = Number(rows[0]?.count ?? 0n);
@@ -339,32 +345,33 @@ catalogProjectionRouter.get(
       countPublicProducts(where, countCacheKey(query)),
       prisma.$queryRaw<PublicProjectionRow[]>`
         SELECT
-          public_id::text,
-          slug::text,
-          name,
-          short_description,
-          long_description_md,
-          manufacturer_slug::text,
-          manufacturer_name,
-          category_slug::text,
-          category_name,
-          primary_image,
-          gallery_images,
-          best_price_cents,
-          price_currency,
-          sell_price_cents,
-          compare_at_cents,
-          discount_pct,
-          curated_price,
-          in_stock,
-          offer_count,
-          vendor_offers,
-          sourcing_vendor_name,
-          specs,
-          compatibility,
-          featured,
-          published_at
-        FROM public_products
+          pp.public_id::text,
+          pp.slug::text,
+          pp.name,
+          pp.short_description,
+          pp.long_description_md,
+          pp.manufacturer_slug::text,
+          pp.manufacturer_name,
+          pp.category_slug::text,
+          pp.category_name,
+          pp.primary_image,
+          pp.gallery_images,
+          pp.best_price_cents,
+          pp.price_currency,
+          pp.sell_price_cents,
+          pp.compare_at_cents,
+          pp.discount_pct,
+          pp.curated_price,
+          pp.in_stock,
+          pp.offer_count,
+          pp.vendor_offers,
+          pp.sourcing_vendor_name,
+          pp.specs,
+          pp.compatibility,
+          pp.featured,
+          pp.published_at
+        FROM public_products pp
+        LEFT JOIN master_products mp ON mp.public_id = pp.public_id
         ${where}
         ORDER BY ${orderBySql(query.sort)}
         LIMIT ${query.limit}
@@ -522,6 +529,61 @@ catalogProjectionRouter.get(
       filters: { slug: parsedSlug },
     });
     sendSuccess(res, serializeProjection(rows[0]));
+  })
+);
+
+catalogProjectionRouter.get(
+  '/categories',
+  asyncHandler(async (_req, res) => {
+    const startedAt = Date.now();
+    const prisma = getPrismaClient();
+    // Top-level catalog categories with live product counts from public_products.
+    // Powers the /shop sidebar.
+    const rows = await prisma.$queryRaw<
+      Array<{
+        id: string;
+        slug: string;
+        name: string;
+        description: string | null;
+        sort_order: number;
+        parent_id: string | null;
+        product_count: bigint;
+      }>
+    >`
+      SELECT
+        c.id::text AS id,
+        c.slug::text AS slug,
+        c.name,
+        c.description,
+        c.sort_order,
+        c.parent_id::text AS parent_id,
+        COALESCE((
+          SELECT COUNT(*)::bigint
+          FROM public_products pp
+          WHERE pp.category_slug = c.slug
+        ), 0)::bigint AS product_count
+      FROM categories c
+      WHERE c.parent_id IS NULL
+      ORDER BY c.sort_order ASC, c.name ASC
+    `;
+    setCatalogCacheHeaders(res);
+    logProjectionRead({
+      route: '/api/catalog/categories',
+      startedAt,
+      returned: rows.length,
+    });
+    sendSuccess(
+      res,
+      rows.map((row) => ({
+        id: row.id,
+        slug: row.slug,
+        name: row.name,
+        description: row.description,
+        sortOrder: row.sort_order,
+        parentId: row.parent_id,
+        counts: { products: Number(row.product_count) },
+      }))
+    );
   })
 );
 

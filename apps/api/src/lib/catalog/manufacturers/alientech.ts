@@ -104,8 +104,8 @@ export class AlientechFetcher implements ManufacturerFetcher {
   readonly brandName = 'Alientech';
 
   async fetch(input: ManufacturerFetcherInput): Promise<ManufacturerProductContent> {
-    const path = input.handle.replace(/^\/?|\/?$/g, '/');
-    const sourceUrl = `${BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+    const trimmed = input.handle.replace(/^\/+|\/+$/g, '');
+    const sourceUrl = trimmed.length === 0 ? `${BASE_URL}/` : `${BASE_URL}/${trimmed}/`;
 
     const response = await safeFetch({ url: sourceUrl, acceptHeader: 'text/html' });
     if (!response.ok) {

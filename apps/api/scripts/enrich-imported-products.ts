@@ -178,10 +178,23 @@ async function main(): Promise<void> {
       const newDescription = content.description.trim() || master.longDescriptionMd || '';
       const newShort = newDescription.slice(0, 200);
 
+      // Name preservation rule:
+      //   - If we passed a variantTitle to the fetcher and the fetched name
+      //     doesn't reference it, the manufacturer page is a single shared
+      //     page for all variants (Alientech /kess3/). Keep our legacy name
+      //     so the three KESS3 variants don't collapse to identical names.
+      //   - Otherwise (AutoTuner master/slave pages, fetcher returned a
+      //     variant-specific name), trust the manufacturer canonical.
+      const variantHint = target.variantTitle?.trim().toLowerCase() ?? '';
+      const fetchedNameLower = content.canonicalName.toLowerCase();
+      const shouldUseFetchedName =
+        !variantHint || fetchedNameLower.includes(variantHint);
+      const newName = shouldUseFetchedName ? content.canonicalName : master.name;
+
       await prisma.masterProduct.update({
         where: { id: master.id },
         data: {
-          name: content.canonicalName,
+          name: newName,
           shortDescription: newShort,
           longDescriptionMd: newDescription,
           rrpSourceCents,
