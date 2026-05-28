@@ -564,6 +564,9 @@ catalogProjectionRouter.get(
         ), 0)::bigint AS product_count
       FROM categories c
       WHERE c.parent_id IS NULL
+        AND EXISTS (
+          SELECT 1 FROM public_products pp WHERE pp.category_slug = c.slug
+        )
       ORDER BY c.sort_order ASC, c.name ASC
     `;
     setCatalogCacheHeaders(res);

@@ -79,9 +79,11 @@ function htmlToMarkdown(html: string | null | undefined): string {
 
 function looksLikeMultiPack(variant: ShopifyVariant): boolean {
   const title = (variant.title ?? '').trim().toLowerCase();
-  if (!title) return false;
-  if (/^\d+$/.test(title)) return true; // bare quantity ("10")
-  if (/\b(pack|pcs|pieces?|bundle|kit|qty|lot)\b/.test(title)) return true;
+  if (!title || title === 'default title') return false;
+  // Any title that STARTS with a digit is a quantity ("10", "100", "100 (Custom logo printing incl.)").
+  if (/^\d/.test(title)) return true;
+  // Common multi-pack / bundled-printing markers.
+  if (/\b(pack|pcs|pieces?|bundle|kit|qty|lot|custom logo|printing|incl\.|including|set of)\b/.test(title)) return true;
   return false;
 }
 
@@ -99,13 +101,15 @@ function selectVariant(variants: ShopifyVariant[], variantTitle: string | undefi
     const partial = variants.find((v) => (v.title ?? '').trim().toLowerCase().includes(needle));
     if (partial) return partial;
   }
-  // No explicit variant title → pick the single-unit retail variant.
-  // Skip obvious multi-pack SKUs ("10", "5 pcs", "Pack of 3") and prefer the
-  // highest-priced remaining variant (typically the headline single-unit price).
-  const singles = variants.filter((v) => !looksLikeMultiPack(v));
-  const pool = singles.length > 0 ? singles : variants;
+  // No explicit variant title → prefer the single-unit retail.
+  // Multi-pack variants on Shopify carry the total pack price (€4,000 for a
+  // 10-pack, €40,000 for 100, etc.), so single-unit is the LOWEST priced
+  // non-zero entry once obvious quantity / bundle titles are filtered out.
+  const singles = variants.filter((v) => !looksLikeMultiPack(v) && variantPriceFloat(v) > 0);
+  const pool = singles.length > 0 ? singles : variants.filter((v) => variantPriceFloat(v) > 0);
+  if (pool.length === 0) return variants[0];
   return pool.reduce<ShopifyVariant>(
-    (best, current) => (variantPriceFloat(current) > variantPriceFloat(best) ? current : best),
+    (best, current) => (variantPriceFloat(current) < variantPriceFloat(best) ? current : best),
     pool[0]
   );
 }
