@@ -105,9 +105,9 @@ const PRODUCTS: RealProductInput[] = [
         '',
         'UAE stock and direct sourcing through Caracal Tech Motors, Deira, Dubai. Card, invoice and bank-transfer checkout supported. Ask before purchase if you need protocol, ECU or vehicle coverage confirmation.',
       ].join('\n'),
-    price: '5697.67',
-    currency: 'USD',
-    rrp: '4900.00',
+    price: '4000.00', // real dealer cost from mk3, not the public list price
+    currency: 'EUR',
+    rrp: '4900.00', // manufacturer official retail (autotuner.com)
     rrpCurrency: 'EUR',
     imageFile: 'autotuner-tool-master.jpg',
     vendorUrl: 'https://www.mk3.com/en/autotuner-tool-device-master-version',
