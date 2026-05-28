@@ -52,13 +52,22 @@ interface EnrichmentTarget {
   /** Whether to take the variant price as RRP (only when it really is the
    *  manufacturer's published retail price, not a dealer/intermediate price). */
   useVariantPriceAsRrp: boolean;
+  /** Keep the existing master.name (the legacy import title) instead of
+   *  overwriting it with the manufacturer's canonical name. Use this when the
+   *  manufacturer page describes the product in a way that doesn't represent
+   *  our single-unit listing (e.g. AT One is sold by AutoTuner only in packs,
+   *  so their canonical is "AutoTuner One (Tuner pack)" — not our SKU's reality). */
+  preserveOurName?: boolean;
 }
 
 const TARGETS: EnrichmentTarget[] = [
   // AutoTuner — Shopify, real public retail prices in EUR.
   { ourSlug: 'autotuner-tool-device-master-version', brandSlug: 'autotuner', manufacturerHandle: 'autotuner-tool', variantTitle: 'Master', useVariantPriceAsRrp: true },
   { ourSlug: 'autotuner-tool-device-slave-version',  brandSlug: 'autotuner', manufacturerHandle: 'autotuner-tool', variantTitle: 'Slave',  useVariantPriceAsRrp: true },
-  { ourSlug: 'autotuner-one-multi-brand-obd-ii-personal-flasher', brandSlug: 'autotuner', manufacturerHandle: 'autotuner-one', useVariantPriceAsRrp: true },
+  // AT One: AutoTuner only sells it in packs (10/25/…). The pack price isn't
+  // a comparable single-unit RRP for our MKON525 listing, so we don't set a
+  // compare-at and we keep our existing single-unit name from the M1 import.
+  { ourSlug: 'autotuner-one-multi-brand-obd-ii-personal-flasher', brandSlug: 'autotuner', manufacturerHandle: 'autotuner-one', useVariantPriceAsRrp: false, preserveOurName: true },
   // Alientech — dealer-only, no public prices; description + images only.
   { ourSlug: 'alientech-kessv3-ecu-and-tcu-programmer-obd-bench-boot',           brandSlug: 'alientech', manufacturerHandle: '/kess3/', variantTitle: 'KESS V3', useVariantPriceAsRrp: false },
   { ourSlug: 'alientech-kess3-slave-cars-agriculture-truck-bikes-marine-ob',      brandSlug: 'alientech', manufacturerHandle: '/kess3/', variantTitle: 'KESS3 Slave',  useVariantPriceAsRrp: false },
@@ -178,17 +187,20 @@ async function main(): Promise<void> {
       const newDescription = content.description.trim() || master.longDescriptionMd || '';
       const newShort = newDescription.slice(0, 200);
 
-      // Name preservation rule:
-      //   - If we passed a variantTitle to the fetcher and the fetched name
-      //     doesn't reference it, the manufacturer page is a single shared
-      //     page for all variants (Alientech /kess3/). Keep our legacy name
-      //     so the three KESS3 variants don't collapse to identical names.
-      //   - Otherwise (AutoTuner master/slave pages, fetcher returned a
-      //     variant-specific name), trust the manufacturer canonical.
+      // Name preservation rules (in order):
+      //   1. Explicit per-target opt-in (preserveOurName) — used when the
+      //      manufacturer page describes a different productisation than ours
+      //      (e.g. AT One sold only in packs).
+      //   2. If we passed a variantTitle to the fetcher and the fetched name
+      //      doesn't reference it, the manufacturer page is a single shared
+      //      page for all variants (Alientech /kess3/). Keep our legacy name
+      //      so the three KESS3 variants don't collapse to identical names.
+      //   3. Otherwise (AutoTuner master/slave pages, fetcher returned a
+      //      variant-specific name), trust the manufacturer canonical.
       const variantHint = target.variantTitle?.trim().toLowerCase() ?? '';
       const fetchedNameLower = content.canonicalName.toLowerCase();
       const shouldUseFetchedName =
-        !variantHint || fetchedNameLower.includes(variantHint);
+        !target.preserveOurName && (!variantHint || fetchedNameLower.includes(variantHint));
       const newName = shouldUseFetchedName ? content.canonicalName : master.name;
 
       await prisma.masterProduct.update({
