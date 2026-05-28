@@ -16,6 +16,7 @@ services:
       - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
       - ./docker/nginx/certs:/etc/nginx/certs:ro
       - ./docker/nginx/certbot:/var/www/certbot:ro
+      - /var/www/caracal-media:/usr/share/nginx/media:ro
       - nginx-logs:/var/log/nginx
     healthcheck:
       test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1/health/live >/dev/null 2>&1']
