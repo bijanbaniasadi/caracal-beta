@@ -99,6 +99,10 @@ services:
     volumes:
       - api-uploads:/app/apps/api/uploads
       - api-logs:/app/logs/api
+      # M2a: shared media directory — read/write so manufacturer-content
+      # enrichment can drop downloaded product photos that nginx serves at
+      # /media/. Host: /var/www/caracal-media. Container: /app/catalog-media.
+      - /var/www/caracal-media:/app/catalog-media
     healthcheck:
       test: ['CMD-SHELL', 'wget -qO- http://localhost:3001/health/ready >/dev/null 2>&1']
       interval: 30s
