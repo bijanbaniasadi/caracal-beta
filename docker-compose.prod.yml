@@ -17,6 +17,7 @@ services:
       - ./docker/nginx/certs:/etc/nginx/certs:ro
       - ./docker/nginx/certbot:/var/www/certbot:ro
       - /var/www/caracal-media:/usr/share/nginx/media:ro
+      - /opt/caracal-scan-bot/data/site-feed:/usr/share/nginx/scan-feed:ro   # anonymised scan feed for caracaltechmotors.com
       - nginx-logs:/var/log/nginx
     healthcheck:
       test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1/health/live >/dev/null 2>&1']
